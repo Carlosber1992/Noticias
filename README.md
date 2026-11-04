@@ -41,7 +41,7 @@ Para las tiendas se usa EAS Build, y hacen falta cuentas de Apple Developer y Go
 
 ## Panel de control
 
-El panel vive en Claude como artifact. `panel/plaza-panel.html` es su copia fuente. Entra por el conector de Supabase y usa `public.plaza_panel`.
+El panel vive en Claude como artifact. `panel/plaza-panel.html` es su copia fuente. Solo entra el dueño del proyecto, por su conector de Supabase, con `public.plaza_panel(p_fn,p_a)`. Ninguna cuenta de la app tiene administración.
 
 La clave de `lib/config.ts` es pública por diseño. Nunca subas la clave `service_role`.
 
