@@ -51,7 +51,7 @@ export default function Inicio() {
             <Row>{n.is_breaking ? <View style={{ backgroundColor: t.news, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 }}><T kind="bold" style={{ color: t.surface, fontSize: 12 }}>Última hora</T></View> : null}<T kind="muted" style={{ fontSize: 13 }}>{n.municipio} · @{n.author?.username} · {when(n.created_at)}{here && n.lat != null ? ` · a ${km(distKm(here, n))}` : ''}</T></Row>
             <Pressable onPress={() => router.push(`/noticia/${n.id}`)} style={{ gap: 4 }}><T kind="display" style={{ fontSize: 20 }}>{n.title}</T>{n.body ? <T>{n.body}</T> : null}</Pressable>
             <MediaView media={n.media} /><LocLink lat={n.lat} lng={n.lng} place={n.place} />
-            <Votes news={n} onChange={load} />
+            <Votes news={n} />
             <Row style={{ justifyContent: 'space-between' }}><Btn small kind="ghost" icon="chatbubble-outline" label={c ? `Ver ${c} ${c === 1 ? 'comentario' : 'comentarios'}` : 'Abrir y comentar'} onPress={() => router.push(`/noticia/${n.id}`)} /><ShareBtn path={`/noticia/${n.id}`} title={n.title} /></Row>
           </Card>
         );

@@ -27,7 +27,7 @@ export default function Perfil() {
     refreshBadges();
   }, [uid, refreshBadges]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
-  if (!uid) return <Screen title="Perfil"><Empty title="Estás leyendo sin cuenta" text="Crea tu cuenta para responder, seguir canales y crear grupos o canales."><Btn testID="to-auth" kind="pri" label="Entrar o crear cuenta" onPress={() => router.push('/entrar')} /></Empty></Screen>;
+  if (!uid) return <Screen title="Perfil"><Empty title="Estás leyendo sin cuenta" text="Crea tu cuenta para responder, seguir canales y enviar mensajes."><Btn testID="to-auth" kind="pri" label="Entrar o crear cuenta" onPress={() => router.push('/entrar')} /></Empty></Screen>;
   const answer = async (r: any, ok: boolean) => { await supabase.rpc('plaza_answer_request', { p_space: r.space_id, p_user: r.user_id, p_approve: ok }); say(`${ok ? 'Aprobaste' : 'Rechazaste'} a @${r.user?.username}`); load(); };
   const search = async (v: string) => { setFq(v); if (v.trim().length < 2) return setUsers([]); const { data } = await supabase.from('plaza_profiles').select('id,username').ilike('username', `%${v.replace(/^@/, '').replace(/[%_\\]/g, '\\$&')}%`).neq('id', uid).limit(10); setUsers(data ?? []); };
   const saveContact = async () => {
@@ -46,7 +46,6 @@ export default function Perfil() {
         {find ? <><Field testID="dm-q" value={fq} onChangeText={search} autoCapitalize="none" placeholder="Busca por usuario" />{users.map((u) => <Btn key={u.id} testID="dm-user" small label={`@${u.username}`} onPress={() => { setFind(false); router.push(`/chat/${u.id}`); }} />)}</> : null}
         {!convs.length ? <T kind="muted">Aún no tienes mensajes.</T> : convs.map((c) => <Card key={c.id} testID="conv" onPress={() => router.push(`/chat/${c.id}`)} style={{ backgroundColor: t.bg, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10 }}><Av name={c.name} /><View style={{ flex: 1, minWidth: 0 }}><T kind="semi">@{c.name}</T><T kind="muted" numberOfLines={1} style={{ fontSize: 13 }}>{c.last.sender_id === uid ? 'Tú: ' : ''}{c.last.body || 'Archivo'}</T></View><T kind="muted" style={{ fontSize: 12 }}>{when(c.last.created_at)}</T>{c.un ? <View style={{ backgroundColor: t.brand, borderRadius: 99, paddingHorizontal: 7 }}><T kind="bold" style={{ color: t.brandInk, fontSize: 12 }}>{c.un}</T></View> : null}</Card>)}
       </Card>
-      <Card><T kind="bold" style={{ fontSize: 17 }}>Crear</T><Row><Btn testID="mk-grupo" label="Crear grupo" icon="people-outline" onPress={() => router.push({ pathname: '/crear', params: { type: 'grupo' } })} /><Btn testID="mk-canal" label="Crear canal" icon="megaphone-outline" onPress={() => router.push({ pathname: '/crear', params: { type: 'canal' } })} /></Row></Card>
       {reqs.length ? <Card><T kind="bold" style={{ fontSize: 17 }}>Solicitudes de acceso</T>{reqs.map((r) => <Row key={r.space_id + r.user_id}><View style={{ flex: 1, minWidth: 140 }}><T kind="semi">@{r.user?.username}</T><T kind="muted" style={{ fontSize: 13 }}>Quiere entrar a {r.space?.name}</T></View><Btn testID="approve" small kind="pri" label="Aprobar" onPress={() => answer(r, true)} /><Btn small label="Rechazar" onPress={() => answer(r, false)} /></Row>)}</Card> : null}
       <Card>
         <T kind="bold" style={{ fontSize: 17 }}>Lo que sigues</T>

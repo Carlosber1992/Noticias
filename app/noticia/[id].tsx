@@ -33,7 +33,7 @@ export default function Noticia() {
         <T kind="muted" style={{ fontSize: 13 }}>{n.is_breaking ? 'Última hora · ' : ''}{n.municipio} · @{n.author?.username} · {when(n.created_at)}</T>
         <T kind="display" style={{ fontSize: 26 }}>{n.title}</T>
         {n.body ? <T>{n.body}</T> : null}
-        <MediaView media={n.media} /><LocLink lat={n.lat} lng={n.lng} place={n.place} /><Votes news={n} onChange={load} />
+        <MediaView media={n.media} /><LocLink lat={n.lat} lng={n.lng} place={n.place} /><Votes news={n} />
       </Card>
       <T kind="bold">{cs.length} {cs.length === 1 ? 'comentario' : 'comentarios'}</T>
       {!cs.length ? <T kind="muted">Sé la primera persona en comentar.</T> : null}
