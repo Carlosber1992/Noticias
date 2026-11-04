@@ -1,0 +1,172 @@
+<title>Panel de Plaza</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Figtree:wght@400;600;700&display=swap">
+<style>
+/* Layout: mesa de control con riel de secciones a la izquierda y trabajo a la derecha; usa la identidad de la app Plaza. */
+:root{--bg:#EDF2EE;--surface:#FFFFFF;--surface2:#E3EBE6;--ink:#10302C;--muted:#566D68;--line:#D3DED8;--brand:#0A6B5E;--brand-ink:#FFFFFF;--sun:#FFC02E;--sun-ink:#3A2A00;--danger:#B3261E;--danger-ink:#FFFFFF;--canal:#3B4CB8;--foro:#C8451F;--shade:rgba(16,48,44,.45);
+--display:"Bricolage Grotesque","Trebuchet MS",sans-serif;--body:"Figtree","Segoe UI",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1A19;--surface:#152523;--surface2:#1E322F;--ink:#E6F0EC;--muted:#9DB3AD;--line:#2A403C;--brand:#3CC2AC;--brand-ink:#06211D;--sun:#FFC94D;--sun-ink:#2C2000;--danger:#FF8A80;--danger-ink:#3A0906;--canal:#A3B0FF;--foro:#FF8A63;--shade:rgba(0,0,0,.6);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0E1A19;--surface:#152523;--surface2:#1E322F;--ink:#E6F0EC;--muted:#9DB3AD;--line:#2A403C;--brand:#3CC2AC;--brand-ink:#06211D;--sun:#FFC94D;--sun-ink:#2C2000;--danger:#FF8A80;--danger-ink:#3A0906;--canal:#A3B0FF;--foro:#FF8A63;--shade:rgba(0,0,0,.6);color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--body)}
+#app{display:grid;grid-template-columns:200px minmax(0,1fr);min-height:100vh}
+nav{background:var(--surface);border-right:1px solid var(--line);padding-block:18px;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:14px;display:flex;flex-direction:column;gap:3px;position:sticky;top:0;height:100vh;overflow:auto}
+.logo{font:800 24px/1 var(--display);padding:0 10px 12px}
+nav button{all:unset;cursor:pointer;padding:9px 10px;border-radius:8px;font-weight:600}
+nav button:hover{background:var(--surface2)}
+nav button[aria-current="page"]{background:var(--brand);color:var(--brand-ink)}
+nav button:focus-visible,.b:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.link:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.who{margin-top:auto;padding:12px 10px 0;border-top:1px solid var(--line);display:grid;gap:6px;font-size:13px}
+main{padding-block:22px 48px;padding-left:24px;padding-right:max(16px,env(safe-area-inset-right,0px));min-width:0;display:grid;gap:16px;align-content:start;max-width:1200px}
+h1{font:800 28px/1.1 var(--display);margin:0;text-wrap:balance}
+h2{font:700 16px/1.3 var(--body);margin:0}
+p{margin:0}
+.muted{color:var(--muted)}.small{font-size:13px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}
+.tile{all:unset;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+.tile:hover{border-color:var(--brand)}
+.tile b{display:block;font:800 28px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.f{display:grid;gap:3px;font-size:12px;color:var(--muted);flex:1 1 150px;min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:80px}
+.b{font:600 14px/1.2 var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 12px;border-radius:8px;cursor:pointer}
+.b:hover{border-color:var(--brand)}.b[disabled]{opacity:.5;cursor:not-allowed}
+.b.pri{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.b.sun{background:var(--sun);border-color:var(--sun);color:var(--sun-ink)}
+.b.bad{color:var(--danger);border-color:var(--danger);background:transparent}
+.b.badfill{background:var(--danger);border-color:var(--danger);color:var(--danger-ink)}
+.b.mini{padding:5px 8px;font-size:13px}
+.link{all:unset;cursor:pointer;color:var(--brand);font-weight:600;overflow-wrap:anywhere}
+.link:hover{text-decoration:underline}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-size:12px;text-align:left;color:var(--muted);font-weight:600;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;font-size:12px;font-weight:700;border-radius:99px;padding:1px 8px;background:var(--surface2);color:var(--ink);white-space:nowrap}
+.pill.brand{background:var(--brand);color:var(--brand-ink)}.pill.sun{background:var(--sun);color:var(--sun-ink)}.pill.bad{background:var(--danger);color:var(--danger-ink)}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.item{display:grid;gap:6px;padding:12px 0;border-bottom:1px solid var(--line);min-width:0}
+.item:last-child{border-bottom:0}
+.item p{overflow-wrap:anywhere;white-space:pre-wrap}
+.chart{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;align-items:end;height:130px;border-bottom:1px solid var(--line)}
+.chart div{position:relative;height:100%;display:flex;align-items:end}
+.chart i{display:block;width:100%;background:var(--brand);border-radius:4px 4px 0 0;min-height:2px}
+.axis{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.notice{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:10px;max-width:560px}
+.err{color:var(--danger);font-weight:600}
+.pager{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#shade{position:fixed;inset:0;background:var(--shade);z-index:20;display:flex;justify-content:flex-end}
+#shade.center{align-items:center;justify-content:center;padding:16px}
+.drawer{background:var(--bg);width:min(680px,100%);height:100%;overflow:auto;padding:20px;display:grid;gap:14px;align-content:start}
+.dialog{background:var(--surface);border-radius:14px;padding:18px;width:min(440px,100%);display:grid;gap:12px;max-height:100%;overflow:auto}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;z-index:30;font-weight:600;max-width:calc(100% - 32px)}
+dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;margin:0}dt{color:var(--muted)}dd{margin:0;overflow-wrap:anywhere}
+@media (max-width:760px){#app{grid-template-columns:minmax(0,1fr)}nav{position:static;height:auto;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding-block:8px;padding-right:max(16px,env(safe-area-inset-right,0px));padding-left:max(16px,env(safe-area-inset-left,0px));align-items:center}nav button{white-space:nowrap}.logo{padding:0 8px 0 0;font-size:20px}.who{margin:0;padding:0 0 0 10px;border:0;border-left:1px solid var(--line);min-width:150px}main{padding-left:max(16px,env(safe-area-inset-left,0px))}}
+</style>
+<div id="app"><nav id="nav" aria-label="Secciones"></nav><main id="main"><div class="notice"><h1>Conectando con Plaza</h1><p class="muted">Aquí verás usuarios, publicaciones, IP, anclados y alertas en cuanto Claude abra la conexión con Supabase.</p></div></main></div>
+<div id="layer"></div>
+<script>
+const PROJECT='qbcabwbpobqgwblrzhzb';
+const VIEWS=[['resumen','Resumen',1],['usuarios','Usuarios',1],['contenido','Contenido',1],['ip','Direcciones IP',2],['anclados','Anclados',1],['alertas','Alertas',1],['equipo','Equipo',3],['registro','Registro',3]];
+const RANK={moderador:1,supervisor:2,admin:3},ROLE={admin:'Administrador',supervisor:'Supervisor',moderador:'Moderador'};
+const KIND={noticia:'Noticia',comentario:'Comentario',pregunta:'Pregunta',respuesta:'Respuesta',mensaje:'Mensaje',grupo:'Grupo',canal:'Canal',foro:'Foro'};
+const S={mcp:null,me:null,team:[],view:'resumen',ids:{},cont:{},users:{}};
+const $=(s)=>document.querySelector(s);
+const rc=Element.prototype.replaceChildren;Element.prototype.replaceChildren=function(...k){rc.call(this,...k.flat(9).filter(x=>x!=null&&x!==false))};
+// Todo el contenido de usuarios entra como texto, nunca como HTML.
+function h(tag,attrs,...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs||{})){if(v==null||v===false)continue;if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else if(k==='class')e.className=v;else if(k==='value')e.value=v;else e.setAttribute(k,v===true?'':v)}for(const c of kids.flat(9)){if(c==null||c===false)continue;e.append(c.nodeType?c:String(c))}return e}
+const fmt=(d)=>d?new Date(d).toLocaleString('es-CO',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Bogota'}):'—';
+const n=(x)=>Number(x||0).toLocaleString('es-CO');
+function b64(s){return btoa(Array.from(new TextEncoder().encode(s),c=>String.fromCharCode(c)).join(''))}
+function toast(t){let e=$('#toast');if(e)e.remove();e=h('div',{id:'toast',role:'status'},t);document.body.append(e);setTimeout(()=>e.remove(),3200)}
+function parseResult(p){let t=p;if(t&&typeof t==='object'&&t.result!=null)t=t.result;if(typeof t!=='string')throw{code:'parse',message:'Supabase devolvió una respuesta que no se pudo leer.'};const m=t.match(/<untrusted-data-([0-9a-f-]+)>\s*([\s\S]*)\s*<\/untrusted-data-\1>/);return JSON.parse(m?m[2]:t)}
+function cleanErr(e){let m=e&&e.message||'No se pudo completar la acción.';if(e&&e.code==='tool_error'){try{const j=JSON.parse(m);m=j.error&&j.error.message||m}catch{}const x=String(m).match(/ERROR:\s*(?:P0001:|[0-9A-Z]{5}:)?\s*([^\n"]+)/);if(x)m=x[1]}return m}
+async function call(fn,args={}){
+ const actor=S.me&&S.me.id?`'${S.me.id.replace(/[^0-9a-f-]/g,'')}'::uuid`:'null';
+ const q=`select public.plaza_panel(${actor},'${fn.replace(/[^a-z_]/g,'')}',convert_from(decode('${b64(JSON.stringify(args))}','base64'),'UTF8')::jsonb) r`;
+ const res=await S.mcp.callTool('Supabase','execute_sql',{project_id:PROJECT,query:q},{cache:false});
+ return parseResult(res.payload)[0].r;
+}
+function block(title,text,btn){$('#nav').replaceChildren();$('#app').style.gridTemplateColumns='minmax(0,1fr)';$('#nav').hidden=true;$('#main').replaceChildren(h('div',{class:'notice'},h('h1',null,title),h('p',null,text),btn||null))}
+function connError(e){const m={server_not_connected:['Conecta Supabase','Agrega Supabase en Ajustes de Claude, Conectores, y vuelve a abrir este panel.'],needs_reauth:['Vuelve a conectar Supabase','La sesión del conector venció. Reconéctalo en Ajustes de Claude, Conectores.'],selection_required:['Elige la cuenta de Supabase','Tienes más de una conexión con ese nombre. Elige una cuando Claude te lo pida.'],not_in_manifest:['Falta tu permiso','Este panel necesita tu permiso para usar Supabase. Vuelve a abrirlo y acepta.'],blocked_by_policy:['Bloqueado por tu organización','Un administrador de tu organización debe permitir Supabase.'],approval_required:['Falta tu aprobación','Claude necesita que apruebes la consulta a Supabase.'],server_unavailable:['Supabase no responde','Espera unos segundos e inténtalo de nuevo.']}[e&&e.code]||['No se pudo conectar',cleanErr(e)];block(m[0],m[1],h('button',{class:'b pri',onclick:boot},'Reintentar'))}
+function nav(){const r=RANK[S.me.role];$('#nav').hidden=false;$('#app').style.gridTemplateColumns='';$('#nav').replaceChildren(h('div',{class:'logo'},'Plaza'),VIEWS.filter(v=>r>=v[2]).map(([k,l])=>h('button',{'aria-current':S.view===k?'page':null,onclick:()=>go(k)},l)),
+ h('div',{class:'who'},h('label',{for:'actor'},'Trabajas como'),h('select',{id:'actor',onchange:e=>{S.me=S.team.find(t=>t.id===e.target.value);try{localStorage.setItem('plaza.actor',S.me.id)}catch{}S.view='resumen';go('resumen')}},S.team.map(t=>{const o=h('option',{value:t.id},`@${t.username} · ${ROLE[t.role]}`);if(t.id===S.me.id)o.selected=true;return o}))))}
+async function go(v){S.view=v;nav();const main=$('#main');main.replaceChildren(h('p',{class:'muted'},'Cargando…'));try{await VIEW[v]()}catch(e){if(['server_not_connected','needs_reauth','approval_required'].includes(e.code))return connError(e);main.replaceChildren(h('div',{class:'notice'},h('h2',null,'No se pudo cargar esta sección'),h('p',{class:'err'},cleanErr(e)),h('button',{class:'b',onclick:()=>go(v)},'Reintentar')))}}
+const can=(l)=>RANK[S.me.role]>=l;
+async function act(fn,args,done,ok){try{await call(fn,args);toast(ok);closeLayer();if(done)await done()}catch(e){toast(cleanErr(e))}}
+function closeLayer(){$('#layer').replaceChildren()}
+function layer(node,center){const sh=h('div',{id:'shade',class:center?'center':null,onclick:e=>{if(e.target===sh)closeLayer()}},node);$('#layer').replaceChildren(sh)}
+function ask(title,text,fields,label,danger,onok){const inputs={};const err=h('p',{class:'err',hidden:true});const f=h('form',{class:'dialog',onsubmit:async e=>{e.preventDefault();const v={};for(const k in inputs)v[k]=inputs[k].value.trim();try{await onok(v)}catch(x){err.hidden=false;err.textContent=cleanErr(x)}}},h('h2',null,title),text?h('p',{class:'muted'},text):null,(fields||[]).map(x=>{const id='f-'+x.k;const el=x.options?h('select',{id},x.options.map(o=>h('option',{value:o[0]},o[1]))):h('input',{id,type:x.type||'text',placeholder:x.ph,min:x.min,max:x.max,value:x.value,required:x.req});inputs[x.k]=el;return h('label',{class:'f',for:id},x.l,el)}),err,h('div',{class:'row'},h('button',{class:'b '+(danger?'badfill':'pri')},label),h('button',{class:'b',type:'button',onclick:closeLayer},'Cancelar')));layer(f,true)}
+function pager(st,total,load){const lim=50;return h('div',{class:'pager'},h('span',{class:'muted small'},`${n(total)} en total`),h('div',{class:'row'},h('button',{class:'b mini',disabled:!st.offset,onclick:()=>{st.offset=Math.max(0,(st.offset||0)-lim);load()}},'Anteriores'),h('button',{class:'b mini',disabled:(st.offset||0)+lim>=total,onclick:()=>{st.offset=(st.offset||0)+lim;load()}},'Siguientes')))}
+
+function itemCard(i,after){
+ const media=(i.media||[]).length;
+ return h('div',{class:'item'},h('div',{class:'row'},h('span',{class:'pill '+(i.kind==='noticia'?'brand':'')},KIND[i.kind]||i.kind),i.is_breaking?h('span',{class:'pill bad'},'Última hora'):null,i.pin_rank?h('span',{class:'pill sun'},`Puesto ${i.pin_rank}`):null,i.is_private?h('span',{class:'pill'},'Privado'):null,media?h('span',{class:'pill'},`${media} ${media===1?'archivo':'archivos'}`):null,
+  i.username?h('button',{class:'link',onclick:()=>openUser(i.author_id)},'@'+i.username):null,h('span',{class:'muted small'},fmt(i.created_at),i.municipio?` · ${i.municipio}`:'',i.space_name&&!['grupo','canal','foro'].includes(i.kind)?` · ${i.space_name}`:'')),
+  i.title?h('strong',null,i.title):null,i.body?h('p',null,i.body):null,
+  h('div',{class:'row'},i.kind==='noticia'?h('span',{class:'muted small'},`${n(i.up)} a favor · ${n(i.down)} en contra`):null,i.ip?h('button',{class:'link small',onclick:()=>{S.cont={ip:i.ip};go('contenido')}},'IP '+i.ip):null,
+   can(2)&&['noticia','grupo','canal','foro'].includes(i.kind)?h('button',{class:'b mini',onclick:()=>pinAsk(i.kind==='noticia'?'noticia':'espacio',i.id,i.title,i.pin_rank,after)},i.pin_rank?'Cambiar puesto':'Anclar'):null,
+   (can(2)||!['grupo','canal','foro'].includes(i.kind))?h('button',{class:'b mini bad',onclick:()=>ask(`Eliminar ${(KIND[i.kind]||'').toLowerCase()}`,'Se borra de la app para todos y no se puede recuperar. Queda en el registro.',[{k:'reason',l:'Motivo'}],'Eliminar',true,v=>act('eliminar',{kind:i.kind,id:i.id,reason:v.reason},after,'Eliminado'))},'Eliminar'):null))}
+function pinAsk(kind,id,title,rank,after){ask('Anclar en un puesto',`«${title}» queda fija en ese puesto de la lista. Lo nuevo se acomoda en los demás puestos. Si el puesto está ocupado, los siguientes bajan uno.`,[{k:'rank',l:'Puesto (1 a 50)',type:'number',min:1,max:50,value:rank||1,req:true}],'Anclar',false,v=>act('anclar',{kind,id,rank:Number(v.rank)},after,`Anclada en el puesto ${v.rank}`))}
+
+async function openUser(id){layer(h('div',{class:'drawer'},h('p',{class:'muted'},'Cargando usuario…')));let u;try{u=await call('usuario',{user:id})}catch(e){layer(h('div',{class:'drawer'},h('p',{class:'err'},cleanErr(e)),h('button',{class:'b',onclick:closeLayer},'Cerrar')));return}
+ const refresh=()=>{openUser(id);if(['usuarios','equipo'].includes(S.view))go(S.view)};
+ const group=(t,f)=>{const l=u.items.filter(f);return l.length?h('section',{class:'panel'},h('h2',null,`${t} (${l.length})`),h('div',null,l.map(i=>itemCard({...i,username:null},()=>openUser(id))))):null};
+ const mine=u.id===S.me.id;
+ layer(h('div',{class:'drawer'},
+  h('div',{class:'head'},h('h1',null,'@'+u.username),h('button',{class:'b',onclick:closeLayer},'Cerrar')),
+  h('div',{class:'row'},u.role?h('span',{class:'pill brand'},ROLE[u.role]):null,u.suspended?h('span',{class:'pill bad'},u.until?`Suspendido hasta ${fmt(u.until)}`:'Suspendido sin fecha'):h('span',{class:'pill'},'Activo')),
+  h('section',{class:'panel'},h('dl',null,h('dt',null,'Registro'),h('dd',null,fmt(u.created_at)),
+   can(2)?[h('dt',null,'Correo'),h('dd',null,u.email||'Sin vincular'),h('dt',null,'Celular'),h('dd',null,u.phone||'Sin vincular')]:[h('dt',null,'Contacto'),h('dd',{class:'muted'},'Visible para supervisor y administrador')],
+   h('dt',null,'Mensajes privados'),h('dd',null,`${n(u.dm_count)} (el contenido no se muestra)`),u.suspended&&u.reason?[h('dt',null,'Motivo'),h('dd',null,u.reason)]:null),
+   h('div',{class:'row'},can(2)&&!mine?(u.suspended?h('button',{class:'b',onclick:()=>act('reactivar',{user:id},refresh,'Suspensión levantada')},'Levantar suspensión'):h('button',{class:'b',onclick:()=>ask('Suspender cuenta','La persona podrá leer, pero no publicar, comentar ni escribir. Deja los días vacíos para una suspensión sin fecha.',[{k:'days',l:'Días',type:'number',min:1},{k:'reason',l:'Motivo'}],'Suspender',true,v=>act('suspender',{user:id,days:v.days?Number(v.days):null,reason:v.reason},refresh,'Cuenta suspendida'))},'Suspender')):null,
+    can(3)?h('button',{class:'b',onclick:()=>ask('Cambiar perfil',`Perfil de @${u.username} en el equipo.`,[{k:'role',l:'Perfil',options:[['','Sin perfil de equipo'],['moderador','Moderador'],['supervisor','Supervisor'],['admin','Administrador']]}],'Guardar',false,v=>act('perfil',{user:id,role:v.role},async()=>{await loadTeam();nav();refresh()},'Perfil actualizado'))},'Cambiar perfil'):null,
+    can(3)&&!mine?h('button',{class:'b bad',onclick:()=>ask('Eliminar cuenta',`Se borran la cuenta de @${u.username} y todo lo que publicó. No se puede recuperar.`,[{k:'confirm',l:`Escribe ${u.username} para confirmar`,req:true}],'Eliminar cuenta',true,v=>act('eliminar_cuenta',{user:id,confirm:v.confirm},()=>go(S.view),'Cuenta eliminada'))},'Eliminar cuenta'):null)),
+  u.ips&&u.ips.length?h('section',{class:'panel'},h('h2',null,'Direcciones IP'),h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['IP','Eventos','Cuentas','Última vez'].map(t=>h('th',null,t)))),h('tbody',null,u.ips.map(i=>h('tr',null,h('td',null,h('button',{class:'link',onclick:()=>{closeLayer();S.users={ip:i.ip};go('usuarios')}},i.ip)),h('td',null,i.events),h('td',null,i.users>1?h('span',{class:'pill bad'},i.users):i.users),h('td',null,fmt(i.last_seen)))))))):null,
+  group('Noticias',i=>i.kind==='noticia'),group('Preguntas',i=>i.kind==='pregunta'),group('Canales, grupos y foros',i=>['canal','grupo','foro'].includes(i.kind)),group('Comentarios',i=>i.kind==='comentario'),group('Respuestas y mensajes',i=>['respuesta','mensaje'].includes(i.kind)),
+  u.following.length?h('section',{class:'panel'},h('h2',null,`Sigue (${u.following.length})`),h('div',{class:'row'},u.following.map(f=>h('span',{class:'pill'},f.name)))):null))}
+
+const VIEW={
+ async resumen(){const s=await call('resumen');const max=Math.max(1,...s.series.map(x=>x.count));const tile=(v,l,go2)=>h('button',{class:'tile',onclick:go2},h('b',null,v==null?'—':n(v)),h('span',{class:'muted small'},l));
+  $('#main').replaceChildren(h('div',{class:'head'},h('h1',null,'Resumen'),h('button',{class:'b',onclick:()=>go('resumen')},'Actualizar')),
+  h('div',{class:'tiles'},tile(s.users,`usuarios, ${n(s.users_today)} hoy`,()=>go('usuarios')),tile(s.news,'noticias',()=>{S.cont={kind:'noticia'};go('contenido')}),tile(s.spaces,'canales, grupos y foros',()=>{S.cont={kind:'espacios'};go('contenido')}),tile(s.threads,'preguntas',()=>{S.cont={kind:'pregunta'};go('contenido')}),tile(s.comments,'comentarios',()=>{S.cont={kind:'comentario'};go('contenido')}),tile(s.messages,'respuestas y mensajes',()=>{S.cont={kind:'mensaje'};go('contenido')}),tile(s.suspended,'cuentas suspendidas',()=>{S.users={filter:'suspendidos'};go('usuarios')}),can(2)?tile(s.shared_ips,'IP con varias cuentas',()=>go('ip')):null,tile(s.active_alerts,`alertas activas, ${n(s.push_subs)} equipos suscritos`,()=>go('alertas'))),
+  h('section',{class:'panel'},h('h2',null,'Publicaciones por día, últimos 14 días'),h('div',{class:'chart'},s.series.map(x=>h('div',{title:`${x.day}: ${x.count}`},h('i',{style:`height:${x.count/max*100}%`,'aria-label':`${x.day}: ${x.count}`})))),h('div',{class:'axis'},h('span',null,s.series[0].day.slice(5)),h('span',null,`Máximo ${max}`),h('span',null,s.series[13].day.slice(5)))))},
+ async usuarios(){const st=S.users;const load=async()=>{const r=await call('usuarios',{...st,limit:50,offset:st.offset||0});box.replaceChildren(h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['Usuario',...(can(2)?['Correo','Celular','Última IP']:[]),'Publicó','Registro','Estado'].map(t=>h('th',null,t)))),h('tbody',null,r.rows.length?r.rows.map(u=>h('tr',null,h('td',null,h('button',{class:'link',onclick:()=>openUser(u.id)},'@'+u.username)),can(2)?[h('td',null,u.email||'—'),h('td',null,u.phone||'—'),h('td',null,u.last_ip?h('button',{class:'link',onclick:()=>{S.users={ip:u.last_ip};go('usuarios')}},u.last_ip):'—')]:null,h('td',null,`${u.news} noticias, ${u.threads} preguntas, ${u.spaces} espacios, ${u.comments} comentarios`),h('td',null,fmt(u.created_at)),h('td',null,h('div',{class:'row'},u.role?h('span',{class:'pill brand'},ROLE[u.role]):null,u.suspended?h('span',{class:'pill bad'},'Suspendido'):h('span',{class:'pill'},'Activo'))))):h('tr',null,h('td',{colspan:7,class:'muted'},'Ningún usuario coincide con el filtro.'))))),pager(st,r.total,load))};
+  const box=h('section',{class:'panel'},h('p',{class:'muted'},'Cargando…'));
+  const apply=e=>{e.preventDefault();st.q=$('#u-q').value;st.filter=$('#u-f').value;if($('#u-ip'))st.ip=$('#u-ip').value.trim();st.offset=0;load().catch(x=>toast(cleanErr(x)))};
+  const o=[['todos','Todos'],['equipo','Equipo'],['suspendidos','Suspendidos'],...(can(2)?[['contacto','Con correo o celular'],['ip_compartida','IP compartida']]:[])];
+  $('#main').replaceChildren(h('h1',null,'Usuarios'),h('form',{class:'filters',onsubmit:apply},h('label',{class:'f',for:'u-q'},can(2)?'Usuario, correo o celular':'Usuario',h('input',{id:'u-q',value:st.q||''})),can(2)?h('label',{class:'f',for:'u-ip'},'IP',h('input',{id:'u-ip',value:st.ip||''})):null,h('label',{class:'f',for:'u-f'},'Filtro',(()=>{const s=h('select',{id:'u-f'},o.map(x=>h('option',{value:x[0]},x[1])));s.value=st.filter||'todos';return s})()),h('button',{class:'b pri'},'Buscar')),box);await load()},
+ async contenido(){const st=S.cont;const box=h('section',{class:'panel'},h('p',{class:'muted'},'Cargando…'));let munis=[];
+  const load=async()=>{const r=await call('contenido',{...st,from:st.from?st.from+'T00:00:00-05:00':'',to:st.to?st.to+'T23:59:59-05:00':'',limit:50,offset:st.offset||0});munis=r.municipios;const sel=$('#c-m');if(sel&&sel.options.length<=1){munis.forEach(m=>sel.append(h('option',{value:m},m)));sel.value=st.municipio||''}box.replaceChildren(r.rows.length?h('div',null,r.rows.map(i=>itemCard(i,load))):h('p',{class:'muted'},'Nada coincide con estos filtros.'),pager(st,r.total,load))};
+  const v=id=>{const e=$(id);return e?e.value:''};
+  const apply=e=>{e.preventDefault();Object.assign(st,{kind:v('#c-k'),tipo:v('#c-t'),q:v('#c-q'),author:v('#c-a'),municipio:v('#c-m'),from:v('#c-f'),to:v('#c-to'),offset:0});if($('#c-ip'))st.ip=v('#c-ip').trim();load().catch(x=>toast(cleanErr(x)))};
+  const sel=(id,opts,val)=>{const s=h('select',{id},opts.map(o=>h('option',{value:o[0]},o[1])));s.value=val||opts[0][0];return s};
+  $('#main').replaceChildren(h('h1',null,'Contenido'),h('form',{class:'filters',onsubmit:apply},h('label',{class:'f',for:'c-k'},'Tipo',sel('c-k',[['todos','Todo'],['noticia','Noticias'],['pregunta','Preguntas'],['respuesta','Respuestas'],['comentario','Comentarios'],['mensaje','Mensajes de grupo o canal'],['espacios','Canales, grupos y foros'],['canal','Canales'],['grupo','Grupos'],['foro','Foros']],st.kind)),h('label',{class:'f',for:'c-t'},'Tipo de noticia',sel('c-t',[['todos','Todas'],['ultima_hora','Última hora'],['normal','Normal'],['con_archivos','Con archivos'],['anclado','Ancladas']],st.tipo)),h('label',{class:'f',for:'c-q'},'Palabra',h('input',{id:'c-q',value:st.q||''})),h('label',{class:'f',for:'c-a'},'Usuario',h('input',{id:'c-a',value:st.author||''})),h('label',{class:'f',for:'c-m'},'Localidad',sel('c-m',[['','Todas']],'')),can(2)?h('label',{class:'f',for:'c-ip'},'IP',h('input',{id:'c-ip',value:st.ip||''})):null,h('label',{class:'f',for:'c-f'},'Desde',h('input',{id:'c-f',type:'date',value:st.from||''})),h('label',{class:'f',for:'c-to'},'Hasta',h('input',{id:'c-to',type:'date',value:st.to||''})),h('button',{class:'b pri'},'Filtrar')),box);await load()},
+ async ip(){let q='';let min=2;const box=h('section',{class:'panel'},h('p',{class:'muted'},'Cargando…'));
+  const load=async()=>{const r=await call('ips',{q,min_users:min});box.replaceChildren(h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['IP','Cuentas','Usuarios','Publicaciones','Ingresos','Última vez',''].map(t=>h('th',null,t)))),h('tbody',null,r.length?r.map(x=>h('tr',null,h('td',null,x.ip),h('td',null,x.users>1?h('span',{class:'pill bad'},x.users):x.users),h('td',null,h('div',{class:'row'},x.usernames.slice(0,8).map(u=>h('span',{class:'pill'},'@'+u)))),h('td',null,x.posts),h('td',null,x.logins),h('td',null,fmt(x.last_seen)),h('td',null,h('div',{class:'row'},h('button',{class:'b mini',onclick:()=>{S.users={ip:x.ip};go('usuarios')}},'Usuarios'),h('button',{class:'b mini',onclick:()=>{S.cont={ip:x.ip};go('contenido')}},'Publicaciones'))))):h('tr',null,h('td',{colspan:7,class:'muted'},min>1?'Ninguna IP tiene varias cuentas todavía. La captura empezó hoy, así que lo publicado antes no tiene IP.':'Todavía no hay direcciones registradas.')))))) };
+  $('#main').replaceChildren(h('h1',null,'Direcciones IP'),h('form',{class:'filters',onsubmit:e=>{e.preventDefault();q=$('#i-q').value.trim();min=Number($('#i-m').value);load().catch(x=>toast(cleanErr(x)))}},h('label',{class:'f',for:'i-q'},'IP',h('input',{id:'i-q'})),h('label',{class:'f',for:'i-m'},'Mostrar',(()=>{const s=h('select',{id:'i-m'},h('option',{value:2},'Con varias cuentas'),h('option',{value:1},'Todas'));return s})()),h('button',{class:'b pri'},'Buscar')),box);await load()},
+ async anclados(){const r=await call('anclados');const lst=(title,kind,arr,hint)=>h('section',{class:'panel'},h('h2',null,title),h('p',{class:'muted small'},hint),arr.length?h('div',null,arr.map((x,i)=>h('div',{class:'item'},h('div',{class:'row'},h('span',{class:'pill sun'},`Puesto ${x.pin_rank}`),x.type?h('span',{class:'pill'},KIND[x.type]):null,h('strong',null,x.title)),can(2)?h('div',{class:'row'},h('button',{class:'b mini',disabled:x.pin_rank<=1,onclick:()=>act('anclar',{kind,id:x.id,rank:x.pin_rank-1},()=>go('anclados'),'Puesto actualizado')},'Subir'),h('button',{class:'b mini',onclick:()=>act('anclar',{kind,id:x.id,rank:x.pin_rank+1},()=>go('anclados'),'Puesto actualizado')},'Bajar'),h('button',{class:'b mini',onclick:()=>pinAsk(kind,x.id,x.title,x.pin_rank,()=>go('anclados'))},'Elegir puesto'),h('button',{class:'b mini bad',onclick:()=>act('anclar',{kind,id:x.id,rank:null},()=>go('anclados'),'Desanclado')},'Desanclar')):null))):h('p',{class:'muted'},'Nada anclado todavía.'),can(2)?h('button',{class:'b sun',onclick:()=>{S.cont=kind==='noticia'?{kind:'noticia'}:{kind:'espacios'};go('contenido')}},kind==='noticia'?'Elegir una noticia':'Elegir un canal, grupo o foro'):null);
+  $('#main').replaceChildren(h('h1',null,'Anclados'),lst('Noticias en Inicio','noticia',r.news,'Se ven en su puesto en Más recientes. Lo nuevo llena los puestos libres.'),lst('Canales, grupos y foros','espacio',r.spaces,'Canales y grupos se ordenan en Cerca, y siempre se ven aunque estén lejos. Los foros se ordenan en Foros.'))},
+ async alertas(){const r=await call('alertas');const send=can(2)?h('form',{class:'panel',onsubmit:e=>{e.preventDefault();const aud=$('#a-a').value;const d={title:$('#a-t').value.trim(),body:$('#a-b').value.trim(),level:$('#a-l').value,audience:aud,username:aud==='usuario'?$('#a-u').value.trim():null,hours:Number($('#a-h').value)};ask(d.level==='alarma'?'Enviar alarma':'Enviar aviso',`«${d.title}» llegará de inmediato a ${aud==='todos'?'todas las personas de la app, con o sin cuenta':aud==='usuarios'?'todos los usuarios con cuenta':'@'+d.username}. No se puede retirar de las notificaciones ya recibidas.`,[],'Enviar ahora',d.level==='alarma',()=>act('enviar_alerta',d,()=>go('alertas'),'Alerta enviada'))}},h('h2',null,'Nueva alerta'),h('label',{class:'f',for:'a-t'},'Título',h('input',{id:'a-t',required:true,minlength:3,maxlength:80})),h('label',{class:'f',for:'a-b'},'Mensaje',h('textarea',{id:'a-b',maxlength:500})),h('div',{class:'filters'},h('label',{class:'f',for:'a-l'},'Tipo',h('select',{id:'a-l'},h('option',{value:'aviso'},'Aviso: ventana con un sonido corto'),h('option',{value:'alarma'},'Alarma: ventana roja con sonido fuerte'))),h('label',{class:'f',for:'a-a'},'Para',h('select',{id:'a-a',onchange:e=>{$('#a-uw').hidden=e.target.value!=='usuario';$('#a-u').required=e.target.value==='usuario'}},h('option',{value:'todos'},'Todos, con o sin cuenta'),h('option',{value:'usuarios'},'Usuarios con cuenta'),h('option',{value:'usuario'},'Un usuario'))),h('label',{class:'f',for:'a-u',id:'a-uw',hidden:true},'Usuario',h('input',{id:'a-u',placeholder:'@usuario'})),h('label',{class:'f',for:'a-h'},'Se muestra durante',h('select',{id:'a-h'},h('option',{value:6},'6 horas'),(()=>{const o=h('option',{value:24},'24 horas');o.selected=true;return o})(),h('option',{value:72},'3 días'),h('option',{value:168},'7 días')))),h('button',{class:'b sun'},'Revisar y enviar'),h('p',{class:'muted small'},'Las apps abiertas la reciben al instante. Con la app cerrada llega como notificación a quienes activaron las alertas en su navegador.')):null;
+  $('#main').replaceChildren(h('h1',null,'Alertas'),send,h('section',{class:'panel'},h('h2',null,'Enviadas'),r.length?h('div',null,r.map(a=>h('div',{class:'item'},h('div',{class:'row'},h('span',{class:'pill '+(a.level==='alarma'?'bad':'brand')},a.level==='alarma'?'Alarma':'Aviso'),a.active?h('span',{class:'pill sun'},'Activa'):h('span',{class:'pill'},'Terminada'),h('span',{class:'muted small'},fmt(a.created_at),' · ',a.audience==='todos'?'Todos':a.audience==='usuarios'?'Usuarios con cuenta':'@'+a.username)),h('strong',null,a.title),a.body?h('p',null,a.body):null,a.active&&can(2)?h('div',null,h('button',{class:'b mini',onclick:()=>act('terminar_alerta',{id:a.id},()=>go('alertas'),'Alerta terminada')},'Terminar')):null))):h('p',{class:'muted'},'Aún no has enviado alertas.')))},
+ async equipo(){await loadTeam();nav();const rows=[['Ver usuarios y contenido',1,1,1],['Eliminar publicaciones',1,1,1],['Ver correo, celular e IP',0,1,1],['Anclar y enviar alertas',0,1,1],['Suspender cuentas y borrar espacios',0,1,1],['Cambiar perfiles, borrar cuentas y ver registro',0,0,1]];
+  $('#main').replaceChildren(h('h1',null,'Equipo'),h('section',{class:'panel'},h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['Cuenta','Perfil'].map(t=>h('th',null,t)))),h('tbody',null,S.team.map(t=>h('tr',null,h('td',null,h('button',{class:'link',onclick:()=>openUser(t.id)},'@'+t.username)),h('td',null,h('span',{class:'pill brand'},ROLE[t.role]))))))),h('p',{class:'muted small'},'Para sumar a alguien, abre su cuenta en Usuarios y toca Cambiar perfil.')),h('section',{class:'panel'},h('h2',null,'Qué puede hacer cada perfil'),h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['Permiso','Moderador','Supervisor','Administrador'].map(t=>h('th',null,t)))),h('tbody',null,rows.map(r=>h('tr',null,h('td',null,r[0]),[1,2,3].map(i=>h('td',null,r[i]?'Sí':'No')))))))))},
+ async registro(){const r=await call('registro');$('#main').replaceChildren(h('h1',null,'Registro'),h('section',{class:'panel'},r.length?h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['Fecha','Quién','Acción','Sobre'].map(t=>h('th',null,t)))),h('tbody',null,r.map(a=>h('tr',null,h('td',null,fmt(a.created_at)),h('td',null,'@'+a.actor_name),h('td',null,a.action),h('td',null,a.target)))))):h('p',{class:'muted'},'Aún no hay acciones registradas.')))}
+};
+async function loadTeam(){const t=await call('equipo');S.team=t.staff;return t}
+async function boot(){
+ block('Conectando con Plaza','Abriendo la conexión con Supabase.');
+ S.mcp=await window.claude?.use('mcp');
+ if(!S.mcp)return block('Abre este panel en Claude','El panel usa tu conexión de Supabase en Claude y no funciona fuera de aquí.');
+ let t;try{t=await loadTeam()}catch(e){return connError(e)}
+ if(!t.staff.length){const sel=h('select',{id:'first'},t.cuentas.map(c=>h('option',{value:c.id},'@'+c.username)));return block('Elige tu cuenta de administrador','Esta cuenta de Plaza será el primer administrador. Después podrás sumar supervisores y moderadores.',h('div',{class:'row'},sel,h('button',{class:'b pri',onclick:async()=>{await call('primer_admin',{user:sel.value});boot()}},'Usar esta cuenta')))}
+ let saved=null;try{saved=localStorage.getItem('plaza.actor')}catch{}
+ S.me=S.team.find(x=>x.id===saved)||S.team[0];go('resumen');
+}
+boot();
+</script>

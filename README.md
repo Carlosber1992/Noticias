@@ -37,15 +37,20 @@ Para las tiendas se usa EAS Build, y hacen falta cuentas de Apple Developer y Go
 
 - `supabase/migrations/`: tablas, reglas de acceso y funciones.
 - `supabase/functions/plaza-register/`: crea cuentas sin correo real.
+- `supabase/functions/plaza-alert/`: envía las alertas como notificación.
+
+## Panel de control
+
+El panel vive en Claude como artifact. `panel/plaza-panel.html` es su copia fuente. Entra por el conector de Supabase y usa `public.plaza_panel`.
 
 La clave de `lib/config.ts` es pública por diseño. Nunca subas la clave `service_role`.
 
 ## Pendiente antes de un lanzamiento abierto
 
-- Bloquear y reportar usuarios, y moderar contenido.
+- Reportar usuarios y contenido desde la app.
 - Recuperar contraseña: hoy el correo y el celular se guardan, pero no se verifican.
 - Límite de registros para evitar cuentas automáticas.
-- Notificaciones push: hoy los avisos solo llegan con la app abierta.
+- Notificaciones en Android e iPhone nativos: hoy las alertas con la app cerrada solo llegan al navegador.
 - Mapa real: Cerca usa un radar de distancia.
 - Respuestas redactadas con IA: hoy muestran lo más parecido a lo publicado.
 - Publicación en App Store y Google Play.
