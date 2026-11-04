@@ -10,7 +10,7 @@ export type Here = Pt & { label: string };
 type Ctx = {
   ready: boolean; uid: string | null; username: string | null; guest: boolean; here: Here | null;
   setGuest: (v: boolean) => void; enter: (u: string, p: string) => Promise<string>; signOut: () => Promise<void>;
-  need: (fn: () => void) => void; runPending: () => void; clearPending: () => void; setHere: (h: Here | null) => void; useGps: () => Promise<string>;
+  need: (fn: () => void) => void; runPending: () => void; clearPending: () => void; setHere: (h: Here | null) => void; useGps: () => Promise<string>; getGps: () => Promise<Here | string>;
   toast: string; say: (t: string) => void; dmUnread: number; reqCount: number; refreshBadges: () => void;
   stats: Record<string, { total: number; unread: number | null }>; spaceUnread: number; activeSpace: { current: string | null };
 };
@@ -112,18 +112,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const runPending = () => { const f = pending.current; pending.current = null; if (f) setTimeout(f, 50); };
   const clearPending = () => { pending.current = null; };
   const setHere = (h: Here | null) => { setH(h); AsyncStorage.setItem('plaza.here', h ? JSON.stringify(h) : ''); };
-  const useGps = async () => {
+  const getGps = async (): Promise<Here | string> => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return 'No diste permiso de ubicación. Elige tu ciudad en la lista.';
       const { coords: c } = await Location.getCurrentPositionAsync({});
       const near = [...CITIES].sort((a, b) => Math.hypot(a.lat - c.latitude, a.lng - c.longitude) - Math.hypot(b.lat - c.latitude, b.lng - c.longitude))[0];
-      setHere({ lat: c.latitude, lng: c.longitude, label: `Cerca de ${near.label}` });
-      return '';
+      return { lat: c.latitude, lng: c.longitude, label: `Cerca de ${near.label}` };
     } catch { return 'No pudimos obtener tu ubicación. Elige tu ciudad en la lista.'; }
   };
   const spaceUnread = Object.values(stats).reduce((a, x) => a + (x.unread ?? 0), 0);
-  const v = useMemo(() => ({ stats, spaceUnread, activeSpace, ready, uid, username, guest, here, setGuest, enter, signOut, need, runPending, clearPending, setHere, useGps, toast, say, dmUnread, reqCount, refreshBadges }), [ready, uid, username, guest, here, toast, dmUnread, reqCount, refreshBadges, stats, spaceUnread]);
+  const useGps = async () => { const r = await getGps(); if (typeof r === 'string') return r; setHere(r); return ''; };
+  const v = useMemo(() => ({ getGps, stats, spaceUnread, activeSpace, ready, uid, username, guest, here, setGuest, enter, signOut, need, runPending, clearPending, setHere, useGps, toast, say, dmUnread, reqCount, refreshBadges }), [ready, uid, username, guest, here, toast, dmUnread, reqCount, refreshBadges, stats, spaceUnread]);
   return <C.Provider value={v as Ctx}>{children}</C.Provider>;
 }
 export { nz };

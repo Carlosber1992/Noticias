@@ -52,5 +52,6 @@ La clave de `lib/config.ts` es pública por diseño. Nunca subas la clave `servi
 - Límite de registros para evitar cuentas automáticas.
 - Notificaciones en Android e iPhone nativos: hoy las alertas con la app cerrada solo llegan al navegador.
 - Mapa real: Cerca usa un radar de distancia.
+- Elegir un punto exacto en un mapa: hoy se usa GPS o una ciudad.
 - Respuestas redactadas con IA: hoy muestran lo más parecido a lo publicado.
 - Publicación en App Store y Google Play.

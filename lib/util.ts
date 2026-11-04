@@ -20,4 +20,4 @@ export const CITIES: (Pt & { label: string })[] = [
   { label: 'Ibagué', lat: 4.439, lng: -75.232 }, { label: 'Santa Marta', lat: 11.241, lng: -74.205 }, { label: 'Pasto', lat: 1.214, lng: -77.281 },
   { label: 'Envigado', lat: 6.171, lng: -75.584 }, { label: 'Chía', lat: 4.862, lng: -74.058 }, { label: 'Zipaquirá', lat: 5.022, lng: -74.005 },
 ];
-export const errText = (e: any) => { const m = String(e?.message ?? e ?? ''); return /Necesitas|Solo |Escribe/.test(m) ? m : 'No se pudo completar. Revisa tu conexión e inténtalo de nuevo.'; };
+export const errText = (e: any) => { const m = String(e?.message ?? e ?? ''); return /Necesitas|Solo |Escribe|Elige/.test(m) ? m : 'No se pudo completar. Revisa tu conexión e inténtalo de nuevo.'; };
