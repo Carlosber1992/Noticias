@@ -1,37 +1,51 @@
 # Plaza
 
-Demo de una app comunitaria de noticias, foros, grupos y canales. Todo está en un solo archivo, `index.html`, y no necesita instalación: basta con abrirlo en un navegador.
+App comunitaria de noticias, foros, grupos y canales, para web, Android e iPhone con un solo código.
 
-**Es una demostración.** No tiene servidor: los datos se guardan en el navegador de cada persona, así que dos personas en dispositivos distintos no pueden comunicarse todavía.
+- **App:** Expo (React Native y web)
+- **Datos, cuentas, archivos y tiempo real:** Supabase
+- **Web:** Vercel
 
-## Probarla
+`demo.html` es el demo original, sin servidor.
 
-Abre `index.html` y entra con **Usuario demo** (usuario `demo`, contraseña `demo1234`), o crea una cuenta con usuario y contraseña. También puedes usar **Leer sin cuenta**.
+## Funciones
 
-## Qué incluye
-
-- **Registro rápido:** solo usuario y contraseña. El correo y el celular son opcionales.
-- **Inicio:** noticias con última hora, me gusta y no me gusta, comentarios, buscador por municipio o tema y filtro por distancia.
-- **Cerca:** grupos y canales en un mapa, filtrados por distancia.
-- **Preguntar:** preguntas abiertas que responde la comunidad, y respuestas automáticas.
-- **Foros:** públicos o privados, con preguntas y respuestas.
+- Cuenta solo con usuario y contraseña. También se puede leer sin cuenta.
+- **Inicio:** noticias en vivo, última hora, me gusta y no me gusta, comentarios, búsqueda por municipio o tema y filtro por distancia.
+- **Cerca:** grupos y canales por distancia, con GPS o eligiendo ciudad.
+- **Preguntar:** preguntas abiertas que responde la gente, y respuestas automáticas con lo ya publicado.
+- **Foros:** públicos o privados.
 - **Perfil:** mensajes privados, crear grupos y canales, solicitudes de acceso y lo que sigues.
-- **Espacios privados:** se encuentran, pero su contenido solo lo ve quien aprueba el administrador.
-- **Multimedia y compartir:** fotos, videos, audios y ubicación, con enlaces para WhatsApp, Telegram y otras apps.
+- **Privados:** se encuentran por nombre, pero el administrador debe aprobar el acceso. La base de datos bloquea el contenido a quien no tenga permiso.
+- Fotos, videos, audios, ubicación y enlaces para compartir.
 
-## Qué está simulado
+## Ejecutar
 
-- Las noticias y preguntas que entran solas, las respuestas de otros usuarios, los votos que cambian solos y las aprobaciones de otros administradores.
-- La cercanía usa un mapa ilustrado con puntos de ejemplo, no GPS ni mapas reales.
-- Vincular correo o celular no envía ninguna verificación.
-- Las noticias y personas son de ejemplo, aunque algunos municipios sean reales.
-- Los archivos subidos desaparecen al recargar la página.
-- **Respuesta automática** usa Claude solo dentro de la versión publicada en Claude. Fuera de ahí muestra la publicación más parecida.
+Requiere Node 22 o superior.
 
-## Qué falta para la versión real
+```bash
+npm install
+npm run web      # navegador
+npm start        # abre el código QR para probar en el celular con Expo Go
+```
 
-- Servidor y base de datos, con cuentas y contraseñas protegidas en el servidor. La protección de los espacios privados también debe hacerse ahí.
-- Almacenamiento de archivos y notificaciones.
-- GPS, mapas reales y una lista oficial de municipios.
-- Bloquear y reportar usuarios, y moderación de contenido.
-- Recuperación de cuenta para quien no vincule correo ni celular.
+Publicar la web: `npm run build:web` genera `dist/`. Vercel lo hace solo con cada cambio en `main`.
+
+Para las tiendas se usa EAS Build, y hacen falta cuentas de Apple Developer y Google Play.
+
+## Base de datos
+
+- `supabase/migrations/`: tablas, reglas de acceso y funciones.
+- `supabase/functions/plaza-register/`: crea cuentas sin correo real.
+
+La clave de `lib/config.ts` es pública por diseño. Nunca subas la clave `service_role`.
+
+## Pendiente antes de un lanzamiento abierto
+
+- Bloquear y reportar usuarios, y moderar contenido.
+- Recuperar contraseña: hoy el correo y el celular se guardan, pero no se verifican.
+- Límite de registros para evitar cuentas automáticas.
+- Notificaciones push.
+- Mapa real: Cerca usa un radar de distancia.
+- Respuestas redactadas con IA: hoy muestran lo más parecido a lo publicado.
+- Publicación en App Store y Google Play.

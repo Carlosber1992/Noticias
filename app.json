@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Plaza",
+    "slug": "plaza",
+    "scheme": "plaza",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.carlosber.plaza",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.carlosber.plaza"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-video",
+      "expo-audio",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Plaza usa tu ubicación para mostrarte lo que hay cerca."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Plaza usa tus fotos y videos para que los compartas.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ]
+  }
+}
