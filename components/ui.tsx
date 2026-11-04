@@ -28,7 +28,7 @@ export function Btn({ label, onPress, kind = 'soft', icon, small, disabled, test
 }
 export function Chip({ label, on, onPress, testID }: { label: string; on?: boolean; onPress?: () => void; testID?: string }) {
   const t = useT();
-  return <Pressable testID={testID} onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!on }} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 99, backgroundColor: on ? t.ink : t.surface }}><T kind="semi" style={{ fontSize: 14, color: on ? t.surface : t.muted }}>{label}</T></Pressable>;
+  return <Pressable testID={testID} onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!on }} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 99, backgroundColor: on ? t.ink : t.surface2 }}><T kind="semi" style={{ fontSize: 14, color: on ? t.surface : t.muted }}>{label}</T></Pressable>;
 }
 export const Row = ({ children, style }: any) => <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }, style]}>{children}</View>;
 export function Card({ children, style, onPress, testID }: any) {

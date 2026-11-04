@@ -16,7 +16,7 @@ export default function Espacio() {
   const [s, setS] = useState<any>(undefined); const [desc, setDesc] = useState(''); const [member, setMember] = useState(false); const [req, setReq] = useState<string | null>(null); const [count, setCount] = useState<number | null>(null);
   const [items, setItems] = useState<any[]>([]); const [threads, setThreads] = useState<any[]>([]); const [ask, setAsk] = useState(false); const [q, setQ] = useState(''); const [pending, setPending] = useState<any[]>([]);
   const load = useCallback(async () => {
-    const { data: sp } = await supabase.from('plaza_spaces').select('*, owner:plaza_profiles(username)').eq('id', id).maybeSingle();
+    const { data: sp } = await supabase.from('plaza_spaces').select('*, owner:plaza_profiles!owner_id(username)').eq('id', id).maybeSingle();
     setS(sp ?? null); if (!sp) return;
     let mem = false, rq = null;
     if (uid) {
@@ -27,8 +27,8 @@ export default function Espacio() {
     if (sp.is_private && !mem) { setItems([]); setThreads([]); setDesc(''); setCount(null); return; }
     const [d, c] = await Promise.all([supabase.from('plaza_space_details').select('description').eq('space_id', id).maybeSingle(), supabase.rpc('plaza_space_count', { p_space: id })]);
     setDesc(d.data?.description ?? ''); setCount(c.data ?? null);
-    if (sp.type === 'foro') { const r = await supabase.from('plaza_threads').select('*, author:plaza_profiles(username), answers:plaza_messages(count)').eq('space_id', id).order('created_at', { ascending: false }); setThreads(r.data ?? []); }
-    else { const r = await supabase.from('plaza_messages').select('*, author:plaza_profiles(username)').eq('space_id', id).is('thread_id', null).order('created_at', { ascending: sp.type === 'grupo' }).limit(200); setItems(r.data ?? []); }
+    if (sp.type === 'foro') { const r = await supabase.from('plaza_threads').select('*, author:plaza_profiles!author_id(username), answers:plaza_messages(count)').eq('space_id', id).order('created_at', { ascending: false }); setThreads(r.data ?? []); }
+    else { const r = await supabase.from('plaza_messages').select('*, author:plaza_profiles!author_id(username)').eq('space_id', id).is('thread_id', null).order('created_at', { ascending: sp.type === 'grupo' }).limit(200); setItems(r.data ?? []); }
     if (sp.owner_id === uid && sp.is_private) { const r = await supabase.from('plaza_requests').select('user_id, status, user:plaza_profiles(username)').eq('space_id', id).eq('status', 'pending'); setPending(r.data ?? []); }
   }, [id, uid]);
   useFocusEffect(useCallback(() => { load(); }, [load]));

@@ -14,7 +14,7 @@ export default function Preguntar() {
   const [newQ, setNewQ] = useState(false); const [q, setQ] = useState(''); const [forums, setForums] = useState<any[]>([]); const [to, setTo] = useState('libre');
   const [asks, setAsks] = useState<A[]>([]); const [ask, setAsk] = useState(''); const used = useRef('');
   const load = useCallback(async () => {
-    const { data } = await supabase.from('plaza_threads').select('*, author:plaza_profiles(username), space:plaza_spaces(id,name), answers:plaza_messages(count)').order('created_at', { ascending: false }).limit(100);
+    const { data } = await supabase.from('plaza_threads').select('*, author:plaza_profiles!author_id(username), space:plaza_spaces!space_id(id,name), answers:plaza_messages(count)').order('created_at', { ascending: false }).limit(100);
     setList(data ?? []);
     const f = await supabase.from('plaza_spaces').select('id,name,is_private').eq('type', 'foro');
     setForums(f.data ?? []);

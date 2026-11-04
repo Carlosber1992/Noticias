@@ -14,8 +14,8 @@ export default function Noticia() {
   const [n, setN] = useState<any>(undefined); const [cs, setCs] = useState<any[]>([]);
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from('plaza_news').select('*, author:plaza_profiles(username)').eq('id', id).maybeSingle(),
-      supabase.from('plaza_news_comments').select('*, author:plaza_profiles(username)').eq('news_id', id).order('created_at'),
+      supabase.from('plaza_news').select('*, author:plaza_profiles!author_id(username)').eq('id', id).maybeSingle(),
+      supabase.from('plaza_news_comments').select('*, author:plaza_profiles!author_id(username)').eq('news_id', id).order('created_at'),
     ]);
     setN(a.data ?? null); setCs(b.data ?? []);
   }, [id]);

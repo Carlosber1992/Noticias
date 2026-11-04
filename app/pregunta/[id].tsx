@@ -12,8 +12,8 @@ export default function Pregunta() {
   const [h, setH] = useState<any>(undefined); const [ms, setMs] = useState<any[]>([]);
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from('plaza_threads').select('*, author:plaza_profiles(username), space:plaza_spaces(id,name,is_private)').eq('id', id).maybeSingle(),
-      supabase.from('plaza_messages').select('*, author:plaza_profiles(username)').eq('thread_id', id).order('is_best', { ascending: false }).order('created_at'),
+      supabase.from('plaza_threads').select('*, author:plaza_profiles!author_id(username), space:plaza_spaces!space_id(id,name,is_private)').eq('id', id).maybeSingle(),
+      supabase.from('plaza_messages').select('*, author:plaza_profiles!author_id(username)').eq('thread_id', id).order('is_best', { ascending: false }).order('created_at'),
     ]);
     setH(a.data ?? null); setMs(b.data ?? []);
   }, [id]);

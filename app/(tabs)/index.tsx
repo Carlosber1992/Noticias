@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { useT } from '../../lib/theme';
 import { distKm, km, nz, when } from '../../lib/util';
 
-const NEWS_SELECT = '*, author:plaza_profiles(username), comments:plaza_news_comments(count)';
+const NEWS_SELECT = '*, author:plaza_profiles!author_id(username), comments:plaza_news_comments(count)';
 export default function Inicio() {
   const t = useT(); const { here } = useApp();
   const [list, setList] = useState<any[] | null>(null); const [q, setQ] = useState(''); const [radius, setRadius] = useState<number | null>(null); const [sort, setSort] = useState('new');
