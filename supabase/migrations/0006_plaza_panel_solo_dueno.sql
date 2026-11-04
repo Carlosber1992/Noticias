@@ -1,0 +1,3 @@
+-- El panel no depende de cuentas de Plaza: solo entra el dueño del proyecto por su conector de Supabase.
+-- plaza_panel(p_fn,p_a) es la única puerta y no se puede llamar desde la app. Se quitan plaza_staff,
+-- plaza_staff_role, plaza_admin_set_role y plaza_admin_me; plaza_need solo pasa dentro de plaza_panel.
