@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { addManifest, refreshPush } from './push';
 import { supabase } from './supabase';
 import { CITIES, nz, Pt } from './util';
 
@@ -36,10 +37,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const load = useCallback(async (id: string | null) => {
     setUid(id);
     if (!id) { setUsername(null); return; }
+    supabase.rpc('plaza_touch').then(() => {}, () => {}); refreshPush();
     const { data } = await supabase.from('plaza_profiles').select('username').eq('id', id).maybeSingle();
     setUsername(data?.username ?? null);
   }, []);
   useEffect(() => {
+    addManifest();
     (async () => {
       const [{ data }, g, h] = await Promise.all([supabase.auth.getSession(), AsyncStorage.getItem('plaza.guest'), AsyncStorage.getItem('plaza.here')]);
       await load(data.session?.user.id ?? null);

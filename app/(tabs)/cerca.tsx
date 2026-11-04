@@ -1,9 +1,10 @@
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Btn, Card, Chip, Empty, Field, Loading, Row, Screen, SpIcon, T } from '../../components/ui';
 import { useApp } from '../../lib/app';
+import { withPins } from '../../lib/pins';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../lib/theme';
 import { CITIES, distKm, km, nz } from '../../lib/util';
@@ -11,15 +12,22 @@ import { CITIES, distKm, km, nz } from '../../lib/util';
 export default function Cerca() {
   const t = useT(); const { uid, here, setHere, useGps, say, need, stats, refreshBadges } = useApp();
   const [list, setList] = useState<any[] | null>(null); const [mine, setMine] = useState<string[]>([]); const [radius, setRadius] = useState(10); const [type, setType] = useState('todos'); const [q, setQ] = useState(''); const [pick, setPick] = useState(false); const [tab, setTab] = useState('todos');
+  const loadSpaces = useCallback(async () => {
+    const { data } = await supabase.from('plaza_spaces').select('*').neq('type', 'foro').order('created_at', { ascending: false });
+    setList(data ?? []);
+  }, []);
+  useEffect(() => {
+    const ch = supabase.channel('spaces-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_spaces' }, () => loadSpaces()).subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [loadSpaces]);
   useFocusEffect(useCallback(() => {
     (async () => {
-      const { data } = await supabase.from('plaza_spaces').select('*').neq('type', 'foro').order('created_at', { ascending: false });
-      setList(data ?? []);
+      await loadSpaces();
       refreshBadges();
       if (uid) { const m = await supabase.from('plaza_members').select('space_id').eq('user_id', uid); setMine((m.data ?? []).map((x) => x.space_id)); }
     })();
   }, [uid]));
-  const shown = useMemo(() => (list ?? []).map((s) => ({ ...s, d: here && s.lat != null ? distKm(here, s) : null })).filter((s) => (type === 'todos' || s.type === type) && (tab === 'mios' ? s.owner_id === uid : tab === 'sigo' ? mine.includes(s.id) && s.owner_id !== uid : radius >= 9999 || (s.d != null && s.d <= radius)) && nz(s.name).includes(nz(q))).sort(tab === 'todos' ? (a, b) => (a.d ?? 1e9) - (b.d ?? 1e9) : (a, b) => (stats[b.id]?.unread ?? 0) - (stats[a.id]?.unread ?? 0)), [list, here, radius, type, q, tab, mine, uid, stats]);
+  const shown = useMemo(() => { const r = (list ?? []).map((s) => ({ ...s, d: here && s.lat != null ? distKm(here, s) : null })).filter((s) => (type === 'todos' || s.type === type) && (tab === 'mios' ? s.owner_id === uid : tab === 'sigo' ? mine.includes(s.id) && s.owner_id !== uid : s.pin_rank != null || radius >= 9999 || (s.d != null && s.d <= radius)) && nz(s.name).includes(nz(q))).sort(tab === 'todos' ? (a, b) => (a.d ?? 1e9) - (b.d ?? 1e9) : (a, b) => (stats[b.id]?.unread ?? 0) - (stats[a.id]?.unread ?? 0)); return tab === 'todos' ? withPins(r) : r; }, [list, here, radius, type, q, tab, mine, uid, stats]);
   const open = (k: string) => (k === 'todos' ? setTab(k) : need(() => setTab(k)));
   const R = 150;
   return (
@@ -41,7 +49,7 @@ export default function Cerca() {
       </View> : null}
       {!list ? <Loading /> : !shown.length ? <Empty title={tab === 'mios' ? 'Aún no has creado nada' : tab === 'sigo' ? 'Aún no sigues nada' : 'Nada por aquí'} text={tab === 'mios' ? 'Toca Crear para abrir tu grupo o canal.' : tab === 'sigo' ? 'Sigue un canal o únete a un grupo desde Disponibles.' : here ? 'Prueba con un radio más amplio o crea tu grupo o canal.' : 'Elige tu ubicación para ver lo que hay cerca, o toca Todo.'} /> : shown.map((s) => (
         <Card key={s.id} testID="space-row" onPress={() => router.push(`/espacio/${s.id}`)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <SpIcon type={s.type} /><View style={{ flex: 1, minWidth: 0 }}><Row style={{ flexWrap: 'nowrap' }}><T kind="semi" numberOfLines={1} style={{ flexShrink: 1 }}>{s.name}</T>{s.is_private ? <Ionicons name="lock-closed-outline" size={14} color={t.muted} /> : null}</Row><T kind="muted" numberOfLines={1} style={{ fontSize: 13 }}>{s.is_private && !mine.includes(s.id) ? 'Privado: pide autorización' : `${s.type === 'canal' ? 'Canal' : 'Grupo'} · ${stats[s.id]?.total ?? 0} ${stats[s.id]?.total === 1 ? 'mensaje' : 'mensajes'}${s.place ? ` · ${s.place}` : ''}`}</T></View>
+          <SpIcon type={s.type} /><View style={{ flex: 1, minWidth: 0 }}><Row style={{ flexWrap: 'nowrap' }}><T kind="semi" numberOfLines={1} style={{ flexShrink: 1 }}>{s.name}</T>{s.pin_rank != null ? <Ionicons name="pin" size={14} color={t.brand} /> : null}{s.is_private ? <Ionicons name="lock-closed-outline" size={14} color={t.muted} /> : null}</Row><T kind="muted" numberOfLines={1} style={{ fontSize: 13 }}>{s.is_private && !mine.includes(s.id) ? 'Privado: pide autorización' : `${s.type === 'canal' ? 'Canal' : 'Grupo'} · ${stats[s.id]?.total ?? 0} ${stats[s.id]?.total === 1 ? 'mensaje' : 'mensajes'}${s.place ? ` · ${s.place}` : ''}`}</T></View>
           {stats[s.id]?.unread ? <View testID="unread" style={{ backgroundColor: t.news, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 }}><T kind="bold" style={{ color: t.surface, fontSize: 12 }}>{stats[s.id].unread}</T></View> : null}
           {s.d != null ? <T kind="bold" style={{ fontSize: 13 }}>{km(s.d)}</T> : null}
         </Card>
