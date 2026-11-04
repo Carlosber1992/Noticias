@@ -9,7 +9,7 @@ import { useT } from '../../lib/theme';
 import { CITIES, distKm, km, nz } from '../../lib/util';
 
 export default function Cerca() {
-  const t = useT(); const { uid, here, setHere, useGps, say } = useApp();
+  const t = useT(); const { uid, here, setHere, useGps, say, need } = useApp();
   const [list, setList] = useState<any[] | null>(null); const [mine, setMine] = useState<string[]>([]); const [radius, setRadius] = useState(10); const [type, setType] = useState('todos'); const [q, setQ] = useState(''); const [pick, setPick] = useState(false);
   useFocusEffect(useCallback(() => {
     (async () => {
@@ -21,7 +21,7 @@ export default function Cerca() {
   const shown = useMemo(() => (list ?? []).map((s) => ({ ...s, d: here && s.lat != null ? distKm(here, s) : null })).filter((s) => (type === 'todos' || s.type === type) && (radius >= 9999 || (s.d != null && s.d <= radius)) && nz(s.name).includes(nz(q))).sort((a, b) => (a.d ?? 1e9) - (b.d ?? 1e9)), [list, here, radius, type, q]);
   const R = 150;
   return (
-    <Screen title="Cerca de ti" sub={here?.label ?? 'Elige tu ubicación'} right={<Btn testID="loc" small icon="location-outline" label="Cambiar" onPress={() => setPick(!pick)} />}>
+    <Screen title="Cerca de ti" sub={here?.label ?? 'Elige tu ubicación'} right={<Row style={{ flexWrap: 'nowrap', gap: 6 }}><Btn testID="loc" small icon="location-outline" label="Cambiar" onPress={() => setPick(!pick)} /><Btn testID="new-space" small kind="sun" icon="add" label="Crear" onPress={() => need(() => router.push({ pathname: '/crear', params: { type: 'grupo' } }))} /></Row>}>
       {pick || !here ? <Card>
         <Btn testID="gps" kind="pri" icon="navigate-outline" label="Usar mi ubicación" onPress={async () => { const e = await useGps(); if (e) say(e); else setPick(false); }} />
         <T kind="muted">O elige tu ciudad:</T>

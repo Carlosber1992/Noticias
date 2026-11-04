@@ -9,7 +9,7 @@ export type Here = Pt & { label: string };
 type Ctx = {
   ready: boolean; uid: string | null; username: string | null; guest: boolean; here: Here | null;
   setGuest: (v: boolean) => void; enter: (u: string, p: string) => Promise<string>; signOut: () => Promise<void>;
-  need: (fn: () => void) => void; runPending: () => void; setHere: (h: Here | null) => void; useGps: () => Promise<string>;
+  need: (fn: () => void) => void; runPending: () => void; clearPending: () => void; setHere: (h: Here | null) => void; useGps: () => Promise<string>;
   toast: string; say: (t: string) => void; dmUnread: number; reqCount: number; refreshBadges: () => void;
 };
 const C = createContext<Ctx>(null as any);
@@ -91,6 +91,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     router.push('/entrar');
   };
   const runPending = () => { const f = pending.current; pending.current = null; if (f) setTimeout(f, 50); };
+  const clearPending = () => { pending.current = null; };
   const setHere = (h: Here | null) => { setH(h); AsyncStorage.setItem('plaza.here', h ? JSON.stringify(h) : ''); };
   const useGps = async () => {
     try {
@@ -102,7 +103,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return '';
     } catch { return 'No pudimos obtener tu ubicación. Elige tu ciudad en la lista.'; }
   };
-  const v = useMemo(() => ({ ready, uid, username, guest, here, setGuest, enter, signOut, need, runPending, setHere, useGps, toast, say, dmUnread, reqCount, refreshBadges }), [ready, uid, username, guest, here, toast, dmUnread, reqCount, refreshBadges]);
+  const v = useMemo(() => ({ ready, uid, username, guest, here, setGuest, enter, signOut, need, runPending, clearPending, setHere, useGps, toast, say, dmUnread, reqCount, refreshBadges }), [ready, uid, username, guest, here, toast, dmUnread, reqCount, refreshBadges]);
   return <C.Provider value={v as Ctx}>{children}</C.Provider>;
 }
 export { nz };

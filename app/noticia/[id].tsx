@@ -35,7 +35,6 @@ export default function Noticia() {
         {n.body ? <T>{n.body}</T> : null}
         <MediaView media={n.media} /><LocLink lat={n.lat} lng={n.lng} place={n.place} /><Votes news={n} onChange={load} />
       </Card>
-      {n.context ? <Card><T kind="bold" style={{ fontSize: 17 }}>Más contexto</T><T>{n.context}</T><T kind="muted" style={{ fontSize: 13 }}>Publicado por @{n.author?.username}.</T></Card> : null}
       <T kind="bold">{cs.length} {cs.length === 1 ? 'comentario' : 'comentarios'}</T>
       {!cs.length ? <T kind="muted">Sé la primera persona en comentar.</T> : null}
       {cs.map((c) => <Card key={c.id} testID="comment"><Row><Av name={c.author?.username ?? '?'} /><T kind="semi">@{c.author?.username}</T><T kind="muted" style={{ fontSize: 13 }}>{when(c.created_at)}</T></Row>{c.body ? <T>{c.body}</T> : null}<MediaView media={c.media} /></Card>)}

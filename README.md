@@ -11,7 +11,7 @@ App comunitaria de noticias, foros, grupos y canales, para web, Android e iPhone
 ## Funciones
 
 - Cuenta solo con usuario y contraseña. También se puede leer sin cuenta.
-- **Inicio:** noticias en vivo, última hora, me gusta y no me gusta, comentarios, búsqueda por municipio o tema y filtro por distancia.
+- **Inicio:** noticias en vivo, última hora, me gusta y no me gusta, comentarios, búsqueda por localidad o tema y filtro por distancia.
 - **Cerca:** grupos y canales por distancia, con GPS o eligiendo ciudad.
 - **Preguntar:** preguntas abiertas que responde la gente, y respuestas automáticas con lo ya publicado.
 - **Foros:** públicos o privados.

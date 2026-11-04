@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Btn, Chip, Field, Row, Screen, T } from '../components/ui';
 import { useApp } from '../lib/app';
@@ -7,7 +7,7 @@ import { useT } from '../lib/theme';
 import { errText } from '../lib/util';
 
 export default function Crear() {
-  const t = useT(); const p = useLocalSearchParams<{ type: string }>(); const { need, here, say } = useApp();
+  const t = useT(); const p = useLocalSearchParams<{ type: string }>(); const { uid, need, here, say } = useApp();
   const [type, setType] = useState<string>(p.type ?? 'grupo'); const [priv, setPriv] = useState(false); const [name, setName] = useState(''); const [desc, setDesc] = useState(''); const [q, setQ] = useState(''); const [err, setErr] = useState('');
   const go = () => {
     if (name.trim().length < 3) return setErr('Ponle un nombre de al menos 3 caracteres.');
@@ -19,6 +19,7 @@ export default function Crear() {
       router.replace(`/espacio/${(data as any).space_id}`);
     });
   };
+  if (!uid) return <Redirect href="/entrar" />;
   return (
     <Screen title={type === 'foro' ? 'Crear foro' : 'Crear'} back>
       {type !== 'foro' ? <Row><Chip label="Grupo" on={type === 'grupo'} onPress={() => setType('grupo')} /><Chip testID="c-canal" label="Canal" on={type === 'canal'} onPress={() => setType('canal')} /></Row> : null}

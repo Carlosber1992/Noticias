@@ -9,7 +9,7 @@ import { useT } from '../../lib/theme';
 import { nz, when } from '../../lib/util';
 
 export default function Foros() {
-  const t = useT(); const { uid } = useApp();
+  const t = useT(); const { uid, need } = useApp();
   const [list, setList] = useState<any[] | null>(null); const [mine, setMine] = useState<string[]>([]); const [q, setQ] = useState(''); const [f, setF] = useState('todos');
   useFocusEffect(useCallback(() => {
     (async () => {
@@ -20,7 +20,7 @@ export default function Foros() {
   }, [uid]));
   const shown = useMemo(() => (list ?? []).filter((s) => (f === 'todos' || (f === 'mios' ? mine.includes(s.id) : f === 'pub' ? !s.is_private : s.is_private)) && nz(s.name).includes(nz(q))), [list, mine, q, f]);
   return (
-    <Screen title="Foros" right={<Btn testID="new-foro" small kind="sun" icon="add" label="Crear foro" onPress={() => router.push({ pathname: '/crear', params: { type: 'foro' } })} />}>
+    <Screen title="Foros" right={<Btn testID="new-foro" small kind="sun" icon="add" label="Crear foro" onPress={() => need(() => router.push({ pathname: '/crear', params: { type: 'foro' } }))} />}>
       <Field value={q} onChangeText={setQ} placeholder="Buscar foros" />
       <Row>{[['todos', 'Todos'], ['mios', 'Los míos'], ['pub', 'Públicos'], ['priv', 'Privados']].map(([k, l]) => <Chip key={k} label={l} on={f === k} onPress={() => setF(k)} />)}</Row>
       {!list ? <Loading /> : !shown.length ? <Empty title="No hay foros aquí" text="Crea el primero con el botón de arriba." /> : shown.map((s) => (

@@ -56,7 +56,7 @@ export default function Preguntar() {
   );
   const shown = (list ?? []).filter((x) => !only || !x.answers?.[0]?.count);
   return (
-    <Screen title="Preguntar" sub="La gente responde aquí" right={<Btn testID="new-q" small kind="sun" icon="add" label="Preguntar" onPress={() => setNewQ(!newQ)} />}>
+    <Screen title="Preguntar" sub="La gente responde aquí" right={<Btn testID="new-q" small kind="sun" icon="add" label="Preguntar" onPress={() => need(() => setNewQ((v) => !v))} />}>
       {tabs}
       {newQ ? <Card>
         <Field testID="q-title" label="Pregunta" value={q} onChangeText={setQ} maxLength={140} placeholder="¿Qué quieres saber?" />

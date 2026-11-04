@@ -11,7 +11,7 @@ import { distKm, km, nz, when } from '../../lib/util';
 
 const NEWS_SELECT = '*, author:plaza_profiles!author_id(username), comments:plaza_news_comments(count)';
 export default function Inicio() {
-  const t = useT(); const { here } = useApp();
+  const t = useT(); const { here, need } = useApp();
   const [list, setList] = useState<any[] | null>(null); const [q, setQ] = useState(''); const [radius, setRadius] = useState<number | null>(null); const [sort, setSort] = useState('new');
   const load = useCallback(async () => {
     const { data } = await supabase.from('plaza_news').select(NEWS_SELECT).order('created_at', { ascending: false }).limit(200);
@@ -31,8 +31,8 @@ export default function Inicio() {
     return r.sort(sort === 'top' ? (a, b) => sc(b) - sc(a) : sort === 'near' ? (a, b) => dist(a) - dist(b) : (a, b) => +new Date(b.created_at) - +new Date(a.created_at));
   }, [list, q, radius, sort, here]);
   return (
-    <Screen testID="inicio" title="Noticias" sub="Se actualiza sola" right={<Btn testID="publish" small kind="sun" icon="add" label="Publicar" onPress={() => router.push('/publicar')} />}>
-      <Field testID="news-q" value={q} onChangeText={setQ} placeholder="Busca por municipio, tema o palabra" />
+    <Screen testID="inicio" title="Noticias" sub="Se actualiza sola" right={<Btn testID="publish" small kind="sun" icon="add" label="Publicar" onPress={() => need(() => router.push('/publicar'))} />}>
+      <Field testID="news-q" value={q} onChangeText={setQ} placeholder="Busca por localidad, tema o palabra" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>{munis.map((m) => <Chip key={m} label={m} on={nz(q) === nz(m)} onPress={() => setQ(nz(q) === nz(m) ? '' : m)} />)}</ScrollView>
       <Card>
         <Row>
@@ -44,7 +44,7 @@ export default function Inicio() {
       </Card>
       <Row><Chip label="Más recientes" on={sort === 'new'} onPress={() => setSort('new')} /><Chip label="Más votadas" on={sort === 'top'} onPress={() => setSort('top')} />{here ? <Chip label="Más cercanas" on={sort === 'near'} onPress={() => setSort('near')} /> : null}</Row>
       <T testID="news-count" kind="muted">{list ? `${shown.length} ${shown.length === 1 ? 'noticia' : 'noticias'}` : ''}</T>
-      {!list ? <Loading /> : !shown.length ? <Empty title={list.length ? 'Sin resultados' : 'Aún no hay noticias'} text={list.length ? 'Prueba con otro municipio, palabra o distancia.' : 'Publica la primera noticia.'}>{q ? <Btn small kind="sun" label="Preguntar por esto" onPress={() => router.push({ pathname: '/preguntar', params: { q, tab: 'auto' } })} /> : null}</Empty> : shown.map((n) => {
+      {!list ? <Loading /> : !shown.length ? <Empty title={list.length ? 'Sin resultados' : 'Aún no hay noticias'} text={list.length ? 'Prueba con otra localidad, palabra o distancia.' : 'Publica la primera noticia.'}>{q ? <Btn small kind="sun" label="Preguntar por esto" onPress={() => router.push({ pathname: '/preguntar', params: { q, tab: 'auto' } })} /> : null}</Empty> : shown.map((n) => {
         const c = n.comments?.[0]?.count ?? 0;
         return (
           <Card key={n.id} testID="news-card">

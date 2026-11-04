@@ -7,7 +7,7 @@ import { useApp } from '../lib/app';
 import { useT } from '../lib/theme';
 
 export default function Entrar() {
-  const t = useT(); const { enter, setGuest, runPending, say } = useApp();
+  const t = useT(); const { enter, setGuest, runPending, clearPending, say } = useApp();
   const [u, setU] = useState(''); const [p, setP] = useState(''); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const t0 = useRef(0);
   const leave = () => { if (router.canGoBack()) router.back(); else router.replace('/'); };
@@ -31,7 +31,7 @@ export default function Entrar() {
             {err ? <T testID="err" role="alert" style={{ color: t.news }}>{err}</T> : null}
             <Btn testID="go" kind="pri" label={busy ? 'Entrando…' : 'Entrar o crear cuenta'} onPress={go} disabled={busy} />
             <T kind="muted" style={{ fontSize: 13 }}>Sin correo o celular vinculado no podrás recuperar tu contraseña. Puedes vincularlos en tu perfil.</T>
-            <Btn testID="guest" label="Leer sin cuenta" onPress={() => { setGuest(true); router.replace('/'); }} />
+            <Btn testID="guest" label="Leer sin cuenta" onPress={() => { clearPending(); setGuest(true); router.replace('/'); }} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
