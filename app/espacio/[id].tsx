@@ -12,7 +12,7 @@ import { errText, when } from '../../lib/util';
 
 const TY: any = { foro: 'Foro', grupo: 'Grupo', canal: 'Canal' };
 export default function Espacio() {
-  const t = useT(); const { id } = useLocalSearchParams<{ id: string }>(); const { uid, need, say, refreshBadges } = useApp();
+  const t = useT(); const { id } = useLocalSearchParams<{ id: string }>(); const { uid, need, say, refreshBadges, activeSpace } = useApp();
   const [s, setS] = useState<any>(undefined); const [desc, setDesc] = useState(''); const [member, setMember] = useState(false); const [req, setReq] = useState<string | null>(null); const [count, setCount] = useState<number | null>(null);
   const [items, setItems] = useState<any[]>([]); const [threads, setThreads] = useState<any[]>([]); const [ask, setAsk] = useState(false); const [q, setQ] = useState(''); const [pending, setPending] = useState<any[]>([]);
   const load = useCallback(async () => {
@@ -24,6 +24,7 @@ export default function Espacio() {
       rq = (await supabase.from('plaza_requests').select('status').eq('space_id', id).eq('user_id', uid).maybeSingle()).data?.status ?? null;
     }
     setMember(mem); setReq(rq);
+    if (mem) { await supabase.rpc('plaza_mark_space_read', { p_space: id }); refreshBadges(); }
     if (sp.is_private && !mem) { setItems([]); setThreads([]); setDesc(''); setCount(null); return; }
     const [d, c] = await Promise.all([supabase.from('plaza_space_details').select('description').eq('space_id', id).maybeSingle(), supabase.rpc('plaza_space_count', { p_space: id })]);
     setDesc(d.data?.description ?? ''); setCount(c.data ?? null);
@@ -31,7 +32,7 @@ export default function Espacio() {
     else { const r = await supabase.from('plaza_messages').select('*, author:plaza_profiles!author_id(username)').eq('space_id', id).is('thread_id', null).order('created_at', { ascending: sp.type === 'grupo' }).limit(200); setItems(r.data ?? []); }
     if (sp.owner_id === uid && sp.is_private) { const r = await supabase.from('plaza_requests').select('user_id, status, user:plaza_profiles(username)').eq('space_id', id).eq('status', 'pending'); setPending(r.data ?? []); }
   }, [id, uid]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => { activeSpace.current = id; load(); return () => { activeSpace.current = null; }; }, [load, id]));
   useEffect(() => { const ch = supabase.channel('s-' + id + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_messages', filter: `space_id=eq.${id}` }, load).subscribe(); return () => { supabase.removeChannel(ch); }; }, [id, load]);
   if (s === undefined) return <Screen title="Espacio" back><Loading /></Screen>;
   if (!s) return <Screen title="Espacio" back><Empty title="No encontramos este espacio" /></Screen>;

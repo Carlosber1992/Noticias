@@ -12,10 +12,10 @@ App comunitaria de noticias, foros, grupos y canales, para web, Android e iPhone
 
 - Cuenta solo con usuario y contraseña. También se puede leer sin cuenta.
 - **Inicio:** noticias en vivo, última hora, me gusta y no me gusta, comentarios, búsqueda por localidad o tema y filtro por distancia.
-- **Cerca:** grupos y canales por distancia, con GPS o eligiendo ciudad.
+- **Cerca:** grupos y canales disponibles por distancia, los propios y los que sigues, con mensajes sin leer.
 - **Preguntar:** preguntas abiertas que responde la gente, y respuestas automáticas con lo ya publicado.
 - **Foros:** públicos o privados.
-- **Perfil:** mensajes privados, crear grupos y canales, solicitudes de acceso y lo que sigues.
+- **Perfil:** mensajes privados, solicitudes de acceso y datos de contacto.
 - **Privados:** se encuentran por nombre, pero el administrador debe aprobar el acceso. La base de datos bloquea el contenido a quien no tenga permiso.
 - Fotos, videos, audios, ubicación y enlaces para compartir.
 
@@ -45,7 +45,7 @@ La clave de `lib/config.ts` es pública por diseño. Nunca subas la clave `servi
 - Bloquear y reportar usuarios, y moderar contenido.
 - Recuperar contraseña: hoy el correo y el celular se guardan, pero no se verifican.
 - Límite de registros para evitar cuentas automáticas.
-- Notificaciones push.
+- Notificaciones push: hoy los avisos solo llegan con la app abierta.
 - Mapa real: Cerca usa un radar de distancia.
 - Respuestas redactadas con IA: hoy muestran lo más parecido a lo publicado.
 - Publicación en App Store y Google Play.

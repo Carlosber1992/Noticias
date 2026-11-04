@@ -11,6 +11,7 @@ type Ctx = {
   setGuest: (v: boolean) => void; enter: (u: string, p: string) => Promise<string>; signOut: () => Promise<void>;
   need: (fn: () => void) => void; runPending: () => void; clearPending: () => void; setHere: (h: Here | null) => void; useGps: () => Promise<string>;
   toast: string; say: (t: string) => void; dmUnread: number; reqCount: number; refreshBadges: () => void;
+  stats: Record<string, { total: number; unread: number | null }>; spaceUnread: number; activeSpace: { current: string | null };
 };
 const C = createContext<Ctx>(null as any);
 export const useApp = () => useContext(C);
@@ -25,6 +26,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState('');
   const [dmUnread, setDm] = useState(0);
   const [reqCount, setReq] = useState(0);
+  const [stats, setStats] = useState<Ctx['stats']>({});
+  const activeSpace = useRef<string | null>(null);
+  const tick = useRef<any>(null);
   const pending = useRef<null | (() => void)>(null);
   const tm = useRef<any>(null);
 
@@ -48,6 +52,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [load]);
 
   const refreshBadges = useCallback(async () => {
+    const { data: st } = await supabase.rpc('plaza_space_stats');
+    setStats(Object.fromEntries((st ?? []).map((x: any) => [x.space_id, { total: x.total, unread: x.unread }])));
     if (!uid) { setDm(0); setReq(0); return; }
     const { count } = await supabase.from('plaza_dms').select('id', { count: 'exact', head: true }).eq('recipient_id', uid).is('read_at', null);
     setDm(count ?? 0);
@@ -62,8 +68,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     refreshBadges();
     if (!uid) return;
     const ch = supabase.channel('dm-' + uid + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plaza_dms', filter: `recipient_id=eq.${uid}` }, () => refreshBadges()).subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [uid, refreshBadges]);
+    const ms = supabase.channel('msgs-' + uid + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plaza_messages' }, async (p: any) => {
+      const m = p.new;
+      if (m.thread_id) return;
+      clearTimeout(tick.current); tick.current = setTimeout(refreshBadges, 500);
+      if (m.author_id === uid || m.space_id === activeSpace.current) return;
+      const { data: mem } = await supabase.from('plaza_members').select('user_id').eq('space_id', m.space_id).eq('user_id', uid).maybeSingle();
+      if (!mem) return;
+      const { data: sp } = await supabase.from('plaza_spaces').select('name').eq('id', m.space_id).maybeSingle();
+      if (sp) say(`Nuevo mensaje en ${sp.name}`);
+    }).subscribe();
+    return () => { supabase.removeChannel(ch); supabase.removeChannel(ms); };
+  }, [uid, refreshBadges, say]);
 
   const setGuest = (v: boolean) => { setG(v); AsyncStorage.setItem('plaza.guest', v ? '1' : '0'); };
   const enter = async (u: string, p: string) => {
@@ -103,7 +119,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return '';
     } catch { return 'No pudimos obtener tu ubicación. Elige tu ciudad en la lista.'; }
   };
-  const v = useMemo(() => ({ ready, uid, username, guest, here, setGuest, enter, signOut, need, runPending, clearPending, setHere, useGps, toast, say, dmUnread, reqCount, refreshBadges }), [ready, uid, username, guest, here, toast, dmUnread, reqCount, refreshBadges]);
+  const spaceUnread = Object.values(stats).reduce((a, x) => a + (x.unread ?? 0), 0);
+  const v = useMemo(() => ({ stats, spaceUnread, activeSpace, ready, uid, username, guest, here, setGuest, enter, signOut, need, runPending, clearPending, setHere, useGps, toast, say, dmUnread, reqCount, refreshBadges }), [ready, uid, username, guest, here, toast, dmUnread, reqCount, refreshBadges, stats, spaceUnread]);
   return <C.Provider value={v as Ctx}>{children}</C.Provider>;
 }
 export { nz };
