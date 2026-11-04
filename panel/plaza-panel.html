@@ -84,7 +84,7 @@ const fmt=(d)=>d?new Date(d).toLocaleString('es-CO',{dateStyle:'medium',timeStyl
 const n=(x)=>Number(x||0).toLocaleString('es-CO');
 function b64(s){return btoa(Array.from(new TextEncoder().encode(s),c=>String.fromCharCode(c)).join(''))}
 function toast(t){let e=$('#toast');if(e)e.remove();e=h('div',{id:'toast',role:'status'},t);document.body.append(e);setTimeout(()=>e.remove(),3200)}
-function parseResult(p){let t=p;if(t&&typeof t==='object'&&t.result!=null)t=t.result;if(typeof t!=='string')throw{code:'parse',message:'Supabase devolvió una respuesta que no se pudo leer.'};const m=t.match(/<untrusted-data-([0-9a-f-]+)>\s*([\s\S]*)\s*<\/untrusted-data-\1>/);return JSON.parse(m?m[2]:t)}
+function parseResult(p){let t=p;if(t&&typeof t==='object'&&t.result!=null)t=t.result;if(typeof t!=='string')throw{code:'parse',message:'Supabase devolvió una respuesta que no se pudo leer.'};const m=t.match(/\n<untrusted-data-([0-9a-f-]+)>\s*\n([\s\S]*)\n\s*<\/untrusted-data-\1>/);return JSON.parse(m?m[2]:t)}
 function cleanErr(e){let m=e&&e.message||'No se pudo completar la acción.';if(e&&e.code==='tool_error'){try{const j=JSON.parse(m);m=j.error&&j.error.message||m}catch{}const x=String(m).match(/ERROR:\s*(?:P0001:|[0-9A-Z]{5}:)?\s*([^\n"]+)/);if(x)m=x[1]}return m}
 async function call(fn,args={}){
  const actor=S.me&&S.me.id?`'${S.me.id.replace(/[^0-9a-f-]/g,'')}'::uuid`:'null';
