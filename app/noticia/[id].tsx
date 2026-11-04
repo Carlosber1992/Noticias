@@ -21,7 +21,7 @@ export default function Noticia() {
   }, [id]);
   useEffect(() => {
     load();
-    const ch = supabase.channel('nc-' + id).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_news_comments', filter: `news_id=eq.${id}` }, load).subscribe();
+    const ch = supabase.channel('nc-' + id + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_news_comments', filter: `news_id=eq.${id}` }, load).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id, load]);
   if (n === undefined) return <Screen title="Noticia" back><Loading /></Screen>;

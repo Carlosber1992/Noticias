@@ -22,7 +22,7 @@ export default function Chat() {
     supabase.from('plaza_profiles').select('username').eq('id', id).maybeSingle().then(({ data }) => setName(data?.username ?? ''));
     load();
     if (!uid) return;
-    const ch = supabase.channel('c-' + id).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plaza_dms', filter: `recipient_id=eq.${uid}` }, load).subscribe();
+    const ch = supabase.channel('c-' + id + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plaza_dms', filter: `recipient_id=eq.${uid}` }, load).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id, uid, load]);
   const pair = () => [uid, id].sort().join('_');

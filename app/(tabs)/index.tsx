@@ -19,7 +19,7 @@ export default function Inicio() {
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
   useEffect(() => {
-    const ch = supabase.channel('news').on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_news' }, () => load()).subscribe();
+    const ch = supabase.channel('news' + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_news' }, () => load()).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [load]);
   const munis = useMemo(() => [...new Set((list ?? []).map((n) => n.municipio))].sort(), [list]);

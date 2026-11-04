@@ -61,7 +61,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refreshBadges();
     if (!uid) return;
-    const ch = supabase.channel('dm-' + uid).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plaza_dms', filter: `recipient_id=eq.${uid}` }, () => refreshBadges()).subscribe();
+    const ch = supabase.channel('dm-' + uid + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plaza_dms', filter: `recipient_id=eq.${uid}` }, () => refreshBadges()).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [uid, refreshBadges]);
 

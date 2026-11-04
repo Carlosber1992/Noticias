@@ -20,7 +20,7 @@ export default function Preguntar() {
     setForums(f.data ?? []);
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
-  useEffect(() => { const ch = supabase.channel('threads').on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_threads' }, load).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plaza_messages' }, load).subscribe(); return () => { supabase.removeChannel(ch); }; }, [load]);
+  useEffect(() => { const ch = supabase.channel('threads' + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_threads' }, load).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plaza_messages' }, load).subscribe(); return () => { supabase.removeChannel(ch); }; }, [load]);
   const go = async (text: string) => {
     text = text.trim(); if (!text) return;
     setAsk(''); setAsks((x) => [...x, { q: text, docs: null }]);

@@ -31,7 +31,7 @@ export default function Entrar() {
             {err ? <T testID="err" role="alert" style={{ color: t.news }}>{err}</T> : null}
             <Btn testID="go" kind="pri" label={busy ? 'Entrando…' : 'Entrar o crear cuenta'} onPress={go} disabled={busy} />
             <T kind="muted" style={{ fontSize: 13 }}>Sin correo o celular vinculado no podrás recuperar tu contraseña. Puedes vincularlos en tu perfil.</T>
-            <Btn testID="guest" label="Leer sin cuenta" onPress={() => { clearPending(); setGuest(true); router.replace('/'); }} />
+            <Btn testID="guest" label="Leer sin cuenta" onPress={() => { clearPending(); setGuest(true); leave(); }} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

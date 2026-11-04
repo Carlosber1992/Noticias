@@ -17,7 +17,7 @@ export default function Pregunta() {
     ]);
     setH(a.data ?? null); setMs(b.data ?? []);
   }, [id]);
-  useEffect(() => { load(); const ch = supabase.channel('t-' + id).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_messages', filter: `thread_id=eq.${id}` }, load).subscribe(); return () => { supabase.removeChannel(ch); }; }, [id, load]);
+  useEffect(() => { load(); const ch = supabase.channel('t-' + id + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_messages', filter: `thread_id=eq.${id}` }, load).subscribe(); return () => { supabase.removeChannel(ch); }; }, [id, load]);
   if (h === undefined) return <Screen title="Pregunta" back><Loading /></Screen>;
   if (!h) return <Screen title="Pregunta" back><Empty title="No puedes ver esta pregunta" text="Puede ser privada o haber sido eliminada." /></Screen>;
   const like = (m: any) => need(async () => { const { data: s } = await supabase.auth.getSession(); const me = s.session!.user.id; const { data: c } = await supabase.from('plaza_likes').select('message_id').eq('message_id', m.id).eq('user_id', me).maybeSingle(); if (c) await supabase.from('plaza_likes').delete().eq('message_id', m.id).eq('user_id', me); else await supabase.from('plaza_likes').insert({ message_id: m.id, user_id: me }); load(); });

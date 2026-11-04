@@ -32,7 +32,7 @@ export default function Espacio() {
     if (sp.owner_id === uid && sp.is_private) { const r = await supabase.from('plaza_requests').select('user_id, status, user:plaza_profiles(username)').eq('space_id', id).eq('status', 'pending'); setPending(r.data ?? []); }
   }, [id, uid]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
-  useEffect(() => { const ch = supabase.channel('s-' + id).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_messages', filter: `space_id=eq.${id}` }, load).subscribe(); return () => { supabase.removeChannel(ch); }; }, [id, load]);
+  useEffect(() => { const ch = supabase.channel('s-' + id + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_messages', filter: `space_id=eq.${id}` }, load).subscribe(); return () => { supabase.removeChannel(ch); }; }, [id, load]);
   if (s === undefined) return <Screen title="Espacio" back><Loading /></Screen>;
   if (!s) return <Screen title="Espacio" back><Empty title="No encontramos este espacio" /></Screen>;
   const T0 = TY[s.type].toLowerCase(), locked = s.is_private && !member, own = s.owner_id === uid;
