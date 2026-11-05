@@ -36,13 +36,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Plaza usa tu ubicación para mostrarte lo que hay cerca."
+          "locationWhenInUsePermission": "Yasupo usa tu ubicación para mostrarte lo que hay cerca."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Plaza usa tus fotos y videos para que los compartas.",
+          "photosPermission": "Yasupo usa tus fotos y videos para que los compartas.",
           "cameraPermission": false,
           "microphonePermission": false
         }
