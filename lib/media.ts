@@ -31,3 +31,4 @@ export async function uploadAll(atts: Att[], folder: string): Promise<Media[]> {
   return out;
 }
 export const signed = async (path: string) => (await supabase.storage.from(BUCKET).createSignedUrl(path, 3600)).data?.signedUrl ?? null;
+export const removeMedia = async (m?: Media[] | null) => { const p = (m ?? []).map((x) => x.path); if (p.length) await supabase.storage.from(BUCKET).remove(p); };

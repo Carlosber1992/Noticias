@@ -3,6 +3,8 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Composer } from '../../components/Composer';
+import { check, Editable, EditForm, locCols, locOf, OwnActions } from '../../components/Own';
+import { removeMedia } from '../../lib/media';
 import { LocLink, MediaView } from '../../components/MediaView';
 import { Av, Btn, Card, Empty, Field, Loading, Row, Screen, ShareBtn, T } from '../../components/ui';
 import { useApp } from '../../lib/app';
@@ -10,11 +12,12 @@ import { supabase } from '../../lib/supabase';
 import { useT } from '../../lib/theme';
 import { errText, when } from '../../lib/util';
 
+const FREE = '00000000-0000-0000-0000-00000000f0f0';
 const TY: any = { foro: 'Foro', grupo: 'Grupo', canal: 'Canal' };
 export default function Espacio() {
   const t = useT(); const { id } = useLocalSearchParams<{ id: string }>(); const { uid, need, say, refreshBadges, activeSpace } = useApp();
   const [s, setS] = useState<any>(undefined); const [desc, setDesc] = useState(''); const [member, setMember] = useState(false); const [req, setReq] = useState<string | null>(null); const [count, setCount] = useState<number | null>(null);
-  const [items, setItems] = useState<any[]>([]); const [threads, setThreads] = useState<any[]>([]); const [ask, setAsk] = useState(false); const [q, setQ] = useState(''); const [pending, setPending] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]); const [threads, setThreads] = useState<any[]>([]); const [ask, setAsk] = useState(false); const [q, setQ] = useState(''); const [pending, setPending] = useState<any[]>([]); const [ed, setEd] = useState(false);
   const load = useCallback(async () => {
     const { data: sp } = await supabase.from('plaza_spaces').select('*, owner:plaza_profiles!owner_id(username)').eq('id', id).maybeSingle();
     setS(sp ?? null); if (!sp) return;
@@ -53,19 +56,21 @@ export default function Espacio() {
   const foot = s.type === 'foro' ? null : s.type === 'canal' && !own ? <View style={{ backgroundColor: t.surface, padding: 12 }}><T kind="muted" style={{ textAlign: 'center' }}>Solo el dueño del canal publica aquí.</T></View> : <Composer allowLoc placeholder={s.type === 'canal' ? 'Publica en tu canal' : 'Escribe un mensaje'} folder={() => (s.is_private ? `priv/${id}` : `pub/${uid}`)} onSend={send} />;
   return (
     <Screen title={s.name} sub={`${TY[s.type]} ${s.is_private ? 'privado' : 'público'}${count != null ? ` · ${count} ${s.type === 'canal' ? (count === 1 ? 'seguidor' : 'seguidores') : count === 1 ? 'miembro' : 'miembros'}` : ''}`} back right={right} foot={foot}>
+      {own && id !== FREE ? (ed ? <Card><EditForm loc={s.type === 'foro' ? undefined : { value: locOf(s) }} fields={[{ key: 'name', label: 'Nombre', value: s.name, max: 40, min: 3, msg: 'Ponle un nombre de al menos 3 caracteres.' }, { key: 'description', label: 'Descripción (opcional)', value: desc, max: 200 }]} onCancel={() => setEd(false)} onSave={async (v, l) => { check(await supabase.from('plaza_spaces').update({ name: v.name, ...(s.type === 'foro' ? {} : locCols(l)) }).eq('id', id)); check(await supabase.from('plaza_space_details').update({ description: v.description }).eq('space_id', id)); setEd(false); say('Cambios guardados'); load(); }} /></Card> : null) : null}
       {desc ? <T kind="muted">{desc}</T> : null}
+      {own && id !== FREE && !ed ? <OwnActions what={`este ${T0}`} warn="También se borra todo lo publicado aquí." onEdit={() => setEd(true)} onDelete={async () => { const mine = await supabase.from('plaza_messages').select('media').eq('space_id', id).eq('author_id', uid!); check(await supabase.from('plaza_spaces').delete().eq('id', id)); await removeMedia((mine.data ?? []).flatMap((m: any) => m.media ?? [])); refreshBadges(); router.replace(s.type === 'foro' ? '/foros' : '/cerca'); }} /> : null}
       {pending.length ? <Card><T kind="bold">Solicitudes de acceso</T>{pending.map((r) => <Row key={r.user_id}><T style={{ flex: 1 }}>@{r.user?.username}</T><Btn testID="approve" small kind="pri" label="Aprobar" onPress={async () => { await supabase.rpc('plaza_answer_request', { p_space: id, p_user: r.user_id, p_approve: true }); refreshBadges(); setPending((p) => p.filter((x) => x.user_id !== r.user_id)); }} /><Btn testID="reject" small label="Rechazar" onPress={async () => { await supabase.rpc('plaza_answer_request', { p_space: id, p_user: r.user_id, p_approve: false }); refreshBadges(); setPending((p) => p.filter((x) => x.user_id !== r.user_id)); }} /></Row>)}</Card> : null}
       {s.type === 'foro' ? <>
         {ask ? <Card><Field testID="ask-title" label="Pregunta" value={q} onChangeText={setQ} maxLength={140} /><Btn kind="pri" testID="ask-pub" label="Publicar pregunta" onPress={() => { if (q.trim().length < 5) return say('Escribe tu pregunta con al menos 5 caracteres.'); need(async () => { const { data: x } = await supabase.auth.getSession(); const { data, error } = await supabase.from('plaza_threads').insert({ space_id: id, author_id: x.session!.user.id, title: q.trim() }).select('id').single(); if (error) return say(errText(error)); setQ(''); setAsk(false); router.push(`/pregunta/${data.id}`); }); }} /></Card> : <Btn testID="ask-open" kind="sun" icon="add" label="Hacer una pregunta" onPress={() => need(() => setAsk(true))} />}
         {threads.map((x) => { const c = x.answers?.[0]?.count ?? 0; return <Card key={x.id} testID="thread-row" onPress={() => router.push(`/pregunta/${x.id}`)}><T kind="display" style={{ fontSize: 18 }}>{x.title}</T><T kind="muted" style={{ fontSize: 13 }}>@{x.author?.username} · {when(x.created_at)} · {c} {c === 1 ? 'respuesta' : 'respuestas'}</T></Card>; })}
       </> : !items.length ? <Empty title={s.type === 'canal' ? 'Aún no hay publicaciones' : 'Aún no hay mensajes'} /> : items.map((m) => {
         const mine = m.author_id === uid;
-        return s.type === 'canal' ? <Card key={m.id} testID="post"><T kind="muted" style={{ fontSize: 13 }}>{when(m.created_at)}</T>{m.body ? <T>{m.body}</T> : null}<MediaView media={m.media} /><LocLink lat={m.lat} lng={m.lng} place={m.place} /></Card> : (
+        return s.type === 'canal' ? <Card key={m.id} testID="post"><T kind="muted" style={{ fontSize: 13 }}>{when(m.created_at)}</T><Editable table="plaza_messages" id={m.id} body={m.body} media={m.media} edited={m.edited_at} own={mine} what="esta publicación" onDone={load}><MediaView media={m.media} /><LocLink lat={m.lat} lng={m.lng} place={m.place} /></Editable></Card> : (
           <View key={m.id} testID="bubble" style={{ flexDirection: mine ? 'row-reverse' : 'row', gap: 8, alignItems: 'flex-end' }}>
             {mine ? null : <Av name={m.author?.username ?? '?'} size={32} />}
             <View style={{ maxWidth: '82%', backgroundColor: mine ? t.mine : t.surface, borderRadius: 14, padding: 10, gap: 4 }}>
               {mine ? null : <T kind="bold" style={{ color: t.brand, fontSize: 13 }} onPress={() => need(() => router.push(`/chat/${m.author_id}`))}>@{m.author?.username}</T>}
-              {m.body ? <T>{m.body}</T> : null}<MediaView media={m.media} /><LocLink lat={m.lat} lng={m.lng} place={m.place} /><T kind="muted" style={{ fontSize: 11, alignSelf: 'flex-end' }}>{when(m.created_at)}</T>
+              <Editable table="plaza_messages" id={m.id} body={m.body} media={m.media} edited={m.edited_at} own={mine} what="este mensaje" onDone={load}><MediaView media={m.media} /><LocLink lat={m.lat} lng={m.lng} place={m.place} /><T kind="muted" style={{ fontSize: 11, alignSelf: 'flex-end' }}>{when(m.created_at)}</T></Editable>
             </View>
           </View>);
       })}

@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Composer } from '../../components/Composer';
+import { Editable } from '../../components/Own';
 import { MediaView } from '../../components/MediaView';
 import { Loading, Screen, T } from '../../components/ui';
 import { useApp } from '../../lib/app';
@@ -29,7 +30,7 @@ export default function Chat() {
   return (
     <Screen title={`@${name}`} sub="Mensaje directo" back foot={<Composer placeholder="Escribe un mensaje" folder={() => `dm/${pair()}`} onSend={async (o) => { const { error } = await supabase.from('plaza_dms').insert({ sender_id: uid, recipient_id: id, body: o.body, media: o.media }); if (error) throw error; load(); }} />}>
       {!ms ? <Loading /> : !ms.length ? <T kind="muted" style={{ textAlign: 'center' }}>Escribe el primer mensaje para @{name}.</T> : ms.map((m) => { const me = m.sender_id === uid; return (
-        <View key={m.id} testID="dm" style={{ alignSelf: me ? 'flex-end' : 'flex-start', maxWidth: '82%', backgroundColor: me ? t.mine : t.surface, borderRadius: 14, padding: 10, gap: 4 }}>{m.body ? <T>{m.body}</T> : null}<MediaView media={m.media} /><T kind="muted" style={{ fontSize: 11, alignSelf: 'flex-end' }}>{when(m.created_at)}</T></View>
+        <View key={m.id} testID="dm" style={{ alignSelf: me ? 'flex-end' : 'flex-start', maxWidth: '82%', backgroundColor: me ? t.mine : t.surface, borderRadius: 14, padding: 10, gap: 4 }}><Editable table="plaza_dms" id={m.id} body={m.body} media={m.media} edited={m.edited_at} own={me} what="este mensaje" onDone={load}><MediaView media={m.media} /><T kind="muted" style={{ fontSize: 11, alignSelf: 'flex-end' }}>{when(m.created_at)}</T></Editable></View>
       ); })}
     </Screen>
   );
