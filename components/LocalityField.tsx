@@ -19,8 +19,9 @@ export async function searchLocalities(q: string) {
   const w = nz(q).replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
   if (key(q).length < 2 || !w.length) return [];
   const rows = await chunk(key(q));
+  const full = w.join(' '), rank = (n: string) => (n === full ? 0 : n.startsWith(full) ? 1 : 2);
   return rows.map((r) => ({ name: nz(r[0]), label: r.join(', '), hay: nz(r.join(' ')) })).filter((r) => r.name.startsWith(w[0]) && w.every((x) => r.hay.includes(x)))
-    .sort((a, b) => (a.name === w[0] ? 0 : 1) - (b.name === w[0] ? 0 : 1) || a.name.length - b.name.length || a.label.localeCompare(b.label, 'es')).slice(0, 30).map((r) => r.label);
+    .sort((a, b) => rank(a.name) - rank(b.name) || a.name.length - b.name.length || a.label.localeCompare(b.label, 'es')).slice(0, 30).map((r) => r.label);
 }
 // Escribe un municipio y elige de la lista: municipio, departamento y país.
 export function LocalityField({ label, value, onChange, testID }: { label: string; value: string; onChange: (v: string) => void; testID?: string }) {
