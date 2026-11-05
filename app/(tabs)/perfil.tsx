@@ -53,6 +53,7 @@ export default function Perfil() {
         <Field label="Celular" value={contact.phone} onChangeText={(v: string) => setContact({ ...contact, phone: v })} keyboardType="phone-pad" />
         <Btn small label="Guardar" onPress={saveContact} />
       </Card>
+      <T kind="muted" style={{ fontSize: 12, textAlign: 'center' }}>Datos de lugares: GeoNames (CC BY 4.0)</T>
       <Btn testID="logout" label="Cerrar sesión" onPress={async () => { await signOut(); router.replace('/'); }} />
     </Screen>
   );

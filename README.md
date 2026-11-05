@@ -19,6 +19,10 @@ App comunitaria de noticias, foros, grupos y canales, para web, Android e iPhone
 - **Privados:** se encuentran por nombre, pero el administrador debe aprobar el acceso. La base de datos bloquea el contenido a quien no tenga permiso.
 - Fotos, videos, audios, ubicación y enlaces para compartir.
 
+## Datos de lugares
+
+`public/loc/` contiene localidades de América Latina tomadas de [GeoNames](https://www.geonames.org) (CC BY 4.0) mediante el paquete `cities.json`. Se regeneran con `scripts/build-localities.cjs`.
+
 ## Ejecutar
 
 Requiere Node 22 o superior.
@@ -52,6 +56,5 @@ La clave de `lib/config.ts` es pública por diseño. Nunca subas la clave `servi
 - Límite de registros para evitar cuentas automáticas.
 - Notificaciones en Android e iPhone nativos: hoy las alertas con la app cerrada solo llegan al navegador.
 - Mapa real: Cerca usa un radar de distancia.
-- Elegir un punto exacto en un mapa: hoy se usa GPS o una ciudad.
 - Respuestas redactadas con IA: hoy muestran lo más parecido a lo publicado.
 - Publicación en App Store y Google Play.

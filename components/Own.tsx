@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { LocalityField } from './LocalityField';
 import { LocPicker } from './LocPicker';
 import { Btn, Field, Row, T } from './ui';
 import { Here, useApp } from '../lib/app';
@@ -20,7 +21,7 @@ export function OwnActions({ what, onEdit, onDelete, warn }: { what: string; onE
   );
   return <Row>{onEdit ? <Btn testID="own-edit" small icon="create-outline" label="Editar" onPress={onEdit} /> : null}<Btn testID="own-del" small icon="trash-outline" label="Eliminar" onPress={() => setAsk(true)} /></Row>;
 }
-type F = { key: string; label: string; value: string; multiline?: boolean; max?: number; min?: number; msg?: string };
+type F = { key: string; label: string; value: string; multiline?: boolean; max?: number; min?: number; msg?: string; locality?: boolean };
 export function EditForm({ fields, loc, onSave, onCancel }: { fields: F[]; loc?: { value: Here | null }; onSave: (v: Record<string, string>, l: Here | null) => Promise<any>; onCancel: () => void }) {
   const t = useT(); const [v, setV] = useState<Record<string, string>>(Object.fromEntries(fields.map((f) => [f.key, f.value]))); const [l, setL] = useState<Here | null>(loc?.value ?? null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const save = async () => {
@@ -30,7 +31,7 @@ export function EditForm({ fields, loc, onSave, onCancel }: { fields: F[]; loc?:
   };
   return (
     <View style={{ gap: 10 }}>
-      {fields.map((f) => <Field key={f.key} testID={`e-${f.key}`} label={f.label} value={v[f.key]} multiline={f.multiline} maxLength={f.max} onChangeText={(x: string) => setV({ ...v, [f.key]: x })} />)}
+      {fields.map((f) => f.locality ? <LocalityField key={f.key} testID={`e-${f.key}`} label={f.label} value={v[f.key]} onChange={(x) => setV({ ...v, [f.key]: x })} /> : <Field key={f.key} testID={`e-${f.key}`} label={f.label} value={v[f.key]} multiline={f.multiline} maxLength={f.max} onChangeText={(x: string) => setV({ ...v, [f.key]: x })} />)}
       {loc ? <LocPicker label="Ubicación (opcional)" value={l} onChange={setL} /> : null}
       {err ? <T style={{ color: t.news }}>{err}</T> : null}
       <Row><Btn testID="e-save" small kind="pri" label={busy ? 'Guardando…' : 'Guardar'} disabled={busy} onPress={save} /><Btn small label="Cancelar" disabled={busy} onPress={onCancel} /></Row>

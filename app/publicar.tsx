@@ -1,6 +1,7 @@
 import { Redirect, router } from 'expo-router';
 import React, { useState } from 'react';
 import { Image } from 'react-native';
+import { LocalityField } from '../components/LocalityField';
 import { LocPicker } from '../components/LocPicker';
 import { Btn, Field, Row, Screen, T } from '../components/ui';
 import { Here, useApp } from '../lib/app';
@@ -32,7 +33,7 @@ export default function Publicar() {
   return (
     <Screen title="Publicar noticia" back>
       <Field testID="n-title" label="Titular" value={title} onChangeText={setTitle} maxLength={120} placeholder="¿Qué está pasando?" />
-      <Field testID="n-muni" label="Localidad" value={muni} onChangeText={setMuni} maxLength={40} placeholder="Ej.: Medellín" />
+      <LocalityField testID="n-muni" label="Localidad" value={muni} onChange={setMuni} />
       <Field testID="n-body" label="Detalles (opcional)" value={body} onChangeText={setBody} multiline />
       <Btn testID="n-hot" label={`Última hora: ${hot ? 'activada' : 'desactivada'}`} kind={hot ? 'pri' : 'soft'} onPress={() => setHot(!hot)} />
       <Row>
