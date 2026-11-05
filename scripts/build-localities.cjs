@@ -9,7 +9,7 @@ const nz = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().repla
 const seen = new Set(), by = {};
 for (const c of read('cities.json')) {
   if (!C[c.country]) continue;
-  const a = (admin[`${c.country}.${c.admin1}`] ?? '').replace(/^(Departamento|Provincia|Estado|Departamento del|Departamento de|Provincia de|Provincia del) (de |del )?/i, '');
+  const a = (admin[`${c.country}.${c.admin1}`] ?? '').replace(/^(Departamento|Provincia|Estado|Región|Region|Municipio)( de| del)? /i, '').replace(/ (Department|Province|Region|State|Departamento|Provincia|District|Municipality|Autonomous Region|Governorate)$/i, '').replace(/^Departamento? /i, '');
   const key = `${c.name}|${a}|${c.country}`;
   if (seen.has(key)) continue;
   seen.add(key);
