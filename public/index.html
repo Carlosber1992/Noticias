@@ -15,6 +15,13 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <script>
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__yasupoInstall = e;
+        window.dispatchEvent(new Event('yasupo-install'));
+      });
+    </script>
     <style id="expo-reset">
       html, body { height: 100%; }
       body { overflow: hidden; }
