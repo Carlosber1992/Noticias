@@ -8,17 +8,16 @@ import { supabase } from '../../lib/supabase';
 import { useT } from '../../lib/theme';
 import { errText, when } from '../../lib/util';
 
+const FREE = '00000000-0000-0000-0000-00000000f0f0';
 type A = { q: string; docs: any[] | null };
 export default function Preguntar() {
   const t = useT(); const p = useLocalSearchParams<{ q?: string; tab?: string }>(); const { need, say } = useApp();
   const [tab, setTab] = useState('com'); const [list, setList] = useState<any[] | null>(null); const [only, setOnly] = useState(false);
-  const [newQ, setNewQ] = useState(false); const [q, setQ] = useState(''); const [forums, setForums] = useState<any[]>([]); const [to, setTo] = useState('libre'); const [qLoc, setQLoc] = useState<Here | null>(null);
+  const [newQ, setNewQ] = useState(false); const [q, setQ] = useState(''); const [qLoc, setQLoc] = useState<Here | null>(null);
   const [asks, setAsks] = useState<A[]>([]); const [ask, setAsk] = useState(''); const used = useRef('');
   const load = useCallback(async () => {
     const { data } = await supabase.from('plaza_threads').select('*, author:plaza_profiles!author_id(username), space:plaza_spaces!space_id(id,name), answers:plaza_messages(count)').order('created_at', { ascending: false }).limit(100);
     setList(data ?? []);
-    const f = await supabase.from('plaza_spaces').select('id,name,is_private').eq('type', 'foro');
-    setForums(f.data ?? []);
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
   useEffect(() => { const ch = supabase.channel('threads' + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', { event: '*', schema: 'public', table: 'plaza_threads' }, load).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plaza_messages' }, load).subscribe(); return () => { supabase.removeChannel(ch); }; }, [load]);
@@ -29,10 +28,10 @@ export default function Preguntar() {
     setAsks((x) => x.map((a) => (a.q === text && !a.docs ? { ...a, docs: data ?? [] } : a)));
   };
   useEffect(() => { if (p.tab === 'auto') setTab('auto'); if (p.q && used.current !== p.q) { used.current = p.q; go(p.q); } }, [p.q, p.tab]);
-  const publish = (title: string, target: string, loc?: Here | null) => need(async () => {
+  const publish = (title: string, loc?: Here | null) => need(async () => {
     try {
       const { data: s } = await supabase.auth.getSession(); const me = s.session!.user.id;
-      const space = target === 'libre' ? (await supabase.rpc('plaza_free_forum')).data : target;
+      const space = (await supabase.rpc('plaza_free_forum')).data;
       const { data, error } = await supabase.from('plaza_threads').insert({ space_id: space, author_id: me, title, ...(loc ? { lat: loc.lat, lng: loc.lng, place: loc.label } : {}) }).select('id').single();
       if (error) throw error;
       setNewQ(false); setQ(''); setQLoc(null); router.push(`/pregunta/${data.id}`);
@@ -51,7 +50,7 @@ export default function Preguntar() {
           <T>{a.docs[0].snippet || a.docs[0].title}</T>
           {a.docs.slice(0, 3).map((d: any) => <Pressable key={d.id} onPress={() => router.push(d.kind === 'news' ? `/noticia/${d.id}` : d.kind === 'thread' ? `/pregunta/${d.id}` : `/espacio/${d.id}`)} style={{ backgroundColor: t.bg, borderRadius: 10, padding: 10 }}><T kind="semi" numberOfLines={1}>{d.title}</T><T kind="muted" numberOfLines={1} style={{ fontSize: 13 }}>{d.snippet}</T></Pressable>)}
         </> : <T>No encontré nada publicado sobre eso en Plaza. Puedes preguntarle a la comunidad.</T>}
-          {a.docs ? <Btn testID="to-community" small icon="people-outline" label="Preguntar a la comunidad" onPress={() => publish(a.q.padEnd(5, '?').slice(0, 140), 'libre')} style={{ alignSelf: 'flex-start' }} /> : null}
+          {a.docs ? <Btn testID="to-community" small icon="people-outline" label="Preguntar a la comunidad" onPress={() => publish(a.q.padEnd(5, '?').slice(0, 140))} style={{ alignSelf: 'flex-start' }} /> : null}
         </Card></View>)}
     </Screen>
   );
@@ -61,14 +60,12 @@ export default function Preguntar() {
       {tabs}
       {newQ ? <Card>
         <Field testID="q-title" label="Pregunta" value={q} onChangeText={setQ} maxLength={140} placeholder="¿Qué quieres saber?" />
-        <T kind="semi" style={{ fontSize: 14 }}>Comunidad</T>
-        <Row><Chip label="Libre, sin comunidad" on={to === 'libre'} onPress={() => setTo('libre')} />{forums.filter((f) => f.name !== 'Preguntas libres').map((f) => <Chip key={f.id} label={f.name} on={to === f.id} onPress={() => setTo(f.id)} />)}</Row>
         <LocPicker label="Ubicación (opcional)" value={qLoc} onChange={setQLoc} />
-        <Btn testID="q-pub" kind="pri" label="Publicar pregunta" onPress={() => (q.trim().length < 5 ? say('Escribe tu pregunta con al menos 5 caracteres.') : publish(q.trim(), to, qLoc))} />
+        <Btn testID="q-pub" kind="pri" label="Publicar pregunta" onPress={() => (q.trim().length < 5 ? say('Escribe tu pregunta con al menos 5 caracteres.') : publish(q.trim(), qLoc))} />
       </Card> : null}
       <Row><Chip label="Recientes" on={!only} onPress={() => setOnly(false)} /><Chip label="Sin responder" on={only} onPress={() => setOnly(true)} /></Row>
       {!list ? <Loading /> : !shown.length ? <Empty title="No hay preguntas aquí" text="Haz la primera pregunta." /> : shown.map((x) => { const c = x.answers?.[0]?.count ?? 0; return (
-        <Card key={x.id} testID="q-row" onPress={() => router.push(`/pregunta/${x.id}`)}><T kind="display" style={{ fontSize: 18 }}>{x.title}</T><T kind="muted" style={{ fontSize: 13 }}>{c ? '' : 'Sin responder · '}{x.space?.name}{x.place ? ` · ${x.place}` : ''} · @{x.author?.username} · {when(x.created_at)} · {c} {c === 1 ? 'respuesta' : 'respuestas'}</T></Card>
+        <Card key={x.id} testID="q-row" onPress={() => router.push(`/pregunta/${x.id}`)}><T kind="display" style={{ fontSize: 18 }}>{x.title}</T><T kind="muted" style={{ fontSize: 13 }}>{c ? '' : 'Sin responder · '}{x.space?.id === FREE ? '' : `${x.space?.name} · `}{x.place ? `${x.place} · ` : ''}@{x.author?.username} · {when(x.created_at)} · {c} {c === 1 ? 'respuesta' : 'respuestas'}</T></Card>
       ); })}
     </Screen>
   );

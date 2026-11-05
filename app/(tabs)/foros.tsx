@@ -14,7 +14,7 @@ export default function Foros() {
   const [list, setList] = useState<any[] | null>(null); const [mine, setMine] = useState<string[]>([]); const [q, setQ] = useState(''); const [f, setF] = useState('todos');
   useFocusEffect(useCallback(() => {
     (async () => {
-      const { data } = await supabase.from('plaza_spaces').select('*').eq('type', 'foro').order('created_at', { ascending: false });
+      const { data } = await supabase.from('plaza_spaces').select('*').eq('type', 'foro').neq('id', '00000000-0000-0000-0000-00000000f0f0').order('created_at', { ascending: false });
       setList(data ?? []);
       if (uid) { const m = await supabase.from('plaza_members').select('space_id').eq('user_id', uid); setMine((m.data ?? []).map((x) => x.space_id)); }
     })();
