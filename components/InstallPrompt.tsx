@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, Platform, View } from 'react-native';
 import { useT } from '../lib/theme';
 import { Btn, Row, T } from './ui';
@@ -11,7 +11,7 @@ const write = (v: number) => { try { localStorage.setItem(KEY, String(v)); } cat
 const installed = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
 
 export function InstallPrompt() {
-  const t = useT(); const [mode, setMode] = useState<Mode | null>(null);
+  const t = useT(); const [mode, setMode] = useState<Mode | null>(null); const decided = useRef(false);
   useEffect(() => {
     if (Platform.OS !== 'web' || installed() || Date.now() - read() < WAIT) return;
     const ua = navigator.userAgent;
@@ -21,16 +21,17 @@ export function InstallPrompt() {
     const offer = () => setMode('prompt');
     if ((window as any).__yasupoInstall) offer();
     window.addEventListener('yasupo-install', offer);
-    const done = () => setMode(null);
+    const done = () => { decided.current = true; setMode(null); };
     window.addEventListener('appinstalled', done);
     // Safari no tiene aviso propio, y otros navegadores tampoco siempre: se explica cómo hacerlo.
-    const later = setTimeout(() => setMode((m) => m ?? (ios ? 'ios' : 'android')), ios ? 800 : 3000);
+    const later = setTimeout(() => { if (!decided.current) setMode((m) => m ?? (ios ? 'ios' : 'android')); }, ios ? 800 : 3000);
     return () => { clearTimeout(later); window.removeEventListener('yasupo-install', offer); window.removeEventListener('appinstalled', done); };
   }, []);
   if (!mode) return null;
-  const close = () => { write(Date.now()); setMode(null); };
+  const close = () => { decided.current = true; write(Date.now()); setMode(null); };
   const install = async () => {
     const e = (window as any).__yasupoInstall; if (!e) return setMode('android');
+    decided.current = true;
     await e.prompt();
     const r = await e.userChoice.catch(() => null);
     (window as any).__yasupoInstall = null;
