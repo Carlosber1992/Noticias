@@ -1,16 +1,16 @@
-# Plaza
+# Yasupo
 
 App comunitaria de noticias, foros, grupos y canales, para web, Android e iPhone con un solo código.
 
 - **App:** Expo (React Native y web)
 - **Datos, cuentas, archivos y tiempo real:** Supabase
-- **Web:** Vercel
+- **Web:** Vercel, en https://yasupo.com
 
 `demo.html` es el demo original, sin servidor.
 
 ## Funciones
 
-- Cuenta solo con usuario y contraseña. También se puede leer sin cuenta.
+- Se entra directo a la app. La cuenta, solo con usuario y contraseña, se pide al crear o participar.
 - **Inicio:** noticias en vivo, última hora, me gusta y no me gusta, comentarios, búsqueda por localidad o tema y filtro por distancia.
 - **Cerca:** grupos y canales disponibles por distancia, los propios y los que sigues, con mensajes sin leer.
 - **Preguntar:** preguntas abiertas que responde la gente, y respuestas automáticas con lo ya publicado.

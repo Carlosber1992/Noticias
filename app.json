@@ -1,18 +1,22 @@
 {
   "expo": {
-    "name": "Plaza",
-    "slug": "plaza",
-    "scheme": "plaza",
+    "name": "Yasupo",
+    "slug": "yasupo",
+    "scheme": "yasupo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.carlosber.plaza",
+      "bundleIdentifier": "com.yasupo.app",
       "supportsTablet": true
     },
     "android": {
-      "package": "com.carlosber.plaza"
+      "package": "com.yasupo.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "web": {
       "bundler": "metro",

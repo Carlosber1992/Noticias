@@ -81,7 +81,7 @@ export const Empty = ({ title, text, children }: any) => <View style={{ alignIte
 export function ShareBtn({ path, title, note }: { path: string; title: string; note?: string }) {
   const t = useT(); const { say } = useApp();
   const [open, setOpen] = useState(false);
-  const url = linkFor(path), u = encodeURIComponent(url), tx = encodeURIComponent(`${title} | Plaza`), both = encodeURIComponent(`${title} | Plaza\n${url}`);
+  const url = linkFor(path), u = encodeURIComponent(url), tx = encodeURIComponent(`${title} | Yasupo`), both = encodeURIComponent(`${title} | Yasupo\n${url}`);
   const go = () => { if (Platform.OS === 'web') setOpen(true); else RNShare.share({ message: `${title}\n${url}` }); };
   const apps: [string, string][] = [['WhatsApp', `https://wa.me/?text=${both}`], ['Telegram', `https://t.me/share/url?url=${u}&text=${tx}`], ['Facebook', `https://www.facebook.com/sharer/sharer.php?u=${u}`], ['X', `https://twitter.com/intent/tweet?url=${u}&text=${tx}`]];
   return (<>

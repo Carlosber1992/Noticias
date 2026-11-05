@@ -1,13 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import React from 'react';
 import { useApp } from '../../lib/app';
 import { F, useT } from '../../lib/theme';
 
 const icon = (n: any) => ({ color, size }: any) => <Ionicons name={n} color={color} size={size} />;
 export default function L() {
-  const t = useT(); const { uid, guest, dmUnread, reqCount, spaceUnread } = useApp();
-  if (!uid && !guest) return <Redirect href="/entrar" />;
+  const t = useT(); const { dmUnread, reqCount, spaceUnread } = useApp();
   const b = dmUnread + reqCount;
   return (
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: t.brand, tabBarInactiveTintColor: t.muted, tabBarStyle: { backgroundColor: t.surface, borderTopColor: t.line }, tabBarLabelStyle: { fontFamily: F.semi, fontSize: 11 } }}>

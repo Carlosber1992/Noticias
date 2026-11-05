@@ -5,7 +5,7 @@ self.addEventListener('push', (e) => {
   let a = {};
   try { a = e.data.json(); } catch {}
   const alarm = a.level === 'alarma';
-  e.waitUntil(self.registration.showNotification(a.title || 'Plaza', {
+  e.waitUntil(self.registration.showNotification(a.title || 'Yasupo', {
     body: a.body || '', icon: '/icon.png', tag: a.id, requireInteraction: alarm,
     vibrate: alarm ? [400, 150, 400, 150, 600] : [200],
   }));

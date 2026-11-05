@@ -39,17 +39,17 @@ export default function Preguntar() {
   });
   const tabs = <Row><Chip testID="tab-com" label="Preguntas abiertas" on={tab === 'com'} onPress={() => setTab('com')} /><Chip testID="tab-auto" label="Respuesta automática" on={tab === 'auto'} onPress={() => setTab('auto')} /></Row>;
   if (tab === 'auto') return (
-    <Screen title="Preguntar" sub="Busca en lo publicado en Plaza"
+    <Screen title="Preguntar" sub="Busca en lo publicado en Yasupo"
       foot={<View style={{ backgroundColor: t.surface, borderTopWidth: 1, borderColor: t.line, padding: 8, flexDirection: 'row', gap: 6 }}><TextInput testID="ask" value={ask} onChangeText={setAsk} onSubmitEditing={() => go(ask)} placeholder="Escribe tu pregunta" placeholderTextColor={t.muted} accessibilityLabel="Escribe tu pregunta" style={{ flex: 1, minHeight: 42, paddingHorizontal: 12, borderRadius: 12, backgroundColor: t.bg, color: t.ink }} /><Btn testID="ask-go" kind="pri" label="Preguntar" onPress={() => go(ask)} /></View>}>
       {tabs}
       {!asks.length ? <Empty title="¿Qué quieres saber?" text="Te mostramos al momento lo que ya se publicó sobre el tema. No necesitas cuenta." /> : null}
       {asks.map((a, i) => <View key={i} style={{ gap: 6 }}>
         <View style={{ alignSelf: 'flex-end', backgroundColor: t.mine, borderRadius: 14, padding: 10, maxWidth: '85%' }}><T>{a.q}</T></View>
         <Card testID="answer">{!a.docs ? <T kind="muted">Buscando…</T> : a.docs.length ? <>
-          <T kind="bold" style={{ color: t.brand, fontSize: 13 }}>Según lo publicado en Plaza</T>
+          <T kind="bold" style={{ color: t.brand, fontSize: 13 }}>Según lo publicado en Yasupo</T>
           <T>{a.docs[0].snippet || a.docs[0].title}</T>
           {a.docs.slice(0, 3).map((d: any) => <Pressable key={d.id} onPress={() => router.push(d.kind === 'news' ? `/noticia/${d.id}` : d.kind === 'thread' ? `/pregunta/${d.id}` : `/espacio/${d.id}`)} style={{ backgroundColor: t.bg, borderRadius: 10, padding: 10 }}><T kind="semi" numberOfLines={1}>{d.title}</T><T kind="muted" numberOfLines={1} style={{ fontSize: 13 }}>{d.snippet}</T></Pressable>)}
-        </> : <T>No encontré nada publicado sobre eso en Plaza. Puedes preguntarle a la comunidad.</T>}
+        </> : <T>No encontré nada publicado sobre eso en Yasupo. Puedes preguntarle a la comunidad.</T>}
           {a.docs ? <Btn testID="to-community" small icon="people-outline" label="Preguntar a la comunidad" onPress={() => publish(a.q.padEnd(5, '?').slice(0, 140))} style={{ alignSelf: 'flex-start' }} /> : null}
         </Card></View>)}
     </Screen>

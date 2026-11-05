@@ -53,7 +53,7 @@ export default function Perfil() {
         <Field label="Celular" value={contact.phone} onChangeText={(v: string) => setContact({ ...contact, phone: v })} keyboardType="phone-pad" />
         <Btn small label="Guardar" onPress={saveContact} />
       </Card>
-      <Btn testID="logout" label="Cerrar sesión" onPress={async () => { await signOut(); router.replace('/entrar'); }} />
+      <Btn testID="logout" label="Cerrar sesión" onPress={async () => { await signOut(); router.replace('/'); }} />
     </Screen>
   );
 }
