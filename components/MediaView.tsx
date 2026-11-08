@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useEffect, useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Image, Linking, Pressable, View } from 'react-native';
 import { Media, signed } from '../lib/media';
 import { useT } from '../lib/theme';
 import { T } from './ui';
@@ -19,7 +19,7 @@ function One({ m }: { m: Media }) {
   const t = useT(); const [url, setUrl] = useState<string | null>(null); const [ratio, setRatio] = useState(4 / 3);
   useEffect(() => { let on = true; signed(m.path).then((u) => { if (!on) return; setUrl(u); if (u && m.k === 'photo') Image.getSize(u, (w, h) => { if (on && w && h) setRatio(Math.max(w / h, 0.6)); }, () => {}); }); return () => { on = false; }; }, [m.path, m.k]);
   if (!url) return <View style={{ height: 40, borderRadius: 10, backgroundColor: t.surface2 }} />;
-  if (m.k === 'photo') return <Image accessibilityLabel={m.name} source={{ uri: url }} testID="photo" style={{ width: '100%', maxWidth: 480, aspectRatio: ratio, borderRadius: 10, backgroundColor: t.surface2 }} resizeMode="contain" />;
+  if (m.k === 'photo') return <Pressable accessibilityRole="imagebutton" accessibilityLabel="Ver foto completa" onPress={() => Linking.openURL(url)}><Image accessibilityLabel={m.name} source={{ uri: url }} testID="photo" style={{ width: '100%', maxWidth: 480, aspectRatio: ratio, borderRadius: 10, backgroundColor: t.surface2 }} resizeMode="contain" /></Pressable>;
   return m.k === 'video' ? <Vid url={url} /> : <Aud url={url} name={m.name} />;
 }
 export const MediaView = ({ media }: { media?: Media[] }) => (media?.length ? <View style={{ gap: 6 }}>{media.map((m) => <One key={m.path} m={m} />)}</View> : null);

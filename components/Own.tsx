@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { isUrl, Linked, toUrl } from './Linked';
 import { LocalityField } from './LocalityField';
 import { LocPicker } from './LocPicker';
 import { Btn, Field, Row, T } from './ui';
@@ -21,13 +22,15 @@ export function OwnActions({ what, onEdit, onDelete, warn }: { what: string; onE
   );
   return <Row>{onEdit ? <Btn testID="own-edit" small icon="create-outline" label="Editar" onPress={onEdit} /> : null}<Btn testID="own-del" small icon="trash-outline" label="Eliminar" onPress={() => setAsk(true)} /></Row>;
 }
-type F = { key: string; label: string; value: string; multiline?: boolean; max?: number; min?: number; msg?: string; locality?: boolean };
+type F = { key: string; label: string; value: string; multiline?: boolean; max?: number; min?: number; msg?: string; locality?: boolean; url?: boolean };
 export function EditForm({ fields, loc, onSave, onCancel }: { fields: F[]; loc?: { value: Here | null }; onSave: (v: Record<string, string>, l: Here | null) => Promise<any>; onCancel: () => void }) {
   const t = useT(); const [v, setV] = useState<Record<string, string>>(Object.fromEntries(fields.map((f) => [f.key, f.value]))); const [l, setL] = useState<Here | null>(loc?.value ?? null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const save = async () => {
     for (const f of fields) if ((v[f.key] ?? '').trim().length < (f.min ?? 0)) return setErr(f.msg ?? `Completa ${f.label.toLowerCase()}.`);
+    for (const f of fields) if (f.url && v[f.key]?.trim() && !isUrl(v[f.key])) return setErr('Escribe un enlace válido, como https://sitio.com/noticia.');
+    const out = Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fields.find((f) => f.key === k)?.url ? (x.trim() ? toUrl(x) : '') : x]));
     setBusy(true); setErr('');
-    try { await onSave(Object.fromEntries(Object.entries(v).map(([k, x]) => [k, x.trim()])), l); } catch (e) { setErr(errText(e)); setBusy(false); }
+    try { await onSave(Object.fromEntries(Object.entries(out).map(([k, x]) => [k, x.trim()])), l); } catch (e) { setErr(errText(e)); setBusy(false); }
   };
   return (
     <View style={{ gap: 10 }}>
@@ -47,7 +50,7 @@ export function Editable({ table, id, body, media, edited, own, what, onDone, ch
   const { say } = useApp(); const [ed, setEd] = useState(false);
   if (ed) return <EditForm fields={[{ key: 'body', label: 'Texto', value: body, multiline: true, max: 4000, min: media?.length ? 0 : 1, msg: 'Escribe el texto.' }]} onCancel={() => setEd(false)} onSave={async (v) => { check(await supabase.from(table).update({ body: v.body }).eq('id', id)); setEd(false); say('Cambios guardados'); onDone(); }} />;
   return (<>
-    {body ? <T>{body}{edited ? <T kind="muted" style={{ fontSize: 12 }}> (editado)</T> : null}</T> : null}
+    {body ? <Linked>{body}</Linked> : null}{edited ? <T kind="muted" style={{ fontSize: 12 }}>(editado)</T> : null}
     {children}
     {own ? <OwnActions what={what} onEdit={() => setEd(true)} onDelete={async () => { check(await supabase.from(table).delete().eq('id', id)); await removeMedia(media); onDone(); }} /> : null}
   </>);

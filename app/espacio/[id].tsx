@@ -68,7 +68,7 @@ export default function Espacio() {
         return s.type === 'canal' ? <Card key={m.id} testID="post"><T kind="muted" style={{ fontSize: 13 }}>{when(m.created_at)}</T><Editable table="plaza_messages" id={m.id} body={m.body} media={m.media} edited={m.edited_at} own={mine} what="esta publicación" onDone={load}><MediaView media={m.media} /><LocLink lat={m.lat} lng={m.lng} place={m.place} /></Editable></Card> : (
           <View key={m.id} testID="bubble" style={{ flexDirection: mine ? 'row-reverse' : 'row', gap: 8, alignItems: 'flex-end' }}>
             {mine ? null : <Av name={m.author?.username ?? '?'} size={32} />}
-            <View style={{ maxWidth: '82%', backgroundColor: mine ? t.mine : t.surface, borderRadius: 14, padding: 10, gap: 4 }}>
+            <View style={{ maxWidth: '82%', width: m.media?.length ? '82%' : undefined, backgroundColor: mine ? t.mine : t.surface, borderRadius: 14, padding: 10, gap: 4 }}>
               {mine ? null : <T kind="bold" style={{ color: t.brand, fontSize: 13 }} onPress={() => need(() => router.push(`/chat/${m.author_id}`))}>@{m.author?.username}</T>}
               <Editable table="plaza_messages" id={m.id} body={m.body} media={m.media} edited={m.edited_at} own={mine} what="este mensaje" onDone={load}><MediaView media={m.media} /><LocLink lat={m.lat} lng={m.lng} place={m.place} /><T kind="muted" style={{ fontSize: 11, alignSelf: 'flex-end' }}>{when(m.created_at)}</T></Editable>
             </View>
