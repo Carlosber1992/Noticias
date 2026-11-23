@@ -458,22 +458,29 @@ function rebuildIndex(){
   for (const k in idx.byItem) idx.byItem[k].sort((a, b) => b.at - a.at);
   S.idx = idx;
 
-  // Canales y publicaciones de la comunidad (solo de personas con cuenta)
+  // Canales y perfiles de la comunidad: quien publica sin canal aparece con su perfil personal
   const chs = {}, items = {}, names = new Set(DEMO_CHANNELS.map(c => c.name.toLowerCase()));
-  for (const [uid, c] of Object.entries(S.channels)){
-    if (!S.accounts[uid] || !c || !c.name) continue;
-    const ch = {id: userChannelId(uid), owner: uid, community: true, name: String(c.name).slice(0, 40), cat: safeCat(c.cat),
-      about: String(c.about || '').slice(0, 200), color: safeColor(c.color), emoji: safeEmoji(c.emoji), createdAt: c.createdAt};
+  for (const uid of new Set([...Object.keys(S.channels), ...Object.keys(S.posts)])){
+    const acc = S.accounts[uid]; if (!acc) continue;
+    const c = S.channels[uid], posts = S.posts[uid] || [];
+    let ch;
+    if (c && c.name){
+      ch = {id: userChannelId(uid), owner: uid, community: true, name: String(c.name).slice(0, 40), cat: safeCat(c.cat),
+        about: String(c.about || '').slice(0, 200), color: safeColor(c.color), emoji: safeEmoji(c.emoji), createdAt: c.createdAt};
+      if (uid !== S.uid) names.add(ch.name.toLowerCase());
+    } else if (posts.length){
+      ch = {id: userChannelId(uid), owner: uid, community: true, personal: true, name: String(acc.alias || 'Usuario').slice(0, 24),
+        cat: safeCat(posts[0].cat), about: String(acc.bio || '').slice(0, 160), color: colorFor(uid), emoji: '👤', createdAt: acc.createdAt};
+    } else continue;
     chs[ch.id] = ch;
-    if (uid !== S.uid) names.add(ch.name.toLowerCase());
-    for (const p of S.posts[uid] || []){
+    for (const p of posts){
       const body = String(p.body || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
       const words = String(p.body || '').split(/\s+/).length;
       const media = cleanMedia(p.media), isVideo = media[0]?.kind === 'video';
-      const mins = `${Math.max(1, Math.round(words / 200))} min`;
-      items['p_' + p.id] = {id: 'p_' + p.id, pid: p.id, ch, owner: uid, community: true, type: isVideo ? 'video' : 'article',
+      const mins = `${Math.max(1, Math.round(words / 200))} min`, cat = safeCat(p.cat || ch.cat);
+      items['p_' + p.id] = {id: 'p_' + p.id, pid: p.id, ch, cat, owner: uid, community: true, type: isVideo ? 'video' : 'article',
         title: String(p.title || '').slice(0, 120), excerpt: String(p.excerpt || body[0] || '').slice(0, 220),
-        body, emoji: safeEmoji(p.emoji || ch.emoji), grad: [ch.color, TOPICS[ch.cat].g[0]], media, link: cleanLink(p.link),
+        body, emoji: safeEmoji(p.emoji || ch.emoji), grad: [ch.personal ? TOPICS[cat].g[1] : ch.color, TOPICS[cat].g[0]], media, link: cleanLink(p.link),
         mins, badge: isVideo ? '🎬 Vídeo' : media.length ? `📷 ${mins}` : `📄 ${mins}`, ts: Number(p.at) || 0, editedAt: p.editedAt, geo: cleanGeo(p.geo)};
     }
   }
@@ -657,18 +664,18 @@ const Actions = {
     toast(isNew ? `¡Tu canal «${data.name}» está listo!` : 'Canal actualizado');
     go({view: 'channel', channel: userChannelId(S.uid), cat: 'Todo', q: ''}); },
   async deleteChannel(){
-    const uid = S.uid; dropAssets(S.posts[uid] || []); delete S.channels[uid]; delete S.posts[uid];
+    const uid = S.uid; delete S.channels[uid];
     rebuildIndex(); S.view = 'account'; render();
-    try { await Promise.all([API.db.doc(`posts/${uid}`).delete(), API.db.doc(`channels/${uid}`).delete()]); toast('Canal eliminado'); }
+    try { await API.db.doc(`channels/${uid}`).delete(); toast((S.posts[uid] || []).length ? 'Canal eliminado. Tus publicaciones siguen en tu perfil personal.' : 'Canal eliminado'); }
     catch (e){ API.onWriteError(e); } },
 
-  publish({pid, title, excerpt, body, emoji, media, link, geo}){
+  publish({pid, title, excerpt, body, emoji, media, link, geo, cat}){
     const list = (S.posts[S.uid] || []).slice();
     let post;
     if (pid){ const i = list.findIndex(p => p.id === pid); if (i < 0) return 'Esta publicación ya no existe.';
-      post = {...list[i], title, excerpt, body, emoji, media, link, geo, editedAt: Date.now()}; list[i] = post; }
+      post = {...list[i], title, excerpt, body, emoji, media, link, geo, cat, editedAt: Date.now()}; list[i] = post; }
     else { if (list.length >= MAX_POSTS) return `Puedes tener hasta ${MAX_POSTS} publicaciones. Borra alguna para publicar otra.`;
-      post = {id: newId(), title, excerpt, body, emoji, media, link, geo, at: Date.now()}; list.unshift(post); }
+      post = {id: newId(), title, excerpt, body, emoji, media, link, geo, cat, at: Date.now()}; list.unshift(post); }
     if (bytes({items: list}) > MAX_DOC) return 'Tu canal ha llegado al límite de espacio. Acorta el texto o borra publicaciones antiguas.';
     S.posts[S.uid] = list; rebuildIndex(); savePostsOf(S.uid);
     toast(pid ? 'Publicación actualizada' : '¡Publicado! Ya está en el feed.');
@@ -710,7 +717,7 @@ function visibleIds(){
   if (S.cat === 'Vídeos') ids = ids.filter(id => item(id).type === 'video');
   else if (S.cat === 'Artículos') ids = ids.filter(id => item(id).type === 'article');
   else if (S.cat === 'Comunidad') ids = ids.filter(id => item(id).community);
-  else if (S.cat !== 'Todo') ids = ids.filter(id => item(id).ch.cat === S.cat);
+  else if (S.cat !== 'Todo') ids = ids.filter(id => (item(id).cat || item(id).ch.cat) === S.cat);
   if (S.q){ const q = S.q.toLowerCase(); ids = ids.filter(id => { const i = item(id); return (i.title + ' ' + i.ch.name + ' ' + i.ch.cat).toLowerCase().includes(q); }); }
   if (S.near){
     const here = CITY_BY_ID[S.near.city], dist = id => distKm(here, CITY_BY_ID[item(id).geo?.city]);
@@ -730,7 +737,7 @@ const isInfinite = () => S.view === 'feed' && !S.q && S.cat !== 'Comunidad' && !
    7. COMPONENTES
    ============================================================ */
 const avatarHTML = (letter, color, cls = '') => `<span class="avatar ${cls}" style="background:${color}">${esc(letter)}</span>`;
-const chAvatar = (ch, cls) => ch.community ? `<span class="avatar ${cls || ''}" style="background:${ch.color}">${ch.emoji}</span>` : avatarHTML(ch.name[0], ch.color, cls);
+const chAvatar = (ch, cls) => ch.personal ? avatarHTML(ch.name[0], ch.color, cls) : ch.community ? `<span class="avatar ${cls || ''}" style="background:${ch.color}">${ch.emoji}</span>` : avatarHTML(ch.name[0], ch.color, cls);
 const userAvatar = (uid, cls) => { const a = S.accounts[uid]; return avatarHTML(a?.alias?.[0] || '?', colorFor(uid), cls); };
 const userName = uid => S.accounts[uid]?.alias || 'Usuario eliminado';
 const canModerate = it => it.community && (it.owner === S.uid || S.isOwner);
@@ -786,7 +793,7 @@ function statusBanner(){
   if (S.backend === 'slow') return `<div class="banner"><p>⏳ La conexión va lenta. Los contadores y publicaciones pueden no estar al día.</p></div>`;
   if (S.uid && !me() && API.online()) return `<div class="banner"><p>👋 Ya entraste. <b>Completa tu perfil</b> para seguir canales, comentar y abrir tu canal.</p><button class="btn small" data-act="signup">Completar perfil</button></div>`;
   if (!S.uid && API.online()) return `<div class="banner"><p>✨ <b>Crea tu cuenta gratis</b> con solo un usuario y una contraseña para seguir canales, comentar y abrir tu propio canal.</p><button class="btn small" data-act="signup">Crear cuenta</button></div>`;
-  if (me() && !myChannel() && S.view === 'feed') return `<div class="banner"><p>✍️ ¿Tienes algo que contar? <b>Abre tu canal</b> y empieza a publicar.</p><button class="btn small" data-act="compose">Crear mi canal</button></div>`;
+  if (me() && !(S.posts[S.uid] || []).length && S.view === 'feed') return `<div class="banner"><p>✍️ ¿Tienes algo que contar? <b>Publica tu primera noticia</b>. No necesitas crear un canal.</p><button class="btn small" data-act="compose">Publicar</button></div>`;
   return '';
 }
 
@@ -814,9 +821,9 @@ function renderSidebar(){
     <nav class="nav">${nav('feed', '🏠 Para ti')}${nav('following', '⭐ Siguiendo')}</nav>
     <div class="side-title">Tu biblioteca</div>
     <nav class="nav">${nav('liked', '👍 Me gusta')}${nav('saved', '🔖 Guardados')}${a ? nav('account', '👤 Mi cuenta') + '<button data-act="logout">🚪 Cerrar sesión</button>' : ''}</nav>
-    ${a ? `<div class="side-title">Tu canal</div><nav class="nav">${mine ? chBtn(S.communityChannels[userChannelId(S.uid)]) + '<button data-act="compose">✍️ Nueva publicación</button>' : '<button data-act="compose">➕ Crear mi canal</button>'}</nav>` : ''}
+    ${a ? `<div class="side-title">Tus publicaciones</div><nav class="nav"><button data-act="compose">✍️ Nueva publicación</button>${S.communityChannels[userChannelId(S.uid)] ? chBtn(S.communityChannels[userChannelId(S.uid)]) : ''}${mine ? '' : '<button data-act="edit-channel">➕ Crear un canal <span class="muted">(opcional)</span></button>'}</nav>` : ''}
     ${follows.length ? `<div class="side-title">Canales que sigues</div><nav class="nav">${follows.map(channelById).filter(Boolean).map(chBtn).join('')}</nav>` : ''}
-    ${community.length ? `<div class="side-title">Canales de la comunidad</div><nav class="nav">${community.map(chBtn).join('')}</nav>` : ''}
+    ${community.length ? `<div class="side-title">Canales y perfiles de la comunidad</div><nav class="nav">${community.map(chBtn).join('')}</nav>` : ''}
     <div class="side-title">Canales de Yasupo</div>
     <nav class="nav">${DEMO_CHANNELS.filter(c => !follows.includes(c.id)).map(chBtn).join('') || '<p class="muted" style="padding:0 12px">Ya los sigues todos.</p>'}</nav>`;
 }
@@ -825,10 +832,10 @@ function channelHeader(c){
   const tp = TOPICS[c.cat], mine = c.owner && c.owner === S.uid;
   const posts = c.community ? (S.posts[c.owner] || []).length : null;
   return `<section class="panel"><div class="ch-cover" style="background:linear-gradient(135deg,${c.community ? c.color : tp.g[0]},${tp.g[1]})">${c.community ? c.emoji : tp.e.slice(0, 3).join(' ')}</div>
-    <div class="ch-row">${chAvatar(c, 'lg')}<div style="flex:1;min-width:200px"><h1>${esc(c.name)}${c.community ? '<span class="tag">Comunidad</span>' : ''}</h1>
-    <div class="muted">${esc(c.cat)} · ${plural(S.idx.followers[c.id] || 0, 'seguidor', 'seguidores')}${posts !== null ? ' · ' + plural(posts, 'publicación', 'publicaciones') : ''}${c.community ? ' · de ' + esc(userName(c.owner)) : ''}</div>
+    <div class="ch-row">${chAvatar(c, 'lg')}<div style="flex:1;min-width:200px"><h1>${esc(c.name)}${c.personal ? '<span class="tag">Perfil</span>' : c.community ? '<span class="tag">Comunidad</span>' : ''}</h1>
+    <div class="muted">${esc(c.cat)} · ${plural(S.idx.followers[c.id] || 0, 'seguidor', 'seguidores')}${posts !== null ? ' · ' + plural(posts, 'publicación', 'publicaciones') : ''}${c.community && !c.personal ? ' · de ' + esc(userName(c.owner)) : ''}</div>
     ${c.about ? `<p style="margin:6px 0 0">${esc(c.about)}</p>` : ''}</div>
-    <div class="row-actions">${followBtn(c.id, true)}${mine ? '<button class="btn small ghost" data-act="edit-channel">Editar canal</button>' : ''}</div></div></section>`;
+    <div class="row-actions">${followBtn(c.id, true)}${mine ? `<button class="btn small ghost" data-act="edit-channel">${c.personal ? 'Crear un canal (opcional)' : 'Editar canal'}</button>` : ''}</div></div></section>`;
 }
 
 function renderFeedPage(){
@@ -874,12 +881,15 @@ function renderAccountPage(){
         <div class="stat"><b>${fmt(myPosts.length)}</b><span>Publicaciones</span></div>
       </div>
     </section>
-    <section class="panel"><h2 style="margin-top:0">Mi canal</h2>
+    <section class="panel"><div class="section-h" style="margin-top:0"><h2>Mis publicaciones</h2><button class="btn small" data-act="compose">+ Publicar</button></div>
+      ${myPosts.map(p => `<div class="list-row"><div class="grow"><b>${esc(p.title)}</b><br><small>${timeAgo(p.at)} · 👍 ${fmt(S.idx.likes['p_' + p.id] || 0)} · 💬 ${fmt((S.idx.byItem['p_' + p.id] || []).length)}</small></div>
+        <div class="row-actions"><button class="btn small ghost" data-act="open" data-id="p_${esc(p.id)}">Ver</button><button class="btn small ghost" data-act="edit-post" data-uid="${esc(S.uid)}" data-pid="${esc(p.id)}">Editar</button><button class="btn small danger" data-act="del-post" data-uid="${esc(S.uid)}" data-pid="${esc(p.id)}">Borrar</button></div></div>`).join('')
+        || '<p class="muted">Aún no has publicado nada. Puedes publicar directamente desde tu perfil, sin crear un canal.</p>'}
+    </section>
+    <section class="panel"><h2 style="margin-top:0">Mi canal <span class="muted" style="font-size:14px;font-weight:400">(opcional)</span></h2>
       ${ch ? `<div class="list-row">${chAvatar(S.communityChannels[userChannelId(S.uid)], 'md')}<div class="grow"><b>${esc(ch.name)}</b><br><small>${esc(ch.cat)} · ${plural(S.idx.followers[userChannelId(S.uid)] || 0, 'seguidor', 'seguidores')}</small></div>
-          <div class="row-actions"><button class="btn small" data-act="compose">+ Publicar</button><button class="btn small ghost" data-act="channel" data-ch="${esc(userChannelId(S.uid))}">Ver</button><button class="btn small ghost" data-act="edit-channel">Editar</button></div></div>
-        ${myPosts.map(p => `<div class="list-row"><div class="grow"><b>${esc(p.title)}</b><br><small>${timeAgo(p.at)} · 👍 ${fmt(S.idx.likes['p_' + p.id] || 0)} · 💬 ${fmt((S.idx.byItem['p_' + p.id] || []).length)}</small></div>
-          <div class="row-actions"><button class="btn small ghost" data-act="open" data-id="p_${esc(p.id)}">Ver</button><button class="btn small ghost" data-act="edit-post" data-uid="${esc(S.uid)}" data-pid="${esc(p.id)}">Editar</button><button class="btn small danger" data-act="del-post" data-uid="${esc(S.uid)}" data-pid="${esc(p.id)}">Borrar</button></div></div>`).join('')}`
-      : `<p class="muted">Todavía no tienes canal. Crea uno para publicar artículos y que otras personas te sigan.</p><button class="btn" data-act="compose">Crear mi canal</button>`}
+          <div class="row-actions"><button class="btn small ghost" data-act="channel" data-ch="${esc(userChannelId(S.uid))}">Ver</button><button class="btn small ghost" data-act="edit-channel">Editar</button></div></div>`
+      : `<p class="muted">Ahora publicas con tu perfil personal${myPosts.length ? ` (<button class="link-btn" style="font-size:inherit" data-act="channel" data-ch="${esc(userChannelId(S.uid))}">ver mi perfil</button>)` : ''}. Si quieres darle un nombre, un tema y una imagen propios, crea un canal: tus publicaciones y seguidores pasarán a él.</p><button class="btn ghost" data-act="edit-channel">Crear un canal</button>`}
     </section>
     <section class="panel"><h2 style="margin-top:0">Editar perfil</h2>
       <form data-form="profile">
@@ -1051,7 +1061,7 @@ function openChannelForm(){
       <div class="field"><label>Icono</label><div class="swatches">${EMOJIS.map(e => `<button type="button" class="emoji-pick ${e === emoji ? 'on' : ''}" data-act="pick" data-group="emoji" data-val="${e}">${e}</button>`).join('')}</div></div>
       <div class="field"><label>Color</label><div class="swatches">${PALETTE.map(p => `<button type="button" class="swatch ${p === color ? 'on' : ''}" data-act="pick" data-group="color" data-val="${p}" style="background:${p}" aria-label="Color ${p}"></button>`).join('')}</div></div>
       ${actionsRow(c.name ? 'Guardar cambios' : 'Crear canal')}
-      ${c.name ? '<p style="margin:16px 0 0;text-align:right"><button type="button" class="link-btn" data-act="delete-channel">Eliminar el canal y todas sus publicaciones</button></p>' : ''}
+      ${c.name ? '<p style="margin:16px 0 0;text-align:right"><button type="button" class="link-btn" data-act="delete-channel">Eliminar el canal (tus publicaciones se conservan)</button></p>' : ''}
     </form>`, '#cName');
 }
 
@@ -1100,14 +1110,15 @@ let draft = null;   // {pid, done, cancelled, fresh:Set, removed:[], media:[{key
 
 function openComposer(pid){
   if (!needAccount(() => openComposer(pid))) return;
-  if (!myChannel()) return openChannelForm();
-  const ch = S.communityChannels[userChannelId(S.uid)];
+  const ch = S.communityChannels[userChannelId(S.uid)] || {name: me().alias, cat: CATS[0], emoji: '👤', color: colorFor(S.uid), personal: true};
   const p = pid ? (S.posts[S.uid] || []).find(x => x.id === pid) : null;
   if (pid && !p) return toast('Esta publicación ya no existe.');
   const emoji = p ? safeEmoji(p.emoji) : ch.emoji;
   const emojis = [...new Set([ch.emoji, ...TOPICS[ch.cat].e, ...EMOJIS])];
   showModal(`<h2>${p ? 'Editar publicación' : 'Nueva publicación'}</h2>
-    <p class="muted" style="margin-top:0">Se publicará en <b>${esc(ch.name)}</b>.</p>
+    <p class="muted" style="margin-top:0">${ch.personal
+      ? `Se publicará en tu perfil (<b>${esc(me().alias)}</b>). No necesitas un canal; si algún día quieres uno, puedes <button type="button" class="link-btn" style="font-size:inherit" data-act="edit-channel">crearlo aquí</button>.`
+      : `Se publicará en tu canal <b>${esc(ch.name)}</b>.`}</p>
     <form data-form="post" data-pid="${p ? esc(p.id) : ''}">
       <div class="field"><label>Portada <span class="muted">(opcional)</span></label>
         <small>Añade hasta ${MAX_PHOTOS} fotos o un vídeo (MP4 o WebM, hasta 20 MB). Toca una foto para ponerla de portada.</small>
@@ -1119,6 +1130,7 @@ function openComposer(pid){
           <div class="swatches" style="margin-top:6px">${emojis.map(e => `<button type="button" class="emoji-pick ${e === emoji ? 'on' : ''}" data-act="pick" data-group="emoji" data-val="${e}">${e}</button>`).join('')}</div></div>
       </div>
       <div class="field"><label for="pTitle">Título</label><input id="pTitle" name="title" maxlength="120" required value="${esc(p?.title || '')}" placeholder="Un título que invite a leer" autocomplete="off"></div>
+      <div class="field"><label for="pCat">Tema</label><select id="pCat" name="cat">${CATS.map(x => `<option ${x === safeCat(p?.cat || ch.cat) ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
       <div class="field"><label for="pExcerpt">Resumen <span class="muted">(opcional)</span></label><input id="pExcerpt" name="excerpt" maxlength="200" value="${esc(p?.excerpt || '')}" placeholder="Si lo dejas vacío, se usa el primer párrafo"></div>
       <div class="field"><label for="pBody">Contenido <span class="counter" id="bodyCount"></span></label>
         <textarea id="pBody" class="big" name="body" maxlength="${MAX_BODY}" placeholder="Escribe aquí tu artículo. Deja una línea en blanco entre párrafos.">${esc(p?.body || '')}</textarea></div>
@@ -1276,7 +1288,7 @@ document.addEventListener('click', e => {
     case 'del-comment': return Actions.deleteComment(el.dataset.uid, el.dataset.cid);
     case 'del-post': return openConfirm('¿Borrar esta publicación?', 'Se quitará del feed para todo el mundo. No se puede deshacer.', 'confirm-del-post', `data-uid="${esc(el.dataset.uid)}" data-pid="${esc(el.dataset.pid)}"`);
     case 'confirm-del-post': closeModal(); return Actions.deletePost(el.dataset.uid, el.dataset.pid);
-    case 'delete-channel': return openConfirm('¿Eliminar tu canal?', `Se borrarán el canal y sus ${(S.posts[S.uid] || []).length} publicaciones. Tu cuenta seguirá activa. No se puede deshacer.`, 'confirm-delete-channel');
+    case 'delete-channel': return openConfirm('¿Eliminar tu canal?', `Se borrarán el nombre, la descripción, el icono y el color del canal. Tus publicaciones no se borran: pasarán a tu perfil personal, y quienes te siguen te seguirán viendo.`, 'confirm-delete-channel');
     case 'confirm-delete-channel': closeModal(); return Actions.deleteChannel();
     case 'delete-account': return openConfirm('¿Eliminar tu cuenta?', 'Se borrarán tu perfil, tu canal con sus publicaciones, tus reacciones y tus comentarios. No se puede deshacer.', 'confirm-delete');
     case 'confirm-delete': closeModal(); return Actions.deleteAccount();
@@ -1323,7 +1335,7 @@ document.addEventListener('submit', e => {
       if (!c) return err.textContent = 'Elige la ciudad de la lista de sugerencias (o deja el campo vacío).';
       geo = {city: c.id, place: f.elements.place.value.trim().replace(/[<>]/g, '').slice(0, 60)};
     }
-    const res = Actions.publish({pid: f.dataset.pid || null, title, excerpt, body, emoji: safeEmoji(picked('emoji')), media, link: link || '', geo});
+    const res = Actions.publish({pid: f.dataset.pid || null, title, excerpt, body, emoji: safeEmoji(picked('emoji')), media, link: link || '', geo, cat: safeCat(f.elements.cat.value)});
     if (typeof res === 'string') return err.textContent = res;
     if (draft){ draft.done = true; draft.removed.forEach(delAsset); }
     closeModal(); S.view = 'channel'; S.channel = userChannelId(S.uid); S.cat = 'Todo'; S.shown = 12; render(); openReader(res.id); return;
