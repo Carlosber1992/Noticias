@@ -1211,13 +1211,14 @@ async function submitAuth(f, err){
 
 /** Buscar por ubicación */
 function openNear(){
-  const n = S.near, c = n && CITY_BY_ID[n.city];
+  const n = S.near, c = (n && CITY_BY_ID[n.city]) || CITY_BY_ID[local.get('myCity', '')];
   showModal(`<h2>📍 Buscar por ubicación</h2>
     <p class="muted" style="margin-top:0">Muestra las noticias publicadas cerca del lugar que elijas, de la más cercana a la más lejana.</p>
     <form data-form="near">
-      <div class="field"><label for="nCity">Ciudad</label>
-        <div style="display:flex;gap:8px"><input id="nCity" name="city" list="cityList" value="${c ? esc(cityLabel(c)) : ''}" placeholder="Escribe una ciudad…" autocomplete="off" style="flex:1;min-width:0">
-        <button type="button" class="btn ghost small" data-act="geo-me" data-target="nCity">📍 Mi ubicación</button></div></div>
+      <div class="field"><label for="nCity">Ciudad <span class="muted">(opcional)</span></label>
+        <div style="display:flex;gap:8px"><input id="nCity" name="city" list="cityList" value="${c ? esc(cityLabel(c)) : ''}" placeholder="Tu ubicación actual" autocomplete="off" style="flex:1;min-width:0">
+        <button type="button" class="btn ghost small" data-act="geo-me" data-target="nCity">📍 Mi ubicación</button></div>
+        <small>Si la dejas vacía, usamos tu ubicación actual. Escríbela solo si quieres buscar en otra ciudad.</small></div>
       <div class="field"><label for="nKm">Distancia: <span class="km-val" id="kmVal">hasta ${kmLabel(n?.radius ?? 100)}</span></label>
         <input type="range" id="nKm" name="km" class="km-range" min="0" max="100" step="1" value="${posFromKm(n?.radius ?? 100)}" aria-describedby="kmVal">
         <div class="km-scale"><span>${kmText(KM_MIN)}</span><span>${kmText(KM_MAX)}</span></div>
@@ -1227,18 +1228,30 @@ function openNear(){
         ${n ? '<button type="button" class="btn ghost" data-act="near-clear">Quitar filtro</button>' : '<span></span>'}
         <div style="display:flex;gap:8px"><button type="button" class="btn ghost" data-act="close-modal">Cancelar</button><button class="btn">Buscar</button></div>
       </div>
-    </form>`, '#nCity');
+    </form>`);
+  if (!c && navigator.permissions) navigator.permissions.query({name: 'geolocation'}).then(st => {
+    if (st.state === 'granted') getMyCity().then(m => { const i = $('#nCity'); if (m && i && !i.value) i.value = cityLabel(m); });
+  }).catch(() => {});
 }
 /** Pide la posición al navegador y la convierte en la ciudad más cercana (la posición exacta no se guarda). */
-function locateMe(targetId){
+/** Ciudad más cercana a la posición del celular (se recuerda en este navegador; la posición exacta no se guarda). */
+function getMyCity(){
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(pos => {
+      const c = nearestCity(pos.coords.latitude, pos.coords.longitude);
+      local.set('myCity', c.id); resolve(c);
+    }, () => resolve(null), {timeout: 10000, maximumAge: 600000});
+  });
+}
+async function locateMe(targetId){
   const input = document.getElementById(targetId);
   if (!navigator.geolocation) return toast('Tu navegador no permite obtener la ubicación. Elige tu ciudad en la lista.');
   toast('Buscando tu ubicación…');
-  navigator.geolocation.getCurrentPosition(pos => {
-    const c = nearestCity(pos.coords.latitude, pos.coords.longitude);
-    if (input) input.value = cityLabel(c);
-    toast(`Ciudad más cercana: ${c.name}`);
-  }, () => toast('No se pudo obtener tu ubicación. Elige tu ciudad en la lista.'), {timeout: 8000, maximumAge: 600000});
+  const c = await getMyCity();
+  if (!c) return toast('No se pudo obtener tu ubicación. Elige tu ciudad en la lista.');
+  if (input) input.value = cityLabel(c);
+  toast(`Ciudad más cercana: ${c.name}`);
 }
 const modalOpen = () => $('#modalOv').classList.contains('open');
 function showModal(html, focus){ discardDraft(); $('#modal').innerHTML = html; $('#modalOv').classList.add('open'); if (focus) setTimeout(() => $(focus)?.focus(), 50); }
@@ -1513,14 +1526,21 @@ document.addEventListener('click', e => {
   }
 });
 
-document.addEventListener('submit', e => {
+document.addEventListener('submit', async e => {
   const f = e.target.closest('[data-form]'); if (!f) return;
   e.preventDefault();
   const kind = f.dataset.form, err = f.querySelector('[data-err]');
   const picked = group => f.querySelector(`[data-group=${group}].on`)?.dataset.val;
   if (kind === 'near'){
-    const c = findCity(f.elements.city.value);
-    if (!c) return err.textContent = 'Elige una ciudad de la lista de sugerencias.';
+    const txt = f.elements.city.value.trim(), btn = f.querySelector('button.btn:not(.ghost)');
+    let c = txt ? findCity(txt) : null;
+    if (txt && !c) return err.textContent = 'No encontramos esa ciudad. Elígela de la lista o deja el campo vacío para usar tu ubicación.';
+    if (!c){
+      btn.disabled = true; err.textContent = ''; btn.textContent = 'Ubicando…';
+      c = await getMyCity();
+      btn.disabled = false; btn.textContent = 'Buscar';
+      if (!c) return err.textContent = 'No pudimos saber tu ubicación. Permite el acceso a la ubicación o escribe una ciudad.';
+    }
     S.near = {city: c.id, radius: kmFromPos(Number(f.elements.km.value))}; local.set('near', S.near);
     closeModal(); go({view: ['channel', 'account'].includes(S.view) ? 'feed' : S.view, channel: null});
     return toast(`Noticias cerca de ${c.name}`);
