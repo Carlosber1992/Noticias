@@ -51,7 +51,11 @@ header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:
 .logo-mark{width:30px;height:30px;border-radius:50%;background:conic-gradient(from 200deg,var(--accent),#ffb02e,var(--accent));position:relative}
 .logo-mark::after{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--surface)}
 .search{flex:1;min-width:0;max-width:620px;display:flex;align-items:center;background:var(--surface-2);border-radius:12px;padding:0 12px;height:40px}
-.search input{flex:1;border:0;background:none;outline:none;min-width:0}
+.search input{flex:1;border:0;background:none;outline:none;min-width:0;height:100%;-webkit-appearance:none;appearance:none}
+.search input::-webkit-search-cancel-button{display:none}
+.search-x,.bar .search-btn{display:none}
+.banner.slim{padding:8px 12px;gap:8px;margin-bottom:12px;font-size:14px;flex-wrap:nowrap}
+.banner.slim p{min-width:0}
 .icon-btn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none}
 .icon-btn:hover{background:var(--surface-2)}
 .btn{background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:9px 16px;font-weight:600;flex:none}
@@ -240,6 +244,16 @@ aside{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 92px);ov
   .icon-btn{width:36px;height:36px}
   .near-btn{padding:0 10px}
   .near-btn .near-label{display:none}
+  .bar{position:relative}
+  .search{display:none}
+  .bar .search-btn{display:grid}
+  .bar .theme-btn{display:none}
+  .near-btn{width:36px;height:36px;padding:0;justify-content:center;border-radius:50%}
+  .logo-mark{width:28px;height:28px}
+  header.searching .bar > :not(.search){visibility:hidden}
+  header.searching .search{display:flex;position:absolute;left:10px;right:10px;top:10px;max-width:none;z-index:2}
+  header.searching .search-x{display:grid;place-items:center;width:32px;height:32px;flex:none;color:var(--muted)}
+  .banner.slim .btn{white-space:nowrap}
   .feed{grid-template-columns:1fr}
   .reader-in{padding:18px}
   .reader h1{font-size:24px}
@@ -251,9 +265,10 @@ aside{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 92px);ov
   <div class="bar">
     <button class="icon-btn menu-btn" data-act="menu" aria-label="Menú">☰</button>
     <a href="#" class="logo" data-act="home"><div class="logo-mark"></div><span>Yasupo</span></a>
-    <label class="search">🔍&nbsp;<input id="q" placeholder="Buscar artículos, vídeos y canales"></label>
+    <label class="search">🔍&nbsp;<input id="q" type="search" enterkeyhint="search" placeholder="Buscar noticias, temas y canales" autocomplete="off"><button type="button" class="search-x" data-act="search-close" aria-label="Cerrar búsqueda">✕</button></label>
+    <button class="icon-btn search-btn" data-act="search-open" aria-label="Buscar">🔍</button>
     <button class="near-btn" id="nearBtn" data-act="near" title="Buscar por ubicación">📍 <span class="near-label">Cualquier lugar</span></button>
-    <button class="icon-btn" data-act="theme" aria-label="Cambiar tema">🌓</button>
+    <button class="icon-btn theme-btn" data-act="theme" aria-label="Cambiar tema">🌓</button>
     <div id="meSlot"></div>
   </div>
 </header>
@@ -849,11 +864,10 @@ function commentsHTML(itemId){
     </div></div>`).join('') || '<p class="muted">Todavía no hay comentarios. ¡Sé la primera persona en comentar!</p>'}`;
 }
 function statusBanner(){
-  if (S.backend === 'offline') return `<div class="banner"><p>📡 No se puede conectar con Yasupo. Revisa tu conexión y vuelve a cargar la página.</p></div>`;
-  if (S.backend === 'slow') return `<div class="banner"><p>⏳ La conexión va lenta. Los contadores y publicaciones pueden no estar al día.</p></div>`;
-  if (S.uid && !me() && API.online()) return `<div class="banner"><p>👋 Ya entraste. <b>Completa tu perfil</b> para seguir canales, comentar y abrir tu canal.</p><button class="btn small" data-act="signup">Completar perfil</button></div>`;
-  if (!S.uid && API.online()) return `<div class="banner"><p>✨ <b>Crea tu cuenta gratis</b> con solo un usuario y una contraseña para seguir canales, comentar y abrir tu propio canal.</p><button class="btn small" data-act="signup">Crear cuenta</button></div>`;
-  if (me() && !(S.posts[S.uid] || []).length && S.view === 'feed') return `<div class="banner"><p>✍️ ¿Tienes algo que contar? <b>Publica tu primera noticia</b>. No necesitas crear un canal.</p><button class="btn small" data-act="compose">Publicar</button></div>`;
+  if (S.backend === 'offline') return `<div class="banner slim"><p>📡 No se puede conectar con Yasupo. Revisa tu conexión y vuelve a cargar la página.</p></div>`;
+  if (S.backend === 'slow') return `<div class="banner slim"><p>⏳ La conexión va lenta. Los contadores y publicaciones pueden no estar al día.</p></div>`;
+  if (S.uid && !me() && API.online()) return `<div class="banner slim"><p>👋 <b>Completa tu perfil</b> para comentar y publicar.</p><button class="btn small" data-act="signup">Completar</button></div>`;
+  if (me() && !(S.posts[S.uid] || []).length && S.view === 'feed') return `<div class="banner slim"><p>✍️ ¿Tienes algo que contar? <b>Publica tu primera noticia</b>.</p><button class="btn small" data-act="compose">Publicar</button></div>`;
   return '';
 }
 
@@ -880,7 +894,7 @@ function renderSidebar(){
     <div class="side-title">Explorar</div>
     <nav class="nav">${nav('feed', '🏠 Para ti')}${nav('following', '⭐ Siguiendo')}</nav>
     <div class="side-title">Tu biblioteca</div>
-    <nav class="nav">${nav('liked', '👍 Me gusta')}${nav('saved', '🔖 Guardados')}${a ? nav('account', '👤 Mi cuenta') + '<button data-act="logout">🚪 Cerrar sesión</button>' : ''}</nav>
+    <nav class="nav">${nav('liked', '👍 Me gusta')}${nav('saved', '🔖 Guardados')}${a ? nav('account', '👤 Mi cuenta') + '<button data-act="logout">🚪 Cerrar sesión</button>' : ''}<button data-act="theme">🌓 Tema claro u oscuro</button></nav>
     ${a ? `<div class="side-title">Tus publicaciones</div><nav class="nav"><button data-act="compose">✍️ Nueva publicación</button>${S.communityChannels[userChannelId(S.uid)] ? chBtn(S.communityChannels[userChannelId(S.uid)]) : ''}${mine ? '' : '<button data-act="edit-channel">➕ Crear un canal <span class="muted">(opcional)</span></button>'}</nav>` : ''}
     ${follows.length ? `<div class="side-title">Canales que sigues</div><nav class="nav">${follows.map(channelById).filter(Boolean).map(chBtn).join('')}</nav>` : ''}
     ${community.length ? `<div class="side-title">Canales y perfiles de la comunidad</div><nav class="nav">${community.map(chBtn).join('')}</nav>` : ''}
@@ -1451,6 +1465,8 @@ document.addEventListener('click', e => {
     case 'cat-chip': e.stopPropagation(); return go({view: 'feed', channel: null, cat: el.dataset.cat, q: ''});
     case 'home': e.preventDefault(); $('#q').value = ''; return go({view: 'feed', cat: 'Todo', q: '', channel: null});
     case 'menu': return $('#side').classList.toggle('open');
+    case 'search-open': $('#side').classList.remove('open'); document.querySelector('header').classList.add('searching'); return $('#q').focus();
+    case 'search-close': { document.querySelector('header').classList.remove('searching'); const q = $('#q'); if (q.value){ q.value = ''; S.q = ''; S.shown = 12; render(); } return; }
     case 'theme': return cycleTheme();
     case 'short': return toast('Reproduciendo clip…');
     case 'signup': return enter();
@@ -1578,6 +1594,7 @@ document.addEventListener('scroll', e => {
 $('#readerOv').addEventListener('click', e => { if (e.target.id === 'readerOv') closeReader(); });
 $('#modalOv').addEventListener('click', e => { if (e.target.id === 'modalOv') closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (modalOpen()) closeModal(); else closeReader(); } });
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); } });
 let qt; $('#q').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => { S.q = e.target.value.trim(); if (S.view === 'account') S.view = 'feed'; S.shown = 12; render(); }, 200); });
 
 const THEMES = ['auto', 'light', 'dark']; let theme = local.get('theme', 'auto');
