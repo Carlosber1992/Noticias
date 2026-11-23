@@ -229,6 +229,13 @@ aside{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 92px);ov
 .near-btn .near-label{overflow:hidden;text-overflow:ellipsis}
 .near-btn.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .km-val{color:var(--accent)}
+.handle-input{display:flex;align-items:center;background:var(--surface-2);border-radius:10px;border:1px solid transparent;padding-left:12px}
+.handle-input:focus-within{border-color:var(--accent)}
+.handle-input span{color:var(--muted);white-space:nowrap}
+.field .handle-input input{flex:1;min-width:0;background:none;border:0;padding:10px 12px 10px 1px}
+.handle-state.ok{color:#15803d}.handle-state.bad{color:var(--danger)}
+.handle-line{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 10px;border-radius:999px;background:var(--surface-2);font-size:13px;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.handle-line b{color:var(--text)}.handle-line span{color:var(--accent);font-weight:600}
 .km-range{width:100%;height:36px;accent-color:var(--accent);margin:4px 0 0;cursor:pointer}
 .km-scale{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:-4px}
 .geo-line{display:block;margin-top:6px;color:var(--muted);font-size:13px}
@@ -561,12 +568,15 @@ const API = {
     } catch (e){ S.backend = 'offline'; }
     clearTimeout(slow);
     await this.loadPins();
+    await this.loadHandles();
     if (S.uid) await this.afterAuth();
     rebuildIndex(); render();
+    routeFromUrl(true);
     Alerts.init();
     sb.channel('ys-' + Math.random().toString(36).slice(2))
       .on('postgres_changes', {event: '*', schema: 'public', table: 'ys_docs'}, p => this.onChange(p))
       .on('postgres_changes', {event: '*', schema: 'public', table: 'ys_pins'}, () => this.loadPins().then(render))
+      .on('postgres_changes', {event: '*', schema: 'public', table: 'ys_handles'}, () => this.loadHandles().then(render))
       .subscribe(st => { if (st === 'SUBSCRIBED' && S.backend !== 'online') this.loadAll().then(() => { S.backend = 'online'; rebuildIndex(); render(); }).catch(() => {}); });
     sb.auth.onAuthStateChange((ev, session) => {
       const uid = session?.user?.id || null;
@@ -585,6 +595,14 @@ const API = {
     }
     Object.assign(S, fresh);
   },
+  async loadHandles(){
+    try {
+      const {data, error} = await sb.from('ys_handles').select('uid,handle');
+      if (error) return;
+      S.handles = Object.fromEntries((data || []).map(r => [r.uid, r.handle]));
+      S.byHandle = Object.fromEntries((data || []).map(r => [r.handle, r.uid]));
+    } catch {}
+  },
   async loadPins(){
     try {
       const {data, error} = await sb.from('ys_pins').select('item_id,kind,rank');
@@ -602,6 +620,7 @@ const API = {
     rebuildIndex(); render();
   },
   async afterAuth(){
+    try { const r = await sb.rpc('ys_ensure_handle'); if (r.data){ S.handles[S.uid] = r.data; S.byHandle[r.data] = S.uid; } } catch {}
     try { await sb.rpc('plaza_touch'); } catch {}
     Alerts.refreshPush();
     try { const r = await sb.rpc('ys_is_mod'); S.isOwner = r.data === true; } catch { S.isOwner = false; }
@@ -817,6 +836,57 @@ function withPins(ids, pins){
 }
 const isInfinite = () => DEMO_CHANNELS.length > 0 && S.view === 'feed' && !S.q && S.cat !== 'Comunidad' && !S.near;
 
+/* ---------- Direcciones propias: yasupo.com/<direccion> ---------- */
+S.handles = {}; S.byHandle = {};
+const SITE = 'yasupo.com';
+const HANDLE_RE = /^[a-z0-9_-]{3,30}$/;
+const RESERVED_HANDLES = new Set(['admin','administrador','panel','api','yasupo','ayuda','soporte','contacto','cuenta','mi-cuenta','micuenta','login','entrar','salir','registro','registrarse','buscar','busqueda','publicar','noticias','noticia','canal','canales','perfil','perfiles','configuracion','ajustes','privacidad','terminos','condiciones','legal','seguridad','moderador','moderacion','staff','equipo','index','assets','static','public','www','app','apps','root','system','sistema','null','undefined','inicio','home','feed','explorar','siguiendo','guardados','temas','categorias','comunidad','eventos','mensajes','chat','notificaciones','alertas','oficial','yasupo_oficial','soporte_yasupo']);
+const handleOf = uid => S.handles[uid] || null;
+const channelUrl = uid => handleOf(uid) ? `https://${SITE}/${handleOf(uid)}` : `https://${SITE}`;
+const toHandle = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/[\s.]+/g, '_').replace(/[^a-z0-9_-]/g, '');
+function handleProblem(h, own){
+  if (!HANDLE_RE.test(h)) return 'Usa de 3 a 30 letras sin tildes, números, guion (-) o guion bajo (_).';
+  if (RESERVED_HANDLES.has(h)) return 'Esa dirección está reservada. Elige otra.';
+  if (S.byHandle[h] && S.byHandle[h] !== S.uid) return 'Esa dirección ya está en uso. Elige otra.';
+  return '';
+}
+/** Guarda la dirección en el servidor (que vuelve a comprobar que sea única). */
+async function saveHandle(h){
+  if (h === handleOf(S.uid)) return '';
+  const {data, error} = await sb.rpc('ys_set_handle', {p_handle: h});
+  if (error) return (error.message || '').replace(/^.*?: /, '') || 'No se pudo guardar la dirección.';
+  const old = handleOf(S.uid); if (old) delete S.byHandle[old];
+  S.handles[S.uid] = data; S.byHandle[data] = S.uid;
+  if (S.view === 'channel' && S.channel === userChannelId(S.uid)) history.replaceState(null, '', '/' + data);
+  return '';
+}
+function handleField(id, current){
+  return `<div class="field"><label for="${id}">Tu dirección en Yasupo</label>
+    <div class="handle-input"><span>${SITE}/</span><input id="${id}" name="handle" data-handle-input maxlength="30" required value="${esc(current || '')}" autocapitalize="none" spellcheck="false" autocomplete="off" placeholder="tu_nombre"></div>
+    <small class="handle-state" data-handle-state>Es única: nadie más puede usarla. Compártela para que te encuentren.</small></div>`;
+}
+const pathHandle = () => { const m = location.pathname.match(/^\/([A-Za-z0-9_-]{3,30})\/?$/); return m ? m[1].toLowerCase() : null; };
+/** Abre el canal o perfil de la dirección que viene en la URL (y la publicación de ?p=). */
+function routeFromUrl(first){
+  const h = pathHandle();
+  if (!h){ if (!first && S.view === 'channel'){ Object.assign(S, {view: 'feed', channel: null, shown: 12}); closeReader(); render(); } return; }
+  const uid = S.byHandle[h];
+  if (!uid){ if (first) toast(`La dirección ${SITE}/${h} no existe.`); history.replaceState(null, '', '/'); return; }
+  const chId = userChannelId(uid);
+  if (!channelById(chId)){ toast(`${S.accounts[uid]?.alias || h} todavía no tiene publicaciones.`); history.replaceState(null, '', '/'); return; }
+  Object.assign(S, {view: 'channel', channel: chId, cat: 'Todo', q: '', shown: 12});
+  closeModal(); render(); scrollTo(0, 0);
+  const pid = new URLSearchParams(location.search).get('p');
+  if (pid && item('p_' + pid)) openReader('p_' + pid); else closeReader();
+}
+/** Mantiene la URL al día: yasupo.com/<direccion> en un canal, yasupo.com en lo demás. */
+function syncUrl(){
+  let want = '/';
+  if (S.view === 'channel'){ const c = channelById(S.channel); if (c?.owner && handleOf(c.owner)) want = '/' + handleOf(c.owner); }
+  if (location.pathname !== want || location.search) history.pushState(null, '', want);
+}
+window.addEventListener('popstate', () => routeFromUrl(false));
+
 /* ============================================================
    7. COMPONENTES
    ============================================================ */
@@ -917,7 +987,8 @@ function channelHeader(c){
   return `<section class="panel"><div class="ch-cover" style="background:linear-gradient(135deg,${c.community ? c.color : tp.g[0]},${tp.g[1]})">${c.community ? c.emoji : tp.e.slice(0, 3).join(' ')}</div>
     <div class="ch-row">${chAvatar(c, 'lg')}<div style="flex:1;min-width:200px"><h1>${esc(c.name)}${c.personal ? '<span class="tag">Perfil</span>' : c.community ? '<span class="tag">Comunidad</span>' : ''}</h1>
     <div class="muted">${esc(c.cat)} · ${plural(S.idx.followers[c.id] || 0, 'seguidor', 'seguidores')}${posts !== null ? ' · ' + plural(posts, 'publicación', 'publicaciones') : ''}${c.community && !c.personal ? ' · de ' + esc(userName(c.owner)) : ''}</div>
-    ${c.about ? `<p style="margin:6px 0 0">${esc(c.about)}</p>` : ''}</div>
+    ${c.about ? `<p style="margin:6px 0 0">${esc(c.about)}</p>` : ''}
+    ${c.owner && handleOf(c.owner) ? `<button class="handle-line" data-act="copy-url" data-uid="${esc(c.owner)}" title="Copiar enlace">🔗 ${SITE}/<b>${esc(handleOf(c.owner))}</b> <span>Copiar</span></button>` : ''}</div>
     <div class="row-actions">${followBtn(c.id, true)}${mine ? `<button class="btn small ghost" data-act="edit-channel">${c.personal ? 'Crear un canal (opcional)' : 'Editar canal'}</button>` : ''}</div></div></section>`;
 }
 
@@ -978,6 +1049,7 @@ function renderAccountPage(){
       <form data-form="profile">
         <div class="field"><label for="pAlias">Alias</label><input id="pAlias" name="alias" value="${esc(a.alias)}" maxlength="24" required><small>Es el nombre que verán las demás personas.</small></div>
         <div class="field"><label for="pBio">Sobre ti</label><textarea id="pBio" name="bio" rows="2" maxlength="160">${esc(a.bio || '')}</textarea></div>
+        ${handleField('pHandle', handleOf(S.uid))}
         <div class="err" data-err></div><button class="btn">Guardar cambios</button>
       </form></section>
     <section class="panel"><h2 style="margin-top:0">Canales que sigues</h2>
@@ -1280,7 +1352,8 @@ function openChannelForm(){
   showModal(`<h2>${c.name ? 'Editar mi canal' : 'Crea tu canal'}</h2>
     <p class="muted" style="margin-top:0">${c.name ? 'Los cambios se verán al momento en todas tus publicaciones.' : 'Tu canal es tu espacio para publicar. Las demás personas podrán seguirlo, reaccionar y comentar.'}</p>
     <form data-form="channel">
-      <div class="field"><label for="cName">Nombre del canal</label><input id="cName" name="name" maxlength="40" required value="${esc(c.name || '')}" placeholder="p. ej. Cuaderno de Viaje" autocomplete="off"></div>
+      <div class="field"><label for="cName">Nombre del canal</label><input id="cName" name="name" maxlength="40" required value="${esc(c.name || '')}" placeholder="p. ej. Cuaderno de Viaje" autocomplete="off" data-handle-from="cHandle"></div>
+      ${handleField('cHandle', handleOf(S.uid))}
       ${catPicker('cCat', 'Tema principal', safeCat(c.cat || 'General'))}
       <div class="field"><label for="cAbout">Descripción <span class="counter">máx. 200</span></label><textarea id="cAbout" name="about" rows="3" maxlength="200" placeholder="¿De qué trata tu canal?">${esc(c.about || '')}</textarea></div>
       <div class="field"><label>Icono</label><div class="swatches">${EMOJIS.map(e => `<button type="button" class="emoji-pick ${e === emoji ? 'on' : ''}" data-act="pick" data-group="emoji" data-val="${e}">${e}</button>`).join('')}</div></div>
@@ -1471,7 +1544,7 @@ function closeReader(){ S.openId = null; $('#readerOv').classList.remove('open')
 /* ============================================================
    10. EVENTOS
    ============================================================ */
-function go(patch){ Object.assign(S, {shown: 12}, patch); $('#side').classList.remove('open'); closeModal(); closeReader(); render(); scrollTo(0, 0); }
+function go(patch){ Object.assign(S, {shown: 12}, patch); $('#side').classList.remove('open'); closeModal(); closeReader(); render(); scrollTo(0, 0); syncUrl(); }
 
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el) return;
@@ -1482,7 +1555,8 @@ document.addEventListener('click', e => {
     case 'dislike': return Actions.dislike(id);
     case 'save': return Actions.save(id);
     case 'follow': return Actions.follow(el.dataset.ch);
-    case 'share': { const i = item(id), text = i.title + (i.link ? ' ' + i.link : '') + ' · yasupo.com'; if (navigator.share){ navigator.share({title: i.title, text, url: i.link || 'https://yasupo.com'}).catch(() => {}); return; } try { navigator.clipboard.writeText(text); } catch {} return toast('Copiado para compartir'); }
+    case 'share': { const i = item(id); if (!i) return; const url = i.owner && handleOf(i.owner) ? `${channelUrl(i.owner)}?p=${encodeURIComponent(i.pid)}` : (i.link || `https://${SITE}`); const text = i.title + (i.link ? ' ' + i.link : ''); if (navigator.share){ navigator.share({title: i.title, text, url}).catch(() => {}); return; } try { navigator.clipboard.writeText(text + ' ' + url); } catch {} return toast('Enlace copiado para compartir'); }
+    case 'copy-url': { const url = channelUrl(el.dataset.uid); if (navigator.share && matchMedia('(pointer:coarse)').matches){ navigator.share({url}).catch(() => {}); return; } try { navigator.clipboard.writeText(url); } catch {} return toast('Enlace copiado: ' + url.replace('https://', '')); }
     case 'channel': return go({view: 'channel', channel: el.dataset.ch, cat: 'Todo', q: ''});
     case 'view': return go({view: el.dataset.view, channel: null});
     case 'cat': S.cat = el.dataset.cat; S.shown = 12; return render();
@@ -1557,6 +1631,11 @@ document.addEventListener('submit', async e => {
     const name = f.elements.name.value.trim().replace(/\s+/g, ' ');
     const problem = name.toLowerCase() === (myChannel()?.name || '').toLowerCase() ? '' : validateChannelName(name);
     if (problem){ err.textContent = problem; return; }
+    const h = toHandle(f.elements.handle.value), hp = handleProblem(h);
+    if (hp) return err.textContent = hp;
+    const btn = f.querySelector('button.btn:not(.ghost)'); btn.disabled = true;
+    const herr = await saveHandle(h); btn.disabled = false;
+    if (herr) return err.textContent = herr;
     closeModal();
     return Actions.saveChannel({name, cat: safeCat(f.elements.cat.value), about: f.elements.about.value.trim().slice(0, 200), color: safeColor(picked('color')), emoji: safeEmoji(picked('emoji'))});
   }
@@ -1594,15 +1673,33 @@ document.addEventListener('submit', async e => {
     toast(`¡Te damos la bienvenida a Yasupo, ${alias}!`);
     const then = afterSignup; afterSignup = null; if (then) then();
   }
-  if (kind === 'profile') Actions.updateProfile({alias, bio});
+  if (kind === 'profile'){
+    const h = toHandle(f.elements.handle.value), hp = handleProblem(h);
+    if (hp) return err.textContent = hp;
+    const herr = await saveHandle(h);
+    if (herr) return err.textContent = herr;
+    f.elements.handle.defaultValue = f.elements.handle.value = h;
+    Actions.updateProfile({alias, bio});
+  }
 });
 
 document.addEventListener('input', e => {
+  if (e.target.matches?.('[data-handle-input]')){
+    const clean = toHandle(e.target.value); if (clean !== e.target.value) e.target.value = clean;
+    const st = e.target.closest('.field').querySelector('[data-handle-state]'), p = handleProblem(clean);
+    st.className = 'handle-state ' + (p ? 'bad' : 'ok');
+    st.textContent = p || (clean === handleOf(S.uid) ? `✓ Es tu dirección actual: ${SITE}/${clean}` : `✓ Disponible: ${SITE}/${clean}`);
+  }
+  if (e.target.dataset?.handleFrom){
+    const hi = document.getElementById(e.target.dataset.handleFrom);
+    if (hi && !hi.dataset.touched && !handleOf(S.uid)){ hi.value = toHandle(e.target.value).slice(0, 30); hi.dispatchEvent(new Event('input', {bubbles: true})); }
+  }
   if (e.target.id === 'nKm') $('#kmVal').textContent = 'hasta ' + kmLabel(kmFromPos(Number(e.target.value)));
   if (e.target.id === 'pBody') updateCounter();
   const sel = e.target.dataset?.catfor && document.getElementById(e.target.dataset.catfor);
   if (sel){ const cur = sel.value; sel.innerHTML = catOptions(cur, e.target.value); if (![...sel.options].some(o => o.selected && o.value === cur)) sel.selectedIndex = 0; }
 });
+document.addEventListener('keydown', e => { if (e.target.matches?.('[data-handle-input]')) e.target.dataset.touched = '1'; });
 document.addEventListener('change', e => { if (e.target.id === 'fileIn'){ addFiles(e.target.files); e.target.value = ''; } });
 document.addEventListener('dragover', e => { const z = e.target.closest?.('#drop'); if (z){ e.preventDefault(); z.classList.add('drag'); } });
 document.addEventListener('dragleave', e => { const z = e.target.closest?.('#drop'); if (z) z.classList.remove('drag'); });
