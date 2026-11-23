@@ -1,0 +1,1407 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yasupo</title>
+<meta name="description" content="Yasupo: noticias, artículos y vídeos de canales de tu comunidad.">
+<meta name="theme-color" content="#ff5a1f">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script src="/supabase.js"></script>
+<style>
+/* ============================================================
+   1. TOKENS DE DISEÑO (claro / oscuro)
+   ============================================================ */
+:root{
+  --bg:#f4f5f7; --surface:#ffffff; --surface-2:#eef0f3; --text:#14161a; --muted:#6b7280;
+  --line:#e3e6ea; --accent:#ff5a1f; --accent-ink:#fff; --accent-soft:#fff1eb; --danger:#dc2626;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --surface:#181b21; --surface-2:#22262e; --text:#eceef2; --muted:#9aa1ad;
+    --line:#2a2f38; --accent-soft:#3a2218; --danger:#f87171; --shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --surface:#181b21; --surface-2:#22262e; --text:#eceef2; --muted:#9aa1ad;
+  --line:#2a2f38; --accent-soft:#3a2218; --danger:#f87171; --shadow:0 1px 2px rgba(0,0,0,.4);
+}
+
+/* ============================================================
+   2. BASE
+   ============================================================ */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:disabled{opacity:.5;cursor:default}
+a{color:inherit;text-decoration:none}
+input,textarea{font:inherit;color:var(--text)}
+.muted{color:var(--muted)}
+
+/* ============================================================
+   3. CABECERA
+   ============================================================ */
+header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:12px;height:60px;padding:0 16px;max-width:1400px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:22px;letter-spacing:-.5px;flex:none}
+.logo-mark{width:30px;height:30px;border-radius:50%;background:conic-gradient(from 200deg,var(--accent),#ffb02e,var(--accent));position:relative}
+.logo-mark::after{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--surface)}
+.search{flex:1;min-width:0;max-width:620px;display:flex;align-items:center;background:var(--surface-2);border-radius:12px;padding:0 12px;height:40px}
+.search input{flex:1;border:0;background:none;outline:none;min-width:0}
+.icon-btn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none}
+.icon-btn:hover{background:var(--surface-2)}
+.btn{background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:9px 16px;font-weight:600;flex:none}
+.btn.ghost{background:var(--surface-2);color:var(--text)}
+.btn.danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+.btn.small{padding:6px 12px;font-size:13px}
+.menu-btn{display:none}
+.me-btn{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:999px;flex:none}
+.me-btn:hover{background:var(--surface-2)}
+
+/* ============================================================
+   4. ESTRUCTURA
+   ============================================================ */
+.layout{display:grid;grid-template-columns:240px 1fr;gap:24px;max-width:1400px;margin:0 auto;padding:16px}
+main{min-width:0}
+aside{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 92px);overflow:auto}
+.nav button{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;width:100%;text-align:left}
+.nav button:hover{background:var(--surface-2)}
+.nav .active{background:var(--surface);box-shadow:var(--shadow);font-weight:600}
+.nav .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:20px 12px 8px}
+.avatar{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff;flex:none;text-transform:uppercase}
+.avatar.lg{width:72px;height:72px;font-size:30px}
+.avatar.md{width:40px;height:40px;font-size:16px}
+.banner{background:var(--accent-soft);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.banner p{margin:0;flex:1;min-width:220px}
+
+/* ============================================================
+   5. FEED
+   ============================================================ */
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 16px;border-radius:999px;background:var(--surface);border:1px solid var(--line);white-space:nowrap}
+.tab.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.section-h{display:flex;align-items:center;justify-content:space-between;margin:8px 0 12px;gap:12px}
+.section-h h2{font-size:20px;margin:0}
+.shorts{display:grid;grid-auto-flow:column;grid-auto-columns:160px;gap:12px;overflow-x:auto;padding-bottom:8px;margin-bottom:20px;scrollbar-width:thin}
+.short{aspect-ratio:9/16;border-radius:14px;position:relative;overflow:hidden;color:#fff;padding:10px;display:flex;flex-direction:column;justify-content:flex-end;text-align:left}
+.short::before{content:"";position:absolute;inset:0;background:linear-gradient(transparent 50%,rgba(0,0,0,.7))}
+.short > *{position:relative}
+.short .emoji{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);font-size:52px}
+.short b{font-size:13px;line-height:1.3}
+.short small{opacity:.8;font-size:12px}
+.feed{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.card{background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;transition:transform .15s}
+.card:hover{transform:translateY(-2px)}
+.card-head{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.card-head .meta{flex:1;min-width:0}
+.card-head .meta b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-head .meta small{color:var(--muted);font-size:12px}
+.follow{font-size:13px;font-weight:600;color:var(--accent);padding:4px 8px;border-radius:8px;flex:none}
+.follow.on{color:var(--muted)}
+.thumb{aspect-ratio:16/9;position:relative;display:grid;place-items:center;font-size:64px;cursor:pointer}
+.thumb .badge{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.75);color:#fff;font-size:12px;padding:2px 6px;border-radius:6px;font-weight:600}
+.thumb .play{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:14px}
+.card-body{padding:12px 14px 4px;cursor:pointer;flex:1}
+.card-body h3{margin:0 0 6px;font-size:17px;line-height:1.3}
+.card-body p{margin:0;color:var(--muted);font-size:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card-foot{display:flex;align-items:center;gap:4px;padding:8px 8px 10px}
+.act{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:13px;color:var(--muted)}
+.act:hover{background:var(--surface-2)}
+.act.on{color:var(--accent);background:var(--accent-soft)}
+.spacer{flex:1}
+.empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 0}
+.loader{text-align:center;color:var(--muted);padding:24px}
+
+/* ============================================================
+   6. PÁGINAS: CANAL Y CUENTA
+   ============================================================ */
+.panel{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:20px;margin-bottom:20px}
+.ch-cover{height:120px;border-radius:16px 16px 0 0;margin:-20px -20px 16px;display:grid;place-items:center;font-size:56px}
+.ch-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.ch-row h1{margin:0;font-size:24px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:16px}
+.stat{background:var(--surface-2);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:22px}
+.stat span{color:var(--muted);font-size:13px}
+.list-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.list-row:first-of-type{border-top:0}
+.list-row .grow{flex:1;min-width:0}
+.list-row .grow small{color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-weight:600;font-size:14px}
+.field input,.field textarea{background:var(--surface-2);border:1px solid transparent;border-radius:10px;padding:10px 12px;outline:none;resize:vertical}
+.field input:focus,.field textarea:focus{border-color:var(--accent)}
+.field small{color:var(--muted)}
+.err{color:var(--danger);font-size:13px;min-height:1em}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+/* ============================================================
+   7. LECTOR, MODAL Y AVISOS
+   ============================================================ */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:none;overflow:auto;padding:24px 16px}
+.overlay.open{display:block}
+.sheet{max-width:760px;margin:0 auto;background:var(--surface);border-radius:20px;overflow:hidden}
+.sheet.narrow{max-width:460px;padding:24px;margin-top:6vh}
+.sheet h2{margin:0 0 6px}
+.reader .thumb{font-size:110px;cursor:default}
+.reader-in{padding:24px 28px 32px}
+.reader h1{font-size:30px;line-height:1.2;margin:12px 0}
+.reader p{font-size:17px;line-height:1.7}
+.close{position:fixed;top:16px;right:16px;background:var(--surface);width:44px;height:44px;border-radius:50%;font-size:20px;z-index:51;box-shadow:var(--shadow)}
+.comments{border-top:1px solid var(--line);margin-top:24px;padding-top:16px}
+.comment{display:flex;gap:10px;margin:16px 0}
+.comment .body{flex:1;min-width:0;overflow-wrap:anywhere}
+.comment small{color:var(--muted)}
+.link-btn{color:var(--muted);font-size:12px;padding:0;text-decoration:underline}
+.c-form{display:flex;gap:8px;margin-top:12px}
+.c-form input{flex:1;background:var(--surface-2);border:0;border-radius:10px;padding:10px 12px;outline:none;min-width:0}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:10px;transition:transform .25s;z-index:60;max-width:calc(100% - 32px)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.install{position:fixed;left:12px;right:12px;bottom:12px;z-index:55;max-width:460px;margin:0 auto;background:var(--surface);box-shadow:0 8px 30px rgba(0,0,0,.25);border-radius:16px;padding:12px;display:flex;align-items:center;gap:12px}
+.install p{margin:0;flex:1;min-width:0}
+.install .logo-mark{width:36px;height:36px;border-radius:50%;flex:none;background:conic-gradient(from 200deg,var(--accent),#ffb02e,var(--accent));position:relative}
+.install .logo-mark::after{content:"";position:absolute;inset:11px;border-radius:50%;background:var(--surface)}
+
+/* ============================================================
+   8. RESPONSIVE
+   ============================================================ */
+/* Editor y selector de canal */
+.field select{background:var(--surface-2);border:1px solid transparent;border-radius:10px;padding:10px 12px;outline:none;color:var(--text);font:inherit}
+.field textarea.big{min-height:220px;line-height:1.6}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.swatch{width:32px;height:32px;border-radius:50%;border:3px solid transparent}
+.swatch.on{border-color:var(--text)}
+.emoji-pick{width:40px;height:40px;border-radius:10px;font-size:22px;background:var(--surface-2);border:2px solid transparent}
+.emoji-pick.on{border-color:var(--accent)}
+.preview-thumb{aspect-ratio:16/9;border-radius:12px;display:grid;place-items:center;font-size:56px;margin-bottom:14px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--accent-soft);color:var(--accent);vertical-align:middle;margin-left:4px}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap}
+.counter{float:right;font-weight:400;color:var(--muted);font-size:12px}
+
+/* Fotos, vídeo y enlaces */
+.thumb{overflow:hidden}
+.media-cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.thumb .count{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;padding:2px 6px;border-radius:6px;font-weight:600}
+.broken-media{display:grid;place-items:center;color:#fff;background:#333;font-size:13px}
+.gallery{position:relative;background:#000}
+.gallery-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.gallery-track::-webkit-scrollbar{display:none}
+.gallery-track > *{flex:0 0 100%;width:100%;aspect-ratio:16/9;object-fit:contain;scroll-snap-align:center;background:#000}
+.gallery video.solo{display:block;width:100%;max-height:70vh;background:#000}
+.gallery-nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:22px;line-height:1}
+.gallery-nav.prev{left:10px}.gallery-nav.next{right:10px}
+.gallery-dots{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:6px;pointer-events:none}
+.gallery-dots span{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45)}
+.gallery-dots span.on{background:#fff}
+.dropzone{display:block;border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;cursor:pointer;margin-top:6px}
+.dropzone:hover,.dropzone.drag{border-color:var(--accent);background:var(--accent-soft)}
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:10px}
+.media-grid:empty{display:none}
+.media-tile{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--surface-2)}
+.media-tile img,.media-tile video{width:100%;height:100%;object-fit:cover;display:block}
+.media-tile .x{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;font-size:12px}
+.media-tile .first{position:absolute;left:4px;bottom:4px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px}
+.media-tile .state{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);color:#fff;font-size:12px;text-align:center;padding:6px}
+.link-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:18px 0}
+.link-card:hover{background:var(--surface-2)}
+.link-card .grow{flex:1;min-width:0}
+.link-card small{color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-link{display:block;margin-top:6px;color:var(--muted);font-size:13px}
+
+/* Ubicación */
+.near-btn{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:12px;background:var(--surface-2);flex:none;max-width:220px;white-space:nowrap}
+.near-btn .near-label{overflow:hidden;text-overflow:ellipsis}
+.near-btn.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.geo-line{display:block;margin-top:6px;color:var(--muted);font-size:13px}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  aside{position:fixed;top:60px;left:0;bottom:0;width:260px;max-height:none;background:var(--bg);z-index:30;padding:16px;transform:translateX(-100%);transition:transform .2s;border-right:1px solid var(--line)}
+  aside.open{transform:none}
+  .menu-btn{display:grid}
+  .hide-sm{display:none}
+}
+@media (max-width:520px){
+  .logo span,.me-btn .me-name{display:none}
+  .bar{gap:6px;padding:0 10px}
+  .bar .btn{padding:8px 10px}
+  .icon-btn{width:36px;height:36px}
+  .near-btn{padding:0 10px}
+  .near-btn .near-label{display:none}
+  .feed{grid-template-columns:1fr}
+  .reader-in{padding:18px}
+  .reader h1{font-size:24px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <button class="icon-btn menu-btn" data-act="menu" aria-label="Menú">☰</button>
+    <a href="#" class="logo" data-act="home"><div class="logo-mark"></div><span>Yasupo</span></a>
+    <label class="search">🔍&nbsp;<input id="q" placeholder="Buscar artículos, vídeos y canales"></label>
+    <button class="near-btn" id="nearBtn" data-act="near" title="Buscar por ubicación">📍 <span class="near-label">Cualquier lugar</span></button>
+    <button class="icon-btn" data-act="theme" aria-label="Cambiar tema">🌓</button>
+    <div id="meSlot"></div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside id="side"></aside>
+  <main id="main"></main>
+</div>
+
+<div class="overlay" id="readerOv"><button class="close" data-act="close-reader" aria-label="Cerrar">✕</button><div class="sheet reader" id="reader"></div></div>
+<div class="overlay" id="modalOv"><div class="sheet narrow" id="modal"></div></div>
+<div class="toast" id="toast" role="status"></div>
+<datalist id="cityList"></datalist>
+
+<script>
+/* ============================================================
+   1. UTILIDADES
+   ============================================================ */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const local = {
+  get(k, d){ try { return JSON.parse(localStorage.getItem('yasupo:' + k)) ?? d } catch { return d } },
+  set(k, v){ try { localStorage.setItem('yasupo:' + k, JSON.stringify(v)) } catch {} }
+};
+function rng(seed){ let s = Math.abs(seed) % 2147483647 || 1; return () => (s = s * 16807 % 2147483647) / 2147483647; }
+const fmt = n => n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '').replace('.', ',') + ' mil' : String(n);
+const plural = (n, one, many) => `${fmt(n)} ${n === 1 ? one : many}`;
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const bytes = o => new TextEncoder().encode(JSON.stringify(o)).length;
+function timeAgo(ts){
+  const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+  if (m < 1) return 'ahora';
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60); if (h < 24) return `hace ${h} h`;
+  const d = Math.round(h / 24); if (d === 1) return 'ayer';
+  if (d < 30) return `hace ${d} días`;
+  return new Date(ts).toLocaleDateString('es', {day:'numeric', month:'short', year:'numeric'});
+}
+function colorFor(str){ let h = 0; for (const c of String(str)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return `hsl(${h % 360} 55% 48%)`; }
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600); }
+const SB_URL = 'https://qbcabwbpobqgwblrzhzb.supabase.co', SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFiY2Fid2Jwb2JxZ3dibHJ6aHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3NDk0NTEsImV4cCI6MjEwOTMyNTQ1MX0.UupboTgpdPZY8nEEYXG08XVNKHokzzorR8KQEKK9Cqg';
+const sb = window.supabase.createClient(SB_URL, SB_KEY, {auth: {persistSession: true, autoRefreshToken: true}});
+const mailOf = u => `${u.toLowerCase()}@usuarios.plaza.invalid`;
+
+/* ============================================================
+   2. CATÁLOGO
+   ============================================================ */
+const CATS = ['Tecnología','Viajes','Cocina','Ciencia','Deportes','Cine','Salud','Finanzas','Hogar'];
+const PALETTE = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#ec4899','#14b8a6','#64748b','#a16207','#0ea5e9'];
+const EMOJIS = ['📰','✍️','💡','🎨','📷','🎵','🌱','🧠','🚀','❤️','🍀','🔥','⭐','🌍','🐾','☕'];
+const safeColor = c => PALETTE.includes(c) ? c : PALETTE[0];
+const safeEmoji = e => EMOJIS.includes(e) || Object.values(TOPICS).some(t => t.e.includes(e)) ? e : '📰';
+const safeCat = c => CATS.includes(c) ? c : CATS[0];
+
+const DEMO_CHANNELS = [
+  {id:'c1',name:'Código Abierto',cat:'Tecnología',color:'#3b82f6',about:'Tecnología útil explicada sin jerga.'},
+  {id:'c2',name:'Mochila al Hombro',cat:'Viajes',color:'#10b981',about:'Rutas, trenes y pueblos con encanto.'},
+  {id:'c3',name:'La Olla de Lucía',cat:'Cocina',color:'#f59e0b',about:'Recetas caseras para todos los días.'},
+  {id:'c4',name:'Cosmos Cercano',cat:'Ciencia',color:'#8b5cf6',about:'Ciencia curiosa para mentes curiosas.'},
+  {id:'c5',name:'Fuera de Juego',cat:'Deportes',color:'#ef4444',about:'Análisis, entrenamientos y fichajes.'},
+  {id:'c6',name:'Butaca 7',cat:'Cine',color:'#ec4899',about:'Películas, series y lo que hay detrás.'},
+  {id:'c7',name:'Vida en Equilibrio',cat:'Salud',color:'#14b8a6',about:'Hábitos sencillos para vivir mejor.'},
+  {id:'c8',name:'Bolsillo Claro',cat:'Finanzas',color:'#64748b',about:'Finanzas personales sin complicaciones.'},
+  {id:'c9',name:'Casa con Alma',cat:'Hogar',color:'#a16207',about:'Ideas para un hogar más cómodo.'},
+];
+const TOPICS = {
+  'Tecnología':{e:['💻','📱','🤖','🔋','🛰️'],g:['#1e3a8a','#3b82f6'],t:['Cinco atajos de teclado que te ahorrarán una hora a la semana','Probamos un portátil sin ventilador durante un mes: esto aprendimos','Cómo proteger tus contraseñas sin volverte loco','La inteligencia artificial en el móvil: qué cambia realmente','Guía para montar tu primer servidor casero']},
+  'Viajes':{e:['🏔️','🏝️','🚞','🗺️','⛺'],g:['#065f46','#34d399'],t:['Tres pueblos de montaña que casi nadie visita en invierno','Recorrer la costa en tren: itinerario de diez días','Qué llevar en la mochila para un viaje de una semana','Cómo encontrar vuelos baratos sin trucos raros','Una noche en un refugio a 2.000 metros']},
+  'Cocina':{e:['🥘','🍰','🥗','🍝','🫓'],g:['#92400e','#fbbf24'],t:['Paella de verduras en 40 minutos, paso a paso','El bizcocho esponjoso que nunca falla','Cinco cenas rápidas para entre semana','Cómo hacer pan casero sin amasadora','Salsas que transforman cualquier plato de pasta']},
+  'Ciencia':{e:['🔭','🧬','🌌','⚗️','🦠'],g:['#4c1d95','#a78bfa'],t:['Por qué el cielo nocturno no es completamente negro','Qué sabemos realmente sobre los sueños','El extraño comportamiento del agua cuando se congela','Cinco descubrimientos de este año que pasaron desapercibidos','Cómo se mide la distancia a una galaxia']},
+  'Deportes':{e:['⚽','🏀','🚴','🏃','🎾'],g:['#7f1d1d','#f87171'],t:['Las claves tácticas del partido del domingo','Empezar a correr a los 40: plan de ocho semanas','Así se prepara un ciclista para una etapa de montaña','El fichaje que nadie vio venir','Ejercicios de movilidad para antes de entrenar']},
+  'Cine':{e:['🎬','🍿','🎞️','🎭','📽️'],g:['#831843','#f472b6'],t:['Diez películas para ver este fin de semana','Por qué las bandas sonoras nos emocionan tanto','Series cortas que puedes terminar en una tarde','Detrás de cámaras: cómo se rueda una escena de lluvia','Clásicos olvidados que merecen otra oportunidad']},
+  'Salud':{e:['🧘','🥦','😴','💧','🫀'],g:['#115e59','#5eead4'],t:['Pequeños hábitos para dormir mejor desde esta noche','Cuánta agua necesitas de verdad','Estiramientos de cinco minutos para la oficina','Qué ocurre en tu cuerpo cuando caminas a diario','Mitos sobre el desayuno que conviene olvidar']},
+  'Finanzas':{e:['💶','📈','🏦','🧾','💳'],g:['#334155','#94a3b8'],t:['La regla 50/30/20 explicada con un ejemplo real','Cómo crear un fondo de emergencia paso a paso','Gastos hormiga: dónde se va tu dinero sin darte cuenta','Lo básico antes de empezar a invertir','Negociar tu sueldo: qué decir y qué no']},
+  'Hogar':{e:['🪴','🛋️','🧹','🔨','🕯️'],g:['#713f12','#facc15'],t:['Plantas de interior que sobreviven a cualquiera','Ordenar el armario en una tarde con este método','Ideas para ganar luz en un piso pequeño','Reparaciones caseras que puedes hacer tú mismo','Cómo ahorrar en la factura de la luz este invierno']},
+};
+const FILLER = [
+  'No hace falta ser un experto para empezar. Lo importante es dar el primer paso y ser constante durante las primeras semanas.',
+  'Hemos hablado con varias personas que lo han probado y casi todas coinciden en lo mismo: el cambio se nota antes de lo que esperaban.',
+  'Hay detalles que marcan la diferencia y que rara vez se mencionan. Aquí los repasamos uno por uno, con ejemplos concretos.',
+  'El error más común es querer hacerlo todo a la vez. Es mejor elegir una sola cosa, dominarla y luego avanzar.',
+  'Al final del artículo encontrarás un pequeño resumen con los puntos clave por si quieres guardarlo para más tarde.',
+  'Los resultados dependen de cada caso, pero la mayoría de los lectores nos cuenta que les ha resultado útil desde el primer día.'
+];
+const CATALOG_BASE = Date.UTC(2026, 10, 23, 9);
+const demoCache = new Map();
+/** Publicación de demostración "d<n>": siempre la misma para todos. */
+function demoItem(n){
+  if (demoCache.has(n)) return demoCache.get(n);
+  const r = rng(n * 7919 + 13), pick = a => a[Math.floor(r() * a.length)];
+  const ch = DEMO_CHANNELS[Math.floor(r() * DEMO_CHANNELS.length)], tp = TOPICS[ch.cat];
+  const type = r() < .3 ? 'video' : 'article';
+  const it = {
+    id: 'd' + n, ch, type, title: pick(tp.t), emoji: pick(tp.e), grad: tp.g,
+    excerpt: pick(FILLER) + ' ' + pick(FILLER),
+    body: Array.from({length:5}, () => pick(FILLER) + ' ' + pick(FILLER)),
+    mins: type === 'video' ? `${Math.floor(r()*18)+2}:${String(Math.floor(r()*60)).padStart(2,'0')}` : `${Math.floor(r()*9)+2} min`,
+    ts: CATALOG_BASE - Math.floor(r() * 9 * 864e5) - n * 6e4
+  };
+  const g = rng((n * 2654435761 + 97) % 2147483647); g(); g(); it.geo = {city: CITIES[Math.floor(g() * CITIES.length)].id, place: ''};
+  demoCache.set(n, it); return it;
+}
+/* Ciudades disponibles para ubicar y buscar publicaciones (lat, lon aproximadas) */
+const CITIES = [
+  ['madrid','Madrid','España',40.4168,-3.7038],['barcelona','Barcelona','España',41.3874,2.1686],['valencia','Valencia','España',39.4699,-0.3763],
+  ['sevilla','Sevilla','España',37.3891,-5.9845],['zaragoza','Zaragoza','España',41.6488,-0.8891],['malaga','Málaga','España',36.7213,-4.4214],
+  ['murcia','Murcia','España',37.9922,-1.1307],['palma','Palma','España',39.5696,2.6502],['laspalmas','Las Palmas de Gran Canaria','España',28.1235,-15.4363],
+  ['tenerife','Santa Cruz de Tenerife','España',28.4636,-16.2518],['bilbao','Bilbao','España',43.2630,-2.9350],['alicante','Alicante','España',38.3452,-0.4810],
+  ['cordoba-es','Córdoba','España',37.8882,-4.7794],['valladolid','Valladolid','España',41.6523,-4.7245],['vigo','Vigo','España',42.2406,-8.7207],
+  ['gijon','Gijón','España',43.5322,-5.6611],['oviedo','Oviedo','España',43.3614,-5.8494],['coruna','A Coruña','España',43.3623,-8.4115],
+  ['granada','Granada','España',37.1773,-3.5986],['vitoria','Vitoria-Gasteiz','España',42.8467,-2.6716],['pamplona','Pamplona','España',42.8125,-1.6458],
+  ['donostia','San Sebastián','España',43.3183,-1.9812],['santander','Santander','España',43.4623,-3.8100],['salamanca','Salamanca','España',40.9701,-5.6635],
+  ['toledo','Toledo','España',39.8628,-4.0273],['cadiz','Cádiz','España',36.5271,-6.2886],
+  ['cdmx','Ciudad de México','México',19.4326,-99.1332],['guadalajara','Guadalajara','México',20.6597,-103.3496],['monterrey','Monterrey','México',25.6866,-100.3161],
+  ['puebla','Puebla','México',19.0414,-98.2063],['tijuana','Tijuana','México',32.5149,-117.0382],['merida','Mérida','México',20.9674,-89.5926],
+  ['cancun','Cancún','México',21.1619,-86.8515],['queretaro','Querétaro','México',20.5888,-100.3899],['oaxaca','Oaxaca','México',17.0732,-96.7266],
+  ['bogota','Bogotá','Colombia',4.7110,-74.0721],['medellin','Medellín','Colombia',6.2442,-75.5812],['cali','Cali','Colombia',3.4516,-76.5320],
+  ['barranquilla','Barranquilla','Colombia',10.9685,-74.7813],['cartagena','Cartagena','Colombia',10.3910,-75.4794],['bucaramanga','Bucaramanga','Colombia',7.1193,-73.1227],
+  ['buenosaires','Buenos Aires','Argentina',-34.6037,-58.3816],['cordoba-ar','Córdoba','Argentina',-31.4201,-64.1888],['rosario','Rosario','Argentina',-32.9442,-60.6505],
+  ['mendoza','Mendoza','Argentina',-32.8895,-68.8458],['mardelplata','Mar del Plata','Argentina',-38.0055,-57.5426],
+  ['santiago','Santiago','Chile',-33.4489,-70.6693],['valparaiso','Valparaíso','Chile',-33.0472,-71.6127],['concepcion','Concepción','Chile',-36.8201,-73.0444],
+  ['lima','Lima','Perú',-12.0464,-77.0428],['arequipa','Arequipa','Perú',-16.4090,-71.5375],['cusco','Cusco','Perú',-13.5320,-71.9675],
+  ['caracas','Caracas','Venezuela',10.4806,-66.9036],['maracaibo','Maracaibo','Venezuela',10.6545,-71.6406],['valencia-ve','Valencia','Venezuela',10.1620,-68.0077],
+  ['quito','Quito','Ecuador',-0.1807,-78.4678],['guayaquil','Guayaquil','Ecuador',-2.1710,-79.9224],
+  ['lapaz','La Paz','Bolivia',-16.4897,-68.1193],['santacruz-bo','Santa Cruz de la Sierra','Bolivia',-17.8146,-63.1561],
+  ['montevideo','Montevideo','Uruguay',-34.9011,-56.1645],['asuncion','Asunción','Paraguay',-25.2637,-57.5759],
+  ['habana','La Habana','Cuba',23.1136,-82.3666],['santodomingo','Santo Domingo','República Dominicana',18.4861,-69.9312],['sanjuan','San Juan','Puerto Rico',18.4655,-66.1057],
+  ['guatemala','Ciudad de Guatemala','Guatemala',14.6349,-90.5069],['tegucigalpa','Tegucigalpa','Honduras',14.0723,-87.1921],['sanpedrosula','San Pedro Sula','Honduras',15.5000,-88.0333],
+  ['sansalvador','San Salvador','El Salvador',13.6929,-89.2182],['managua','Managua','Nicaragua',12.1150,-86.2362],['sanjose','San José','Costa Rica',9.9281,-84.0907],
+  ['panama','Ciudad de Panamá','Panamá',8.9824,-79.5199],
+  ['miami','Miami','Estados Unidos',25.7617,-80.1918],['losangeles','Los Ángeles','Estados Unidos',34.0522,-118.2437],['nuevayork','Nueva York','Estados Unidos',40.7128,-74.0060],
+  ['houston','Houston','Estados Unidos',29.7604,-95.3698],
+].map(([id, name, country, lat, lon]) => ({id, name, country, lat, lon}));
+const CITY_BY_ID = Object.fromEntries(CITIES.map(c => [c.id, c]));
+const RADII = [{km: 25, label: 'Misma ciudad'}, {km: 100, label: '100 km'}, {km: 300, label: '300 km'}, {km: 1000, label: '1.000 km'}];
+const cityLabel = c => `${c.name}, ${c.country}`;
+const norm = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+function findCity(text){
+  const t = norm(text); if (!t) return null;
+  return CITIES.find(c => norm(cityLabel(c)) === t) || CITIES.find(c => norm(c.name) === t) || null;
+}
+function distKm(a, b){
+  if (!a || !b) return Infinity;
+  const R = 6371, rad = x => x * Math.PI / 180, dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const nearestCity = (lat, lon) => CITIES.reduce((best, c) => distKm({lat, lon}, c) < distKm({lat, lon}, best) ? c : best, CITIES[0]);
+function cleanGeo(g){ if (!g || !CITY_BY_ID[g.city]) return null; return {city: g.city, place: String(g.place || '').replace(/[<>]/g, '').slice(0, 60)}; }
+function cleanNear(n){ return n && CITY_BY_ID[n.city] && RADII.some(r => r.km === n.radius) ? {city: n.city, radius: n.radius} : null; }
+function geoLabel(g, full){ const c = CITY_BY_ID[g.city]; return `${g.place ? g.place + ', ' : ''}${c.name}${full ? ' (' + c.country + ')' : ''}`; }
+function distLabel(i){
+  if (!S.near || !i.geo) return '';
+  const d = distKm(CITY_BY_ID[S.near.city], CITY_BY_ID[i.geo.city]);
+  return d < 1 ? ' · en tu ciudad' : ` · a ${fmt(Math.round(d))} km`;
+}
+
+const SHORTS = (() => { const r = rng(424242), pick = a => a[Math.floor(r() * a.length)];
+  return Array.from({length:10}, () => { const ch = pick(DEMO_CHANNELS), tp = TOPICS[ch.cat]; return {ch, emoji: pick(tp.e), g: tp.g, title: pick(tp.t).split(':')[0].slice(0, 48)}; }); })();
+
+/* ============================================================
+   3. ESTADO
+   ============================================================ */
+const S = {
+  view: 'feed',            // feed | following | liked | saved | channel | account
+  cat: 'Todo', q: '', channel: null, shown: 12, pool: 48, openId: null,
+  backend: 'loading', uid: null, isOwner: false, readonly: false,
+  // datos compartidos
+  accounts: {},            // uid -> {alias, bio, createdAt, follows[], likes[], dislikes[]}
+  comments: {},            // uid -> [{id, itemId, text, at}]
+  channels: {},            // uid -> {name, cat, about, color, emoji, createdAt}
+  posts: {},               // uid -> [{id, title, excerpt, body, emoji, at, editedAt}]
+  saved: new Set(local.get('saved-guest', [])),
+  near: cleanNear(local.get('near', null)),   // filtro por ubicación {city, radius}
+  loggedOut: false,
+  // índices derivados
+  idx: {likes:{}, dislikes:{}, followers:{}, byItem:{}},
+  aliasTaken: new Set(), channelNames: new Set(),
+  communityChannels: {},   // channelId -> canal
+  communityItems: {},      // itemId -> publicación
+  communityOrder: [],      // ids de la comunidad, más recientes primero
+};
+const me = () => S.uid ? S.accounts[S.uid] || null : null;
+const myChannel = () => S.uid && me() ? S.channels[S.uid] || null : null;
+const userChannelId = uid => 'ch_' + uid;
+const allChannels = () => [...DEMO_CHANNELS, ...Object.values(S.communityChannels)];
+const channelById = id => DEMO_CHANNELS.find(c => c.id === id) || S.communityChannels[id] || null;
+function item(id){
+  id = String(id);
+  if (/^d\d+$/.test(id)) return demoItem(Number(id.slice(1)));
+  return S.communityItems[id] || null;
+}
+
+function rebuildIndex(){
+  const idx = {likes:{}, dislikes:{}, followers:{}, byItem:{}};
+  const inc = (o, k) => o[k] = (o[k] || 0) + 1;
+  S.aliasTaken = new Set();
+  for (const [uid, a] of Object.entries(S.accounts)){
+    (a.likes || []).forEach(id => inc(idx.likes, id));
+    (a.dislikes || []).forEach(id => inc(idx.dislikes, id));
+    (a.follows || []).forEach(id => inc(idx.followers, id));
+    if (uid !== S.uid && a.alias) S.aliasTaken.add(String(a.alias).toLowerCase());
+  }
+  for (const [uid, list] of Object.entries(S.comments))
+    for (const c of list || []) (idx.byItem[c.itemId] ||= []).push({...c, uid});
+  for (const k in idx.byItem) idx.byItem[k].sort((a, b) => b.at - a.at);
+  S.idx = idx;
+
+  // Canales y publicaciones de la comunidad (solo de personas con cuenta)
+  const chs = {}, items = {}, names = new Set(DEMO_CHANNELS.map(c => c.name.toLowerCase()));
+  for (const [uid, c] of Object.entries(S.channels)){
+    if (!S.accounts[uid] || !c || !c.name) continue;
+    const ch = {id: userChannelId(uid), owner: uid, community: true, name: String(c.name).slice(0, 40), cat: safeCat(c.cat),
+      about: String(c.about || '').slice(0, 200), color: safeColor(c.color), emoji: safeEmoji(c.emoji), createdAt: c.createdAt};
+    chs[ch.id] = ch;
+    if (uid !== S.uid) names.add(ch.name.toLowerCase());
+    for (const p of S.posts[uid] || []){
+      const body = String(p.body || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
+      const words = String(p.body || '').split(/\s+/).length;
+      const media = cleanMedia(p.media), isVideo = media[0]?.kind === 'video';
+      const mins = `${Math.max(1, Math.round(words / 200))} min`;
+      items['p_' + p.id] = {id: 'p_' + p.id, pid: p.id, ch, owner: uid, community: true, type: isVideo ? 'video' : 'article',
+        title: String(p.title || '').slice(0, 120), excerpt: String(p.excerpt || body[0] || '').slice(0, 220),
+        body, emoji: safeEmoji(p.emoji || ch.emoji), grad: [ch.color, TOPICS[ch.cat].g[0]], media, link: cleanLink(p.link),
+        mins, badge: isVideo ? '🎬 Vídeo' : media.length ? `📷 ${mins}` : `📄 ${mins}`, ts: Number(p.at) || 0, editedAt: p.editedAt, geo: cleanGeo(p.geo)};
+    }
+  }
+  S.communityChannels = chs; S.communityItems = items; S.channelNames = names;
+  S.communityOrder = Object.values(items).sort((a, b) => b.ts - a.ts).map(i => i.id);
+}
+
+/* ============================================================
+   4. SERVICIO DE DATOS
+   ============================================================ */
+const COLS = {accounts: d => d, channels: d => d, comments: d => d.items || [], posts: d => d.items || []};
+const MEDIA = 'yasupo-media';
+const API = {
+  db: null, assets: null,
+  async init(){
+    const slow = setTimeout(() => { if (S.backend === 'loading'){ S.backend = 'slow'; render(); } }, 10000);
+    this.db = DB; this.assets = Assets;
+    try {
+      const {data} = await sb.auth.getSession();
+      S.uid = data.session?.user?.id || null;
+      await this.loadAll();
+      S.backend = 'online';
+    } catch (e){ S.backend = 'offline'; }
+    clearTimeout(slow);
+    if (S.uid) await this.afterAuth();
+    rebuildIndex(); render();
+    sb.channel('ys-' + Math.random().toString(36).slice(2))
+      .on('postgres_changes', {event: '*', schema: 'public', table: 'ys_docs'}, p => this.onChange(p))
+      .subscribe(st => { if (st === 'SUBSCRIBED' && S.backend !== 'online') this.loadAll().then(() => { S.backend = 'online'; rebuildIndex(); render(); }).catch(() => {}); });
+    sb.auth.onAuthStateChange((ev, session) => {
+      const uid = session?.user?.id || null;
+      if (uid === S.uid) return;
+      S.uid = uid;
+      if (uid) this.afterAuth().then(render); else { S.isOwner = false; S.saved = new Set(local.get('saved-guest', [])); rebuildIndex(); render(); }
+    });
+  },
+  async loadAll(){
+    const fresh = {accounts: {}, channels: {}, comments: {}, posts: {}};
+    for (let from = 0; ; from += 1000){
+      const {data, error} = await sb.from('ys_docs').select('col,uid,data').range(from, from + 999);
+      if (error) throw error;
+      for (const r of data) if (COLS[r.col]) fresh[r.col][r.uid] = COLS[r.col](r.data || {});
+      if (data.length < 1000) break;
+    }
+    Object.assign(S, fresh);
+  },
+  onChange(p){
+    const row = p.eventType === 'DELETE' ? p.old : p.new;
+    if (!row || !COLS[row.col]) return;
+    if (p.eventType === 'DELETE') delete S[row.col][row.uid];
+    else S[row.col][row.uid] = COLS[row.col](row.data || {});
+    rebuildIndex(); render();
+  },
+  async afterAuth(){
+    try { const r = await sb.rpc('ys_is_mod'); S.isOwner = r.data === true; } catch { S.isOwner = false; }
+    try { const snap = await DB.doc(`data/users/${S.uid}/saved`).get(); if (snap.exists) S.saved = new Set(snap.data().ids || []); else if (S.saved.size) saveSaved(); } catch {}
+  },
+  online(){ return S.backend !== 'offline'; },
+  /** Una escritura a la vez por documento; si hubo cambios mientras tanto, se escribe una vez más. */
+  writer(pathFn, dataFn){
+    let busy = false, dirty = false;
+    return async () => {
+      dirty = true; if (busy) return; busy = true;
+      while (dirty){
+        dirty = false;
+        const data = dataFn();
+        try { data === null ? await API.db.doc(pathFn()).delete() : await API.db.doc(pathFn()).set(data); }
+        catch (e){ API.onWriteError(e); break; }
+      }
+      busy = false;
+    };
+  },
+  onWriteError(e){
+    if (e && e.code === '23514') toast('Tu canal ha llegado al límite de espacio. Borra publicaciones antiguas.');
+    else if (e && (e.code === '42501' || e.status === 401 || e.status === 403)) toast('Tu sesión ha caducado. Vuelve a entrar.');
+    else toast('No se pudo guardar. Inténtalo de nuevo en un momento.');
+    render();
+  },
+};
+/** Documentos: "accounts/<uid>", "channels/<uid>", "posts/<uid>", "comments/<uid>" y "data/users/<uid>/saved". */
+const DB = {
+  doc(path){
+    const parts = path.split('/');
+    if (parts[0] === 'data'){
+      const uid = parts[2];
+      return {
+        async get(){ const {data, error} = await sb.from('ys_saved').select('ids').eq('uid', uid).maybeSingle(); if (error) throw error; return {exists: !!data, data: () => ({ids: data?.ids || []})}; },
+        async set(d){ const {error} = await sb.from('ys_saved').upsert({uid, ids: d.ids || []}); if (error) throw error; },
+        async delete(){ const {error} = await sb.from('ys_saved').delete().eq('uid', uid); if (error) throw error; },
+      };
+    }
+    const [col, uid] = parts;
+    return {
+      async set(d){
+        const q = uid === S.uid ? sb.from('ys_docs').upsert({col, uid, data: d}) : sb.from('ys_docs').update({data: d}).eq('col', col).eq('uid', uid);
+        const {error} = await q; if (error) throw error;
+      },
+      async delete(){ const {error} = await sb.from('ys_docs').delete().eq('col', col).eq('uid', uid); if (error) throw error; },
+    };
+  },
+};
+/** Fotos y vídeos: el id es "<uid>_<archivo>" y se guardan en la carpeta de cada persona. */
+const Assets = {
+  async upload(blob, {type}){
+    const name = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    const {error} = await sb.storage.from(MEDIA).upload(`${S.uid}/${name}`, blob, {contentType: type, upsert: false});
+    if (error){
+      const m = String(error.message || '') + ' ' + (error.statusCode || '');
+      throw {code: /size|large|413/i.test(m) ? 'too_large' : /mime|type|415/i.test(m) ? 'unsupported_type' : /429|rate/i.test(m) ? 'rate_limited' : /403|401|policy|security/i.test(m) ? 'not_granted' : 'failed'};
+    }
+    const id = S.uid + '_' + name;
+    return {id, url: blobUrl(id)};
+  },
+  async delete(id){ const k = String(id).indexOf('_'); if (k > 0) await sb.storage.from(MEDIA).remove([id.slice(0, k) + '/' + id.slice(k + 1)]); },
+};
+const saveAccount = API.writer(() => `accounts/${S.uid}`, () => S.accounts[S.uid] ?? null);
+const saveChannel = API.writer(() => `channels/${S.uid}`, () => S.channels[S.uid] ?? null);
+const saveSaved   = API.writer(() => `data/users/${S.uid}/saved`, () => ({ids: [...S.saved]}));
+const perUser = (col, key) => { const ws = {}; return uid => (ws[uid] ||= API.writer(() => `${col}/${uid}`, () => ({items: S[key][uid] || []})))(); };
+const saveCommentsOf = perUser('comments', 'comments');
+const savePostsOf = perUser('posts', 'posts');
+
+/* ============================================================
+   5. ACCIONES
+   ============================================================ */
+function needAccount(then){
+  if (!API.online()){ toast('No hay conexión con Yasupo. Inténtalo de nuevo en un momento.'); return false; }
+  if (S.readonly){ toast('Tu acceso a esta página es de solo lectura.'); return false; }
+  if (!me()){ enter(then); return false; }
+  return true;
+}
+function patchMe(fn){ const a = structuredClone(me()); fn(a); S.accounts[S.uid] = a; rebuildIndex(); render(); saveAccount(); }
+const toggleIn = (arr, v) => arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
+const MAX_POSTS = 40, MAX_BODY = 5000, MAX_DOC = 240000;
+
+const Actions = {
+  like(id){ if (!needAccount(() => Actions.like(id))) return;
+    patchMe(a => { a.likes = toggleIn(a.likes || [], id); a.dislikes = (a.dislikes || []).filter(x => x !== id); }); },
+  dislike(id){ if (!needAccount(() => Actions.dislike(id))) return;
+    const adding = !(me().dislikes || []).includes(id);
+    patchMe(a => { a.dislikes = toggleIn(a.dislikes || [], id); a.likes = (a.likes || []).filter(x => x !== id); });
+    if (adding) toast('Te mostraremos menos contenido como este.'); },
+  follow(chId){ if (!needAccount(() => Actions.follow(chId))) return;
+    const ch = channelById(chId); if (!ch) return;
+    if (ch.owner === S.uid) return toast('Es tu propio canal 🙂');
+    const on = !(me().follows || []).includes(chId);
+    patchMe(a => { a.follows = toggleIn(a.follows || [], chId); });
+    toast(on ? `Ahora sigues a ${ch.name}` : `Has dejado de seguir a ${ch.name}`); },
+  save(id){
+    const on = !S.saved.has(id); on ? S.saved.add(id) : S.saved.delete(id);
+    if (S.uid) saveSaved(); else local.set('saved-guest', [...S.saved]);
+    toast(on ? 'Guardado en tu biblioteca' : 'Eliminado de guardados'); render(); },
+  comment(itemId, text){
+    text = text.trim().slice(0, 500); if (!text) return false;
+    if (!needAccount()) return false;
+    const list = S.comments[S.uid] || [];
+    if (list.length >= 300){ toast('Has llegado al máximo de 300 comentarios. Borra alguno para seguir.'); return false; }
+    S.comments[S.uid] = [{id: newId(), itemId, text, at: Date.now()}, ...list];
+    rebuildIndex(); render(); saveCommentsOf(S.uid); return true; },
+  deleteComment(uid, cid){
+    if (uid !== S.uid && !S.isOwner) return;
+    S.comments[uid] = (S.comments[uid] || []).filter(c => c.id !== cid);
+    rebuildIndex(); render(); saveCommentsOf(uid); toast('Comentario eliminado'); },
+  createAccount({alias, bio, topics}){
+    const follows = DEMO_CHANNELS.filter(c => topics.includes(c.cat)).map(c => c.id);
+    S.accounts[S.uid] = {alias, bio, createdAt: Date.now(), follows, likes: [], dislikes: []};
+    rebuildIndex(); render(); saveAccount(); },
+  updateProfile({alias, bio}){ patchMe(a => { a.alias = alias; a.bio = bio; }); toast('Perfil actualizado'); },
+  async deleteAccount(){
+    const uid = S.uid;
+    dropAssets(S.posts[uid] || []);
+    for (const k of ['accounts', 'comments', 'channels', 'posts']) delete S[k][uid];
+    rebuildIndex(); S.view = 'feed'; render();
+    try { await Promise.all(['comments', 'posts', 'channels'].map(c => API.db.doc(`${c}/${uid}`).delete())); await API.db.doc(`accounts/${uid}`).delete(); await API.db.doc(`data/users/${uid}/saved`).delete(); await sb.auth.signOut(); S.uid = null; S.saved = new Set(); render(); toast('Tu cuenta se ha eliminado'); }
+    catch (e){ API.onWriteError(e); } },
+
+  saveChannel(data){
+    const isNew = !S.channels[S.uid];
+    S.channels[S.uid] = {...(S.channels[S.uid] || {createdAt: Date.now()}), ...data};
+    rebuildIndex(); saveChannel();
+    toast(isNew ? `¡Tu canal «${data.name}» está listo!` : 'Canal actualizado');
+    go({view: 'channel', channel: userChannelId(S.uid), cat: 'Todo', q: ''}); },
+  async deleteChannel(){
+    const uid = S.uid; dropAssets(S.posts[uid] || []); delete S.channels[uid]; delete S.posts[uid];
+    rebuildIndex(); S.view = 'account'; render();
+    try { await Promise.all([API.db.doc(`posts/${uid}`).delete(), API.db.doc(`channels/${uid}`).delete()]); toast('Canal eliminado'); }
+    catch (e){ API.onWriteError(e); } },
+
+  publish({pid, title, excerpt, body, emoji, media, link, geo}){
+    const list = (S.posts[S.uid] || []).slice();
+    let post;
+    if (pid){ const i = list.findIndex(p => p.id === pid); if (i < 0) return 'Esta publicación ya no existe.';
+      post = {...list[i], title, excerpt, body, emoji, media, link, geo, editedAt: Date.now()}; list[i] = post; }
+    else { if (list.length >= MAX_POSTS) return `Puedes tener hasta ${MAX_POSTS} publicaciones. Borra alguna para publicar otra.`;
+      post = {id: newId(), title, excerpt, body, emoji, media, link, geo, at: Date.now()}; list.unshift(post); }
+    if (bytes({items: list}) > MAX_DOC) return 'Tu canal ha llegado al límite de espacio. Acorta el texto o borra publicaciones antiguas.';
+    S.posts[S.uid] = list; rebuildIndex(); savePostsOf(S.uid);
+    toast(pid ? 'Publicación actualizada' : '¡Publicado! Ya está en el feed.');
+    return {id: 'p_' + post.id}; },
+  deletePost(uid, pid){
+    if (uid !== S.uid && !S.isOwner) return;
+    const gone = (S.posts[uid] || []).find(p => p.id === pid);
+    S.posts[uid] = (S.posts[uid] || []).filter(p => p.id !== pid);
+    if (gone) dropAssets([gone]);
+    closeReader(); rebuildIndex(); render(); savePostsOf(uid); toast('Publicación eliminada'); },
+};
+
+function validateAlias(alias){
+  if (alias.length < 3 || alias.length > 24) return 'El alias debe tener entre 3 y 24 caracteres.';
+  if (!/^[\p{L}\p{N}_.\- ]+$/u.test(alias)) return 'Usa solo letras, números, espacios, puntos, guiones o guiones bajos.';
+  if (S.aliasTaken.has(alias.toLowerCase())) return 'Ese alias ya está en uso. Prueba con otro.';
+  return '';
+}
+function validateChannelName(name){
+  if (name.length < 3 || name.length > 40) return 'El nombre debe tener entre 3 y 40 caracteres.';
+  if (/[<>]/.test(name)) return 'El nombre no puede contener < ni >.';
+  if (S.channelNames.has(name.toLowerCase())) return 'Ya existe un canal con ese nombre.';
+  return '';
+}
+
+/* ============================================================
+   6. CONSULTAS SOBRE EL FEED
+   ============================================================ */
+function visibleIds(){
+  const demo = Array.from({length: S.near ? Math.max(S.pool, 300) : S.pool}, (_, i) => 'd' + (i + 1));
+  let ids = [...S.communityOrder, ...demo];
+  const a = me(), follows = new Set(a?.follows || []), dis = new Set(a?.dislikes || []);
+  if (S.view === 'following') ids = ids.filter(id => follows.has(item(id).ch.id));
+  if (S.view === 'liked') ids = (a?.likes || []).slice().reverse();
+  if (S.view === 'saved') ids = [...S.saved].reverse();
+  if (S.view === 'channel') ids = ids.filter(id => item(id).ch.id === S.channel);
+  ids = ids.filter(id => item(id));
+  if (S.view === 'feed') ids = ids.filter(id => !dis.has(id));
+  if (S.cat === 'Vídeos') ids = ids.filter(id => item(id).type === 'video');
+  else if (S.cat === 'Artículos') ids = ids.filter(id => item(id).type === 'article');
+  else if (S.cat === 'Comunidad') ids = ids.filter(id => item(id).community);
+  else if (S.cat !== 'Todo') ids = ids.filter(id => item(id).ch.cat === S.cat);
+  if (S.q){ const q = S.q.toLowerCase(); ids = ids.filter(id => { const i = item(id); return (i.title + ' ' + i.ch.name + ' ' + i.ch.cat).toLowerCase().includes(q); }); }
+  if (S.near){
+    const here = CITY_BY_ID[S.near.city], dist = id => distKm(here, CITY_BY_ID[item(id).geo?.city]);
+    ids = ids.filter(id => dist(id) <= S.near.radius).sort((x, y) => dist(x) - dist(y) || item(y).ts - item(x).ts);
+  }
+  if (S.view === 'feed' && follows.size && !S.near){
+    const out = []; for (let i = 0; i < ids.length; i += 12){
+      const block = ids.slice(i, i + 12);
+      out.push(...block.filter(id => follows.has(item(id).ch.id)), ...block.filter(id => !follows.has(item(id).ch.id)));
+    } ids = out;
+  }
+  return ids;
+}
+const isInfinite = () => S.view === 'feed' && !S.q && S.cat !== 'Comunidad' && !S.near;
+
+/* ============================================================
+   7. COMPONENTES
+   ============================================================ */
+const avatarHTML = (letter, color, cls = '') => `<span class="avatar ${cls}" style="background:${color}">${esc(letter)}</span>`;
+const chAvatar = (ch, cls) => ch.community ? `<span class="avatar ${cls || ''}" style="background:${ch.color}">${ch.emoji}</span>` : avatarHTML(ch.name[0], ch.color, cls);
+const userAvatar = (uid, cls) => { const a = S.accounts[uid]; return avatarHTML(a?.alias?.[0] || '?', colorFor(uid), cls); };
+const userName = uid => S.accounts[uid]?.alias || 'Usuario eliminado';
+const canModerate = it => it.community && (it.owner === S.uid || S.isOwner);
+
+function followBtn(chId, big){
+  const ch = channelById(chId);
+  if (ch?.owner && ch.owner === S.uid) return big ? `<button class="btn small" data-act="compose">+ Publicar</button>` : `<span class="tag">Tu canal</span>`;
+  const on = (me()?.follows || []).includes(chId);
+  return big ? `<button class="btn small ${on ? 'ghost' : ''}" data-act="follow" data-ch="${esc(chId)}">${on ? 'Siguiendo' : 'Seguir'}</button>`
+             : `<button class="follow ${on ? 'on' : ''}" data-act="follow" data-ch="${esc(chId)}">${on ? 'Siguiendo' : 'Seguir'}</button>`;
+}
+function reactionsHTML(i){
+  const a = me(), liked = (a?.likes || []).includes(i.id), disliked = (a?.dislikes || []).includes(i.id);
+  return `<button class="act ${liked ? 'on' : ''}" data-act="like" data-id="${i.id}" aria-pressed="${liked}" title="Me gusta">👍 ${fmt(S.idx.likes[i.id] || 0)}</button>
+    <button class="act ${disliked ? 'on' : ''}" data-act="dislike" data-id="${i.id}" aria-pressed="${disliked}" title="No me gusta">👎 ${fmt(S.idx.dislikes[i.id] || 0)}</button>`;
+}
+function cardHTML(i){
+  const saved = S.saved.has(i.id), nCom = (S.idx.byItem[i.id] || []).length;
+  return `<article class="card">
+    <div class="card-head">
+      <button data-act="channel" data-ch="${esc(i.ch.id)}">${chAvatar(i.ch)}</button>
+      <div class="meta"><b><button data-act="channel" data-ch="${esc(i.ch.id)}">${esc(i.ch.name)}</button>${i.community ? '<span class="tag">Comunidad</span>' : ''}</b>
+        <small>${timeAgo(i.ts)} · ${plural(S.idx.followers[i.ch.id] || 0, 'seguidor', 'seguidores')}</small></div>
+      ${followBtn(i.ch.id)}
+    </div>
+    <div class="thumb" data-act="open" data-id="${i.id}" style="background:linear-gradient(135deg,${i.grad[0]},${i.grad[1]})">
+      ${coverInner(i)}<span class="badge">${i.badge || (i.type === 'video' ? i.mins : '📄 ' + i.mins)}</span>
+    </div>
+    <div class="card-body" data-act="open" data-id="${i.id}"><h3>${esc(i.title)}</h3><p>${esc(i.excerpt)}</p>${i.geo ? `<span class="geo-line">📍 ${esc(geoLabel(i.geo))}${distLabel(i)}</span>` : ''}${i.link ? `<span class="card-link">🔗 ${esc(hostOf(i.link))}</span>` : ''}</div>
+    <div class="card-foot">
+      ${reactionsHTML(i)}
+      <button class="act" data-act="open" data-id="${i.id}" title="Comentarios">💬 ${fmt(nCom)}</button>
+      <span class="spacer"></span>
+      <button class="act ${saved ? 'on' : ''}" data-act="save" data-id="${i.id}" title="Guardar">🔖</button>
+      <button class="act" data-act="share" data-id="${i.id}" title="Copiar título">↗</button>
+    </div>
+  </article>`;
+}
+function commentsHTML(itemId){
+  const list = S.idx.byItem[itemId] || [];
+  const form = API.online() && !S.readonly
+    ? (me() ? `<form class="c-form" data-form="comment" data-id="${itemId}"><input name="text" placeholder="Comenta como ${esc(me().alias)}…" maxlength="500" autocomplete="off"><button class="btn small">Enviar</button></form>`
+            : `<div class="banner" style="margin-top:12px"><p>Entra o crea tu cuenta para comentar.</p><button class="btn small" data-act="signup">Entrar</button></div>`)
+    : `<p class="muted">${S.readonly ? 'Tienes acceso de solo lectura.' : 'Sin conexión: no se puede comentar ahora.'}</p>`;
+  return `<b>Comentarios (${list.length})</b>${form}
+    ${list.map(c => `<div class="comment">${userAvatar(c.uid)}<div class="body">
+      <b>${esc(userName(c.uid))}</b> <small>· ${timeAgo(c.at)}</small><div>${esc(c.text)}</div>
+      ${(c.uid === S.uid || S.isOwner) ? `<button class="link-btn" data-act="del-comment" data-uid="${esc(c.uid)}" data-cid="${esc(c.id)}">${c.uid === S.uid ? 'Eliminar' : 'Eliminar (moderación)'}</button>` : ''}
+    </div></div>`).join('') || '<p class="muted">Todavía no hay comentarios. ¡Sé la primera persona en comentar!</p>'}`;
+}
+function statusBanner(){
+  if (S.backend === 'offline') return `<div class="banner"><p>📡 No se puede conectar con Yasupo. Revisa tu conexión y vuelve a cargar la página.</p></div>`;
+  if (S.backend === 'slow') return `<div class="banner"><p>⏳ La conexión va lenta. Los contadores y publicaciones pueden no estar al día.</p></div>`;
+  if (S.uid && !me() && API.online()) return `<div class="banner"><p>👋 Ya entraste. <b>Completa tu perfil</b> para seguir canales, comentar y abrir tu canal.</p><button class="btn small" data-act="signup">Completar perfil</button></div>`;
+  if (!S.uid && API.online()) return `<div class="banner"><p>✨ <b>Crea tu cuenta gratis</b> con solo un usuario y una contraseña para seguir canales, comentar y abrir tu propio canal.</p><button class="btn small" data-act="signup">Crear cuenta</button></div>`;
+  if (me() && !myChannel() && S.view === 'feed') return `<div class="banner"><p>✍️ ¿Tienes algo que contar? <b>Abre tu canal</b> y empieza a publicar.</p><button class="btn small" data-act="compose">Crear mi canal</button></div>`;
+  return '';
+}
+
+/* ============================================================
+   8. RENDERIZADO
+   ============================================================ */
+function renderHeader(){
+  const nb = $('#nearBtn'), nc = S.near && CITY_BY_ID[S.near.city];
+  nb.classList.toggle('on', !!nc);
+  nb.querySelector('.near-label').textContent = nc ? `${nc.name} · ${S.near.radius === 25 ? 'ciudad' : fmt(S.near.radius) + ' km'}` : 'Cualquier lugar';
+  const a = me();
+  const publish = API.online() && !S.readonly ? `<button class="btn" data-act="compose" title="Publicar">✍️<span class="me-name"> Publicar</span></button>` : '';
+  $('#meSlot').innerHTML = `<div style="display:flex;gap:8px;align-items:center">${publish}${a
+    ? `<button class="me-btn" data-act="view" data-view="account" title="Mi cuenta">${userAvatar(S.uid, 'md')}<span class="me-name">${esc(a.alias)}</span></button>`
+    : (API.online() && !S.readonly ? `<button class="btn ghost" data-act="signup">Entrar</button>` : `<span class="muted hide-sm">Invitado</span>`)}</div>`;
+}
+
+function renderSidebar(){
+  const a = me(), follows = a?.follows || [], mine = myChannel();
+  const nav = (view, label) => `<button data-act="view" data-view="${view}" class="${S.view === view ? 'active' : ''}">${label}</button>`;
+  const chBtn = c => `<button data-act="channel" data-ch="${esc(c.id)}" class="${S.view === 'channel' && S.channel === c.id ? 'active' : ''}">${chAvatar(c)}<span class="grow">${esc(c.name)}</span></button>`;
+  const community = Object.values(S.communityChannels).filter(c => c.owner !== S.uid && !follows.includes(c.id)).sort((x, y) => (S.idx.followers[y.id] || 0) - (S.idx.followers[x.id] || 0));
+  $('#side').innerHTML = `
+    <div class="side-title">Explorar</div>
+    <nav class="nav">${nav('feed', '🏠 Para ti')}${nav('following', '⭐ Siguiendo')}</nav>
+    <div class="side-title">Tu biblioteca</div>
+    <nav class="nav">${nav('liked', '👍 Me gusta')}${nav('saved', '🔖 Guardados')}${a ? nav('account', '👤 Mi cuenta') + '<button data-act="logout">🚪 Cerrar sesión</button>' : ''}</nav>
+    ${a ? `<div class="side-title">Tu canal</div><nav class="nav">${mine ? chBtn(S.communityChannels[userChannelId(S.uid)]) + '<button data-act="compose">✍️ Nueva publicación</button>' : '<button data-act="compose">➕ Crear mi canal</button>'}</nav>` : ''}
+    ${follows.length ? `<div class="side-title">Canales que sigues</div><nav class="nav">${follows.map(channelById).filter(Boolean).map(chBtn).join('')}</nav>` : ''}
+    ${community.length ? `<div class="side-title">Canales de la comunidad</div><nav class="nav">${community.map(chBtn).join('')}</nav>` : ''}
+    <div class="side-title">Canales de Yasupo</div>
+    <nav class="nav">${DEMO_CHANNELS.filter(c => !follows.includes(c.id)).map(chBtn).join('') || '<p class="muted" style="padding:0 12px">Ya los sigues todos.</p>'}</nav>`;
+}
+
+function channelHeader(c){
+  const tp = TOPICS[c.cat], mine = c.owner && c.owner === S.uid;
+  const posts = c.community ? (S.posts[c.owner] || []).length : null;
+  return `<section class="panel"><div class="ch-cover" style="background:linear-gradient(135deg,${c.community ? c.color : tp.g[0]},${tp.g[1]})">${c.community ? c.emoji : tp.e.slice(0, 3).join(' ')}</div>
+    <div class="ch-row">${chAvatar(c, 'lg')}<div style="flex:1;min-width:200px"><h1>${esc(c.name)}${c.community ? '<span class="tag">Comunidad</span>' : ''}</h1>
+    <div class="muted">${esc(c.cat)} · ${plural(S.idx.followers[c.id] || 0, 'seguidor', 'seguidores')}${posts !== null ? ' · ' + plural(posts, 'publicación', 'publicaciones') : ''}${c.community ? ' · de ' + esc(userName(c.owner)) : ''}</div>
+    ${c.about ? `<p style="margin:6px 0 0">${esc(c.about)}</p>` : ''}</div>
+    <div class="row-actions">${followBtn(c.id, true)}${mine ? '<button class="btn small ghost" data-act="edit-channel">Editar canal</button>' : ''}</div></div></section>`;
+}
+
+function renderFeedPage(){
+  const ids = visibleIds(), list = ids.slice(0, S.shown).map(item);
+  const titles = {feed:'Para ti', following:'De los canales que sigues', liked:'Te gustó', saved:'Guardados'};
+  let head = '';
+  if (S.view === 'channel'){
+    const c = channelById(S.channel);
+    if (!c){ S.view = 'feed'; return renderFeedPage(); }
+    head = channelHeader(c);
+  }
+  const mineChannel = S.view === 'channel' && channelById(S.channel)?.owner === S.uid;
+  const needsLogin = (S.view === 'following' || S.view === 'liked') && !me();
+  const empty = S.near && !mineChannel ? `<div class="empty">No hay publicaciones a menos de ${fmt(S.near.radius)} km de ${esc(CITY_BY_ID[S.near.city].name)} con estos filtros.<br><br><button class="btn ghost" data-act="near">Cambiar ubicación o distancia</button></div>`
+    : mineChannel ? `<div class="empty">Tu canal todavía no tiene publicaciones.<br><br><button class="btn" data-act="compose">Escribir la primera</button></div>`
+    : needsLogin ? `<div class="empty">Crea tu cuenta para ver aquí ${S.view === 'liked' ? 'lo que te gusta' : 'los canales que sigues'}.<br><br>${API.online() ? '<button class="btn" data-act="signup">Crear cuenta</button>' : ''}</div>`
+    : `<div class="empty">${S.cat === 'Comunidad' ? 'La comunidad todavía no ha publicado nada. ¡Anímate a ser la primera persona!' : S.view === 'following' ? 'Aún no sigues ningún canal, o no tienen publicaciones con este filtro.' : 'Aquí todavía no hay nada.'}</div>`;
+  const showShorts = S.view === 'feed' && !S.q && S.cat === 'Todo' && !S.near;
+  const tabs = ['Todo', 'Comunidad', 'Artículos', 'Vídeos', ...(S.view === 'channel' ? [] : CATS)].filter(t => !(S.view === 'channel' && t === 'Comunidad'));
+  $('#main').innerHTML = `${statusBanner()}${head}
+    <div class="tabs">${tabs.map(c => `<button class="tab ${c === S.cat ? 'active' : ''}" data-act="cat" data-cat="${c}">${c === 'Comunidad' ? '🌱 Comunidad' : c}</button>`).join('')}</div>
+    ${showShorts ? `<div class="section-h"><h2>Clips</h2></div><div class="shorts">${SHORTS.map(s => `<button class="short" data-act="short" style="background:linear-gradient(160deg,${s.g[1]},${s.g[0]})"><span class="emoji">${s.emoji}</span><b>${esc(s.title)}</b><small>${esc(s.ch.name)}</small></button>`).join('')}</div>` : ''}
+    <div class="section-h"><h2>${S.q ? `Resultados para “${esc(S.q)}”` : S.view === 'channel' ? 'Publicaciones' : titles[S.view]}${S.near ? ` <small class="muted" style="font-size:14px;font-weight:400">📍 ${S.near.radius === 25 ? 'en' : 'a menos de ' + fmt(S.near.radius) + ' km de'} ${esc(CITY_BY_ID[S.near.city].name)}</small>` : ''}</h2></div>
+    <div class="feed">${list.map(cardHTML).join('') || empty}</div>
+    <div class="loader" id="loader" style="display:${isInfinite() || ids.length > S.shown ? 'block' : 'none'}">Cargando más…</div>`;
+  observeLoader();
+}
+
+function renderAccountPage(){
+  const a = me();
+  if (!a){ S.view = 'feed'; return renderFeedPage(); }
+  const mine = S.comments[S.uid] || [], ch = myChannel(), myPosts = S.posts[S.uid] || [];
+  $('#main').innerHTML = `
+    <section class="panel">
+      <div class="ch-row">${userAvatar(S.uid, 'lg')}<div style="flex:1;min-width:200px">
+        <h1 style="margin:0">${esc(a.alias)}</h1>
+        <div class="muted">Miembro desde ${new Date(a.createdAt).toLocaleDateString('es', {day:'numeric', month:'long', year:'numeric'})}${S.isOwner ? ' · Administración' : ''}</div>
+        ${a.bio ? `<p style="margin:8px 0 0">${esc(a.bio)}</p>` : ''}</div><button class="btn small ghost" data-act="logout">🚪 Cerrar sesión</button></div>
+      <div class="stats">
+        <div class="stat"><b>${fmt((a.follows || []).length)}</b><span>Canales seguidos</span></div>
+        <div class="stat"><b>${fmt((a.likes || []).length)}</b><span>Me gusta</span></div>
+        <div class="stat"><b>${fmt(mine.length)}</b><span>Comentarios</span></div>
+        <div class="stat"><b>${fmt(myPosts.length)}</b><span>Publicaciones</span></div>
+      </div>
+    </section>
+    <section class="panel"><h2 style="margin-top:0">Mi canal</h2>
+      ${ch ? `<div class="list-row">${chAvatar(S.communityChannels[userChannelId(S.uid)], 'md')}<div class="grow"><b>${esc(ch.name)}</b><br><small>${esc(ch.cat)} · ${plural(S.idx.followers[userChannelId(S.uid)] || 0, 'seguidor', 'seguidores')}</small></div>
+          <div class="row-actions"><button class="btn small" data-act="compose">+ Publicar</button><button class="btn small ghost" data-act="channel" data-ch="${esc(userChannelId(S.uid))}">Ver</button><button class="btn small ghost" data-act="edit-channel">Editar</button></div></div>
+        ${myPosts.map(p => `<div class="list-row"><div class="grow"><b>${esc(p.title)}</b><br><small>${timeAgo(p.at)} · 👍 ${fmt(S.idx.likes['p_' + p.id] || 0)} · 💬 ${fmt((S.idx.byItem['p_' + p.id] || []).length)}</small></div>
+          <div class="row-actions"><button class="btn small ghost" data-act="open" data-id="p_${esc(p.id)}">Ver</button><button class="btn small ghost" data-act="edit-post" data-uid="${esc(S.uid)}" data-pid="${esc(p.id)}">Editar</button><button class="btn small danger" data-act="del-post" data-uid="${esc(S.uid)}" data-pid="${esc(p.id)}">Borrar</button></div></div>`).join('')}`
+      : `<p class="muted">Todavía no tienes canal. Crea uno para publicar artículos y que otras personas te sigan.</p><button class="btn" data-act="compose">Crear mi canal</button>`}
+    </section>
+    <section class="panel"><h2 style="margin-top:0">Editar perfil</h2>
+      <form data-form="profile">
+        <div class="field"><label for="pAlias">Alias</label><input id="pAlias" name="alias" value="${esc(a.alias)}" maxlength="24" required><small>Es el nombre que verán las demás personas.</small></div>
+        <div class="field"><label for="pBio">Sobre ti</label><textarea id="pBio" name="bio" rows="2" maxlength="160">${esc(a.bio || '')}</textarea></div>
+        <div class="err" data-err></div><button class="btn">Guardar cambios</button>
+      </form></section>
+    <section class="panel"><h2 style="margin-top:0">Canales que sigues</h2>
+      ${(a.follows || []).map(channelById).filter(Boolean).map(c => `<div class="list-row">${chAvatar(c, 'md')}<div class="grow"><b>${esc(c.name)}</b><br><small>${esc(c.cat)}</small></div>${followBtn(c.id, true)}</div>`).join('') || '<p class="muted">Todavía no sigues ningún canal.</p>'}
+    </section>
+    <section class="panel"><h2 style="margin-top:0">Tus comentarios</h2>
+      ${mine.slice(0, 50).map(c => { const it = item(c.itemId); return `<div class="list-row"><div class="grow"><b>${esc(it ? it.title : 'Publicación eliminada')}</b><br><small>${timeAgo(c.at)}</small><div style="overflow-wrap:anywhere">${esc(c.text)}</div></div>
+        ${it ? `<button class="btn small ghost" data-act="open" data-id="${esc(c.itemId)}">Ver</button>` : ''}<button class="btn small danger" data-act="del-comment" data-uid="${esc(S.uid)}" data-cid="${esc(c.id)}">Borrar</button></div>`; }).join('') || '<p class="muted">Aún no has comentado nada.</p>'}
+    </section>
+    <section class="panel"><h2 style="margin-top:0">Zona de peligro</h2>
+      <p class="muted">Eliminar tu cuenta borra tu perfil, tu canal con todas sus publicaciones, tus reacciones y tus comentarios.</p>
+      <button class="btn danger" data-act="delete-account">Eliminar mi cuenta</button>
+    </section>`;
+}
+
+function renderReader(){
+  const i = S.openId && item(S.openId);
+  if (!i){ if (S.openId) closeReader(); return; }
+  const r = $('#reader'), sig = i.id + ':' + (i.editedAt || '');
+  if (r.dataset.sig !== sig){
+    r.dataset.sig = sig;
+    r.innerHTML = `${galleryHTML(i)}
+      <div class="reader-in">
+        <div class="card-head" style="padding:0" id="rHead"></div>
+        <h1>${esc(i.title)}</h1>
+        <small class="muted">${timeAgo(i.ts)}${i.editedAt ? ' · editado' : ''} · ${i.type === 'video' ? 'Vídeo de ' + i.mins : 'Lectura de ' + i.mins}</small>
+        ${i.geo ? `<div class="geo-line">📍 ${esc(geoLabel(i.geo, true))}${distLabel(i)}</div>` : ''}
+        ${i.body.map(p => `<p style="white-space:pre-line">${esc(p)}</p>`).join('')}
+        ${i.link ? `<a class="link-card" href="${esc(i.link)}" target="_blank" rel="noopener noreferrer nofollow ugc"><span style="font-size:22px">🔗</span><span class="grow"><b>Enlace relacionado</b><small>${esc(i.link)}</small></span>↗</a>` : ''}
+        <div id="rOwner"></div>
+        <div class="card-foot" style="padding:0" id="rActions"></div>
+        <div class="comments" id="rComments"></div>
+      </div>`;
+  }
+  $('#rHead').innerHTML = `<button data-act="channel" data-ch="${esc(i.ch.id)}">${chAvatar(i.ch, 'md')}</button>
+    <div class="meta"><b>${esc(i.ch.name)}</b><small>${plural(S.idx.followers[i.ch.id] || 0, 'seguidor', 'seguidores')}</small></div>${followBtn(i.ch.id, true)}`;
+  $('#rOwner').innerHTML = canModerate(i) ? `<div class="row-actions" style="margin:8px 0 16px">${i.owner === S.uid ? `<button class="btn small ghost" data-act="edit-post" data-uid="${esc(i.owner)}" data-pid="${esc(i.pid)}">✏️ Editar</button>` : ''}
+    <button class="btn small danger" data-act="del-post" data-uid="${esc(i.owner)}" data-pid="${esc(i.pid)}">${i.owner === S.uid ? '🗑️ Borrar' : '🗑️ Borrar (moderación)'}</button></div>` : '';
+  $('#rActions').innerHTML = `${reactionsHTML(i)}<span class="spacer"></span>
+    <button class="act ${S.saved.has(i.id) ? 'on' : ''}" data-act="save" data-id="${i.id}">🔖 Guardar</button>
+    <button class="act" data-act="share" data-id="${i.id}">↗ Compartir</button>`;
+  const box = $('#rComments'), input = box.querySelector('input'), draft = input?.value || '', focused = document.activeElement === input;
+  box.innerHTML = commentsHTML(i.id);
+  const ni = box.querySelector('input'); if (ni){ ni.value = draft; if (focused) ni.focus(); }
+}
+
+function render(){
+  renderHeader(); renderSidebar();
+  S.view === 'account' ? renderAccountPage() : renderFeedPage();
+  if (S.openId) renderReader();
+}
+
+/* ============================================================
+   9. MODALES: registro, canal, editor, confirmaciones
+   ============================================================ */
+let afterSignup = null, afterLogin = null;
+
+/** Cerrar sesión: este navegador vuelve a modo invitado. */
+async function logout(){
+  try { await sb.auth.signOut(); } catch {}
+  S.uid = null; S.isOwner = false; S.saved = new Set(local.get('saved-guest', []));
+  rebuildIndex(); go({view: 'feed', channel: null});
+  toast('Has cerrado sesión en Yasupo.');
+}
+/** Entrar: sin sesión, se pide usuario y contraseña; con sesión pero sin perfil, se completa el perfil. */
+function enter(then){
+  if (!API.online()) return toast('No hay conexión con Yasupo. Inténtalo de nuevo en un momento.');
+  if (!S.uid) return openAuth(then);
+  openSignup(then);
+}
+let afterAuth = null, authMode = 'login';
+function openAuth(then, mode){
+  afterAuth = then || null; authMode = mode || authMode;
+  const reg = authMode === 'register';
+  showModal(`<h2>${reg ? 'Crea tu cuenta en Yasupo' : 'Entrar en Yasupo'}</h2>
+    <p class="muted" style="margin-top:0">${reg ? 'Solo necesitas un usuario y una contraseña. Sin correo ni teléfono.' : 'Entra con tu usuario y contraseña de Yasupo.'}</p>
+    <div class="chips" style="margin-bottom:14px"><button type="button" class="chip ${reg ? '' : 'on'}" data-act="auth-mode" data-mode="login">Ya tengo cuenta</button><button type="button" class="chip ${reg ? 'on' : ''}" data-act="auth-mode" data-mode="register">Crear cuenta</button></div>
+    <form data-form="auth">
+      <div class="field"><label for="aUser">Usuario</label><input id="aUser" name="user" maxlength="20" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="p. ej. lectora_curiosa">${reg ? '<small>De 3 a 20 letras, números, punto o guion bajo.</small>' : ''}</div>
+      <div class="field"><label for="aPass">Contraseña</label><input id="aPass" name="pass" type="password" minlength="${reg ? 8 : 1}" maxlength="72" required autocomplete="${reg ? 'new-password' : 'current-password'}">${reg ? '<small>Al menos 8 caracteres. Guárdala bien: no hay forma de recuperarla por correo.</small>' : ''}</div>
+      ${actionsRow(reg ? 'Crear cuenta' : 'Entrar')}
+    </form>`, '#aUser');
+}
+async function submitAuth(f, err){
+  const user = f.elements.user.value.trim(), pass = f.elements.pass.value, btn = f.querySelector('button.btn:not(.ghost)');
+  const reg = authMode === 'register';
+  if (!/^[A-Za-z0-9._]{3,20}$/.test(user)) return err.textContent = 'El usuario debe tener de 3 a 20 letras, números, punto o guion bajo.';
+  if (reg && pass.length < 8) return err.textContent = 'La contraseña necesita al menos 8 caracteres.';
+  btn.disabled = true; err.textContent = '';
+  try {
+    if (reg){
+      const r = await sb.functions.invoke('plaza-register', {body: {username: user, password: pass}});
+      if (r.error){ let m = 'No pudimos crear la cuenta. Inténtalo de nuevo.'; try { m = (await r.error.context.json()).error || m; } catch {} throw new Error(m); }
+    }
+    const {data, error} = await sb.auth.signInWithPassword({email: mailOf(user), password: pass});
+    if (error) throw new Error(reg ? 'La cuenta se creó, pero no pudimos entrar. Prueba con «Ya tengo cuenta».' : 'Usuario o contraseña incorrectos.');
+    S.uid = data.user.id; await API.afterAuth();
+    const then = afterAuth; afterAuth = null;
+    closeModal(); rebuildIndex(); render();
+    if (me()){ toast(`¡Hola de nuevo, ${me().alias}!`); if (then) then(); }
+    else openSignup(then, user);
+  } catch (e){ err.textContent = e.message || 'Algo salió mal. Inténtalo de nuevo.'; btn.disabled = false; }
+}
+
+/** Buscar por ubicación */
+function openNear(){
+  const n = S.near, c = n && CITY_BY_ID[n.city];
+  showModal(`<h2>📍 Buscar por ubicación</h2>
+    <p class="muted" style="margin-top:0">Muestra las noticias publicadas cerca del lugar que elijas, de la más cercana a la más lejana.</p>
+    <form data-form="near">
+      <div class="field"><label for="nCity">Ciudad</label>
+        <div style="display:flex;gap:8px"><input id="nCity" name="city" list="cityList" value="${c ? esc(cityLabel(c)) : ''}" placeholder="Escribe una ciudad…" autocomplete="off" style="flex:1;min-width:0">
+        <button type="button" class="btn ghost small" data-act="geo-me" data-target="nCity">📍 Mi ubicación</button></div></div>
+      <div class="field"><label>Distancia</label>
+        <div class="chips">${RADII.map(r => `<button type="button" class="chip ${r.km === (n?.radius ?? 100) ? 'on' : ''}" data-act="pick" data-group="radius" data-val="${r.km}">${r.label}</button>`).join('')}</div></div>
+      <div class="err" data-err></div>
+      <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap">
+        ${n ? '<button type="button" class="btn ghost" data-act="near-clear">Quitar filtro</button>' : '<span></span>'}
+        <div style="display:flex;gap:8px"><button type="button" class="btn ghost" data-act="close-modal">Cancelar</button><button class="btn">Buscar</button></div>
+      </div>
+    </form>`, '#nCity');
+}
+/** Pide la posición al navegador y la convierte en la ciudad más cercana (la posición exacta no se guarda). */
+function locateMe(targetId){
+  const input = document.getElementById(targetId);
+  if (!navigator.geolocation) return toast('Tu navegador no permite obtener la ubicación. Elige tu ciudad en la lista.');
+  toast('Buscando tu ubicación…');
+  navigator.geolocation.getCurrentPosition(pos => {
+    const c = nearestCity(pos.coords.latitude, pos.coords.longitude);
+    if (input) input.value = cityLabel(c);
+    toast(`Ciudad más cercana: ${c.name}`);
+  }, () => toast('No se pudo obtener tu ubicación. Elige tu ciudad en la lista.'), {timeout: 8000, maximumAge: 600000});
+}
+const modalOpen = () => $('#modalOv').classList.contains('open');
+function showModal(html, focus){ discardDraft(); $('#modal').innerHTML = html; $('#modalOv').classList.add('open'); if (focus) setTimeout(() => $(focus)?.focus(), 50); }
+const closeModal = () => { discardDraft(); $('#modalOv').classList.remove('open'); };
+const actionsRow = (ok, cls = '') => `<div class="err" data-err></div><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn ghost" data-act="close-modal">Cancelar</button><button class="btn ${cls}">${ok}</button></div>`;
+
+function openSignup(then, suggested){
+  if (!S.uid) return openAuth(then);
+  if (me()) return;
+  afterSignup = then || null;
+  const alias = suggested && !S.aliasTaken.has(suggested.toLowerCase()) ? suggested : '';
+  showModal(`<h2>Tu perfil en Yasupo</h2>
+    <p class="muted" style="margin-top:0">Elige cómo quieres que te vean los demás. Podrás cambiarlo cuando quieras.</p>
+    <form data-form="signup">
+      <div class="field"><label for="sAlias">Alias público</label><input id="sAlias" name="alias" maxlength="24" value="${esc(alias)}" placeholder="p. ej. lectora_curiosa" required autocomplete="off"></div>
+      <div class="field"><label for="sBio">Sobre ti <span class="muted">(opcional)</span></label><textarea id="sBio" name="bio" rows="2" maxlength="160" placeholder="Me gusta la cocina y la ciencia"></textarea></div>
+      <div class="field"><label>Temas que te interesan</label><small>Seguirás automáticamente sus canales. Puedes cambiarlo cuando quieras.</small>
+        <div class="chips" style="margin-top:6px">${CATS.map(c => `<button type="button" class="chip" data-act="chip" data-cat="${c}">${c}</button>`).join('')}</div></div>
+      ${actionsRow('Guardar perfil')}
+    </form>`, '#sAlias');
+}
+
+function openChannelForm(){
+  if (!needAccount(() => openChannelForm())) return;
+  const c = myChannel() || {}, color = safeColor(c.color || PALETTE[Math.floor(Math.random() * PALETTE.length)]), emoji = c.emoji ? safeEmoji(c.emoji) : EMOJIS[0];
+  showModal(`<h2>${c.name ? 'Editar mi canal' : 'Crea tu canal'}</h2>
+    <p class="muted" style="margin-top:0">${c.name ? 'Los cambios se verán al momento en todas tus publicaciones.' : 'Tu canal es tu espacio para publicar. Las demás personas podrán seguirlo, reaccionar y comentar.'}</p>
+    <form data-form="channel">
+      <div class="field"><label for="cName">Nombre del canal</label><input id="cName" name="name" maxlength="40" required value="${esc(c.name || '')}" placeholder="p. ej. Cuaderno de Viaje" autocomplete="off"></div>
+      <div class="field"><label for="cCat">Tema principal</label><select id="cCat" name="cat">${CATS.map(x => `<option ${x === c.cat ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      <div class="field"><label for="cAbout">Descripción <span class="counter">máx. 200</span></label><textarea id="cAbout" name="about" rows="3" maxlength="200" placeholder="¿De qué trata tu canal?">${esc(c.about || '')}</textarea></div>
+      <div class="field"><label>Icono</label><div class="swatches">${EMOJIS.map(e => `<button type="button" class="emoji-pick ${e === emoji ? 'on' : ''}" data-act="pick" data-group="emoji" data-val="${e}">${e}</button>`).join('')}</div></div>
+      <div class="field"><label>Color</label><div class="swatches">${PALETTE.map(p => `<button type="button" class="swatch ${p === color ? 'on' : ''}" data-act="pick" data-group="color" data-val="${p}" style="background:${p}" aria-label="Color ${p}"></button>`).join('')}</div></div>
+      ${actionsRow(c.name ? 'Guardar cambios' : 'Crear canal')}
+      ${c.name ? '<p style="margin:16px 0 0;text-align:right"><button type="button" class="link-btn" data-act="delete-channel">Eliminar el canal y todas sus publicaciones</button></p>' : ''}
+    </form>`, '#cName');
+}
+
+/* ---------- Fotos, vídeo y enlaces ---------- */
+const MAX_PHOTOS = 10, MAX_FILE = 20 * 1024 * 1024;
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], VIDEO_TYPES = ['video/mp4', 'video/webm'];
+const ASSET_RE = /^[A-Za-z0-9_-]{8,80}$/;
+const blobUrl = id => { const k = String(id).indexOf('_'); return `${SB_URL}/storage/v1/object/public/${MEDIA}/${id.slice(0, k)}/${id.slice(k + 1)}`; };
+/** Solo se aceptan ids de archivo válidos: hasta 10 fotos, o un único vídeo. */
+function cleanMedia(m){
+  if (!Array.isArray(m)) return [];
+  const out = m.filter(x => x && ASSET_RE.test(String(x.id)) && (x.kind === 'image' || x.kind === 'video'))
+               .slice(0, MAX_PHOTOS).map(x => ({id: String(x.id), kind: x.kind}));
+  const v = out.find(x => x.kind === 'video');
+  return v ? [v] : out;
+}
+function cleanLink(u){ if (!u) return null; try { const x = new URL(String(u)); return x.protocol === 'https:' && x.hostname.includes('.') ? x.href : null; } catch { return null; } }
+function hostOf(u){ try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } }
+const delAsset = id => { if (API.assets && id) API.assets.delete(id).catch(() => {}); };
+const dropAssets = posts => posts.forEach(p => cleanMedia(p.media).forEach(m => delAsset(m.id)));
+
+/** Portada de la tarjeta del feed. */
+function coverInner(i){
+  const m = i.media?.[0];
+  if (!m) return `${i.emoji}${i.type === 'video' ? '<span class="play">▶</span>' : ''}`;
+  const el = m.kind === 'video'
+    ? `<video class="media-cover media-el" src="${blobUrl(m.id)}#t=0.1" muted playsinline preload="metadata"></video><span class="play">▶</span>`
+    : `<img class="media-cover media-el" src="${blobUrl(m.id)}" alt="" loading="lazy">`;
+  return el + (i.media.length > 1 ? `<span class="count">📷 ${i.media.length}</span>` : '');
+}
+/** Portada grande del lector: vídeo, una foto o una galería deslizable. */
+function galleryHTML(i){
+  const m = i.media || [];
+  if (!m.length) return `<div class="thumb" style="background:linear-gradient(135deg,${i.grad[0]},${i.grad[1]})">${i.emoji}${i.type === 'video' ? '<span class="play" style="width:64px;height:64px;font-size:24px;left:50%;top:50%;bottom:auto;transform:translate(-50%,-50%)">▶</span>' : ''}</div>`;
+  if (m[0].kind === 'video') return `<div class="gallery"><video class="solo media-el" src="${blobUrl(m[0].id)}" controls playsinline preload="metadata"></video></div>`;
+  const imgs = m.map((x, k) => `<img class="media-el" src="${blobUrl(x.id)}" alt="Foto ${k + 1} de ${m.length}" ${k ? 'loading="lazy"' : ''}>`).join('');
+  if (m.length === 1) return `<div class="gallery"><div class="gallery-track">${imgs}</div></div>`;
+  return `<div class="gallery"><div class="gallery-track">${imgs}</div>
+    <button class="gallery-nav prev" data-act="gal" data-dir="-1" aria-label="Foto anterior">‹</button>
+    <button class="gallery-nav next" data-act="gal" data-dir="1" aria-label="Foto siguiente">›</button>
+    <div class="gallery-dots">${m.map((_, k) => `<span class="${k ? '' : 'on'}"></span>`).join('')}</div></div>`;
+}
+
+/* ---------- Editor de publicaciones ---------- */
+let draft = null;   // {pid, done, cancelled, fresh:Set, removed:[], media:[{key,id,kind,url,status,msg}]}
+
+function openComposer(pid){
+  if (!needAccount(() => openComposer(pid))) return;
+  if (!myChannel()) return openChannelForm();
+  const ch = S.communityChannels[userChannelId(S.uid)];
+  const p = pid ? (S.posts[S.uid] || []).find(x => x.id === pid) : null;
+  if (pid && !p) return toast('Esta publicación ya no existe.');
+  const emoji = p ? safeEmoji(p.emoji) : ch.emoji;
+  const emojis = [...new Set([ch.emoji, ...TOPICS[ch.cat].e, ...EMOJIS])];
+  showModal(`<h2>${p ? 'Editar publicación' : 'Nueva publicación'}</h2>
+    <p class="muted" style="margin-top:0">Se publicará en <b>${esc(ch.name)}</b>.</p>
+    <form data-form="post" data-pid="${p ? esc(p.id) : ''}">
+      <div class="field"><label>Portada <span class="muted">(opcional)</span></label>
+        <small>Añade hasta ${MAX_PHOTOS} fotos o un vídeo (MP4 o WebM, hasta 20 MB). Toca una foto para ponerla de portada.</small>
+        ${API.assets
+          ? `<label class="dropzone" id="drop"><input type="file" id="fileIn" accept="${[...IMAGE_TYPES, ...VIDEO_TYPES].join(',')}" multiple hidden>📎 <b>Añadir fotos o un vídeo</b><br><small class="muted">Toca para elegir, o arrastra los archivos aquí</small></label>`
+          : `<p class="muted" style="margin:6px 0 0">Con tu nivel de acceso no puedes subir archivos aquí. Puedes usar un icono como portada.</p>`}
+        <div class="media-grid" id="mediaGrid"></div>
+        <div id="emojiWrap" style="margin-top:10px"><small class="muted">Sin fotos ni vídeo, la portada será este icono:</small>
+          <div class="swatches" style="margin-top:6px">${emojis.map(e => `<button type="button" class="emoji-pick ${e === emoji ? 'on' : ''}" data-act="pick" data-group="emoji" data-val="${e}">${e}</button>`).join('')}</div></div>
+      </div>
+      <div class="field"><label for="pTitle">Título</label><input id="pTitle" name="title" maxlength="120" required value="${esc(p?.title || '')}" placeholder="Un título que invite a leer" autocomplete="off"></div>
+      <div class="field"><label for="pExcerpt">Resumen <span class="muted">(opcional)</span></label><input id="pExcerpt" name="excerpt" maxlength="200" value="${esc(p?.excerpt || '')}" placeholder="Si lo dejas vacío, se usa el primer párrafo"></div>
+      <div class="field"><label for="pBody">Contenido <span class="counter" id="bodyCount"></span></label>
+        <textarea id="pBody" class="big" name="body" maxlength="${MAX_BODY}" placeholder="Escribe aquí tu artículo. Deja una línea en blanco entre párrafos.">${esc(p?.body || '')}</textarea></div>
+      <div class="field"><label for="pLink">Enlace relacionado <span class="muted">(opcional)</span></label>
+        <input id="pLink" name="link" inputmode="url" maxlength="500" value="${esc(p?.link || '')}" placeholder="https://…" autocomplete="off">
+        <small>Por ejemplo, la fuente de tu artículo o una web relacionada.</small></div>
+      <div class="field"><label for="pCity">Ubicación <span class="muted">(opcional)</span></label>
+        <div style="display:flex;gap:8px"><input id="pCity" name="city" list="cityList" value="${p?.geo && CITY_BY_ID[p.geo.city] ? esc(cityLabel(CITY_BY_ID[p.geo.city])) : ''}" placeholder="Escribe una ciudad…" autocomplete="off" style="flex:1;min-width:0">
+        <button type="button" class="btn ghost small" data-act="geo-me" data-target="pCity">📍 Usar mi ubicación</button></div>
+        <input name="place" maxlength="60" value="${esc(p?.geo?.place || '')}" placeholder="Lugar concreto (opcional): barrio, parque, calle…" style="margin-top:8px" autocomplete="off">
+        <small>Así la gente de tu zona encontrará tu noticia. Solo se guarda la ciudad y el lugar que escribas, nunca tu posición exacta.</small></div>
+      ${actionsRow(p ? 'Guardar cambios' : 'Publicar')}
+    </form>`, '#pTitle');
+  draft = {pid, done: false, cancelled: false, fresh: new Set(), removed: [],
+    media: p ? cleanMedia(p.media).map(m => ({key: newId(), id: m.id, kind: m.kind, url: blobUrl(m.id), status: 'ok'})) : []};
+  renderDraftMedia();
+  updateCounter();
+}
+
+function renderDraftMedia(){
+  const g = $('#mediaGrid'); if (!g || !draft) return;
+  g.innerHTML = draft.media.map((m, n) => `<div class="media-tile" ${m.kind === 'image' && m.status === 'ok' && n > 0 ? `data-act="first-media" data-key="${m.key}" title="Usar como portada" style="cursor:pointer"` : ''}>
+      ${m.kind === 'video' ? `<video src="${esc(m.url)}" muted playsinline preload="metadata"></video>` : `<img src="${esc(m.url)}" alt="">`}
+      ${n === 0 && m.status !== 'err' ? `<span class="first">${m.kind === 'video' ? 'Vídeo' : 'Portada'}</span>` : ''}
+      ${m.status === 'up' ? '<span class="state">Subiendo…</span>' : m.status === 'err' ? `<span class="state">⚠️ ${esc(m.msg)}</span>` : ''}
+      <button type="button" class="x" data-act="rm-media" data-key="${m.key}" aria-label="Quitar">✕</button></div>`).join('');
+  const has = draft.media.some(m => m.status !== 'err');
+  $('#emojiWrap').style.display = has ? 'none' : '';
+  const dz = $('#drop');
+  if (dz) dz.style.display = draft.media.some(m => m.kind === 'video') || draft.media.length >= MAX_PHOTOS ? 'none' : '';
+}
+
+/** Reduce fotos grandes (máx. 1920 px) para que suban rápido y ocupen poco. */
+async function shrink(file){
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 1920 / Math.max(bmp.width, bmp.height));
+    if (k === 1 && file.size < 1.5e6) return file;
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(bmp, 0, 0, c.width, c.height);
+    const b = await new Promise(r => c.toBlob(r, 'image/jpeg', .85));
+    return b && b.size < file.size ? b : file;
+  } catch { return file; }
+}
+function uploadMsg(e){
+  return ({too_large: 'Demasiado grande (máx. 20 MB)', unsupported_type: 'Formato no admitido', quota_or_state: 'No queda espacio',
+    rate_limited: 'Demasiadas subidas; espera un poco', not_granted: 'Sin permiso para subir'})[e?.code] || 'No se pudo subir';
+}
+
+async function addFiles(fileList){
+  const d = draft, err = $('#modal [data-err]'); if (!d || !API.assets) return;
+  const files = [...fileList]; err.textContent = '';
+  const bad = files.filter(f => !IMAGE_TYPES.includes(f.type) && !VIDEO_TYPES.includes(f.type));
+  if (bad.length) err.textContent = `«${bad[0].name}» no es compatible. Usa fotos JPG, PNG, GIF o WebP, o vídeos MP4 o WebM.`;
+  const imgs = files.filter(f => IMAGE_TYPES.includes(f.type)), vids = files.filter(f => VIDEO_TYPES.includes(f.type));
+  const hasVideo = d.media.some(m => m.kind === 'video'), hasPhotos = d.media.some(m => m.kind === 'image');
+  if (vids.length && (vids.length > 1 || imgs.length || hasPhotos || hasVideo))
+    return err.textContent = 'La portada puede ser un vídeo o varias fotos, pero no las dos cosas a la vez (y solo un vídeo).';
+  if (imgs.length && hasVideo) return err.textContent = 'Ya hay un vídeo. Quítalo si prefieres usar fotos.';
+  let pick = vids.length ? vids : imgs;
+  const room = MAX_PHOTOS - d.media.length;
+  if (pick.length > room){ err.textContent = `Solo caben ${MAX_PHOTOS} fotos; se añadirán las ${room} primeras.`; pick = pick.slice(0, room); }
+  const tiles = pick.map(f => ({key: newId(), file: f, kind: f.type.startsWith('video/') ? 'video' : 'image', url: URL.createObjectURL(f), status: 'up'}));
+  tiles.forEach(t => { if (t.file.size > MAX_FILE && t.kind === 'video'){ t.status = 'err'; t.msg = 'Demasiado grande (máx. 20 MB)'; } });
+  d.media.push(...tiles); renderDraftMedia();
+  for (const t of tiles){
+    if (t.status !== 'up') continue;
+    try {
+      const blob = t.kind === 'image' ? await shrink(t.file) : t.file;
+      if (blob.size > MAX_FILE) throw {code: 'too_large'};
+      const r = await API.assets.upload(blob, {type: blob.type || t.file.type});
+      if (d.cancelled || !d.media.includes(t)){ if (!d.done) delAsset(r.id); continue; }
+      d.fresh.add(r.id); t.id = r.id; t.status = 'ok';
+      URL.revokeObjectURL(t.url); t.url = r.url;
+    } catch (e){ t.status = 'err'; t.msg = uploadMsg(e); }
+    delete t.file;
+    if (draft === d) renderDraftMedia();
+  }
+}
+function removeDraftMedia(key){
+  const d = draft; if (!d) return;
+  const m = d.media.find(x => x.key === key); if (!m) return;
+  d.media = d.media.filter(x => x !== m);
+  if (m.url.startsWith('blob:')) URL.revokeObjectURL(m.url);
+  if (m.id) d.fresh.has(m.id) ? (delAsset(m.id), d.fresh.delete(m.id)) : d.removed.push(m.id);
+  renderDraftMedia();
+}
+function makeCover(key){
+  const d = draft; if (!d) return;
+  const m = d.media.find(x => x.key === key); if (!m) return;
+  d.media = [m, ...d.media.filter(x => x !== m)]; renderDraftMedia();
+}
+/** Al cerrar el editor sin publicar, se borran los archivos que se subieron en esa sesión. */
+function discardDraft(){
+  if (!draft) return;
+  const d = draft; draft = null; d.cancelled = true;
+  d.media.forEach(m => { if (m.url && m.url.startsWith('blob:')) URL.revokeObjectURL(m.url); });
+  if (!d.done) d.fresh.forEach(delAsset);
+}
+
+function updateCounter(){ const b = $('#pBody'), c = $('#bodyCount'); if (b && c) c.textContent = `${b.value.length} / ${MAX_BODY}`; }
+
+function openConfirm(title, text, act, data = ''){
+  showModal(`<h2>${title}</h2><p class="muted">${text}</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" data-act="close-modal">Cancelar</button><button class="btn danger" data-act="${act}" ${data}>Sí, eliminar</button></div>`);
+}
+
+function openReader(id){ if (!item(id)) return toast('Esta publicación ya no está disponible.'); S.openId = id; $('#reader').dataset.sig = ''; renderReader(); $('#readerOv').classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeReader(){ S.openId = null; $('#readerOv').classList.remove('open'); document.body.style.overflow = ''; }
+
+/* ============================================================
+   10. EVENTOS
+   ============================================================ */
+function go(patch){ Object.assign(S, {shown: 12}, patch); $('#side').classList.remove('open'); closeModal(); closeReader(); render(); scrollTo(0, 0); }
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act, id = el.dataset.id;
+  switch (act){
+    case 'open': closeModal(); return openReader(id);
+    case 'like': return Actions.like(id);
+    case 'dislike': return Actions.dislike(id);
+    case 'save': return Actions.save(id);
+    case 'follow': return Actions.follow(el.dataset.ch);
+    case 'share': { const i = item(id), text = i.title + (i.link ? ' ' + i.link : '') + ' · yasupo.com'; if (navigator.share){ navigator.share({title: i.title, text, url: i.link || 'https://yasupo.com'}).catch(() => {}); return; } try { navigator.clipboard.writeText(text); } catch {} return toast('Copiado para compartir'); }
+    case 'channel': return go({view: 'channel', channel: el.dataset.ch, cat: 'Todo', q: ''});
+    case 'view': return go({view: el.dataset.view, channel: null});
+    case 'cat': S.cat = el.dataset.cat; S.shown = 12; return render();
+    case 'home': e.preventDefault(); $('#q').value = ''; return go({view: 'feed', cat: 'Todo', q: '', channel: null});
+    case 'menu': return $('#side').classList.toggle('open');
+    case 'theme': return cycleTheme();
+    case 'short': return toast('Reproduciendo clip…');
+    case 'signup': return enter();
+    case 'logout': return logout();
+    case 'auth-mode': return openAuth(afterAuth, el.dataset.mode);
+    case 'near': $('#side').classList.remove('open'); closeReader(); return openNear();
+    case 'near-clear': S.near = null; local.set('near', null); go({view: ['channel', 'account'].includes(S.view) ? 'feed' : S.view, channel: null}); return toast('Mostrando publicaciones de cualquier lugar');
+    case 'geo-me': return locateMe(el.dataset.target);
+    case 'chip': return el.classList.toggle('on');
+    case 'pick': {
+      el.parentElement.querySelectorAll('[data-act=pick]').forEach(b => b.classList.toggle('on', b === el));
+      if (el.dataset.group === 'emoji' && $('#prevThumb')) $('#prevThumb').textContent = el.dataset.val;
+      return;
+    }
+    case 'rm-media': return removeDraftMedia(el.dataset.key);
+    case 'first-media': return makeCover(el.dataset.key);
+    case 'gal': { const t = el.closest('.gallery').querySelector('.gallery-track'); return t.scrollBy({left: Number(el.dataset.dir) * t.clientWidth, behavior: 'smooth'}); }
+    case 'compose': $('#side').classList.remove('open'); closeReader(); return openComposer();
+    case 'edit-channel': return openChannelForm();
+    case 'edit-post': closeReader(); return openComposer(el.dataset.pid);
+    case 'close-modal': return closeModal();
+    case 'close-reader': return closeReader();
+    case 'del-comment': return Actions.deleteComment(el.dataset.uid, el.dataset.cid);
+    case 'del-post': return openConfirm('¿Borrar esta publicación?', 'Se quitará del feed para todo el mundo. No se puede deshacer.', 'confirm-del-post', `data-uid="${esc(el.dataset.uid)}" data-pid="${esc(el.dataset.pid)}"`);
+    case 'confirm-del-post': closeModal(); return Actions.deletePost(el.dataset.uid, el.dataset.pid);
+    case 'delete-channel': return openConfirm('¿Eliminar tu canal?', `Se borrarán el canal y sus ${(S.posts[S.uid] || []).length} publicaciones. Tu cuenta seguirá activa. No se puede deshacer.`, 'confirm-delete-channel');
+    case 'confirm-delete-channel': closeModal(); return Actions.deleteChannel();
+    case 'delete-account': return openConfirm('¿Eliminar tu cuenta?', 'Se borrarán tu perfil, tu canal con sus publicaciones, tus reacciones y tus comentarios. No se puede deshacer.', 'confirm-delete');
+    case 'confirm-delete': closeModal(); return Actions.deleteAccount();
+  }
+});
+
+document.addEventListener('submit', e => {
+  const f = e.target.closest('[data-form]'); if (!f) return;
+  e.preventDefault();
+  const kind = f.dataset.form, err = f.querySelector('[data-err]');
+  const picked = group => f.querySelector(`[data-group=${group}].on`)?.dataset.val;
+  if (kind === 'near'){
+    const c = findCity(f.elements.city.value);
+    if (!c) return err.textContent = 'Elige una ciudad de la lista de sugerencias.';
+    S.near = {city: c.id, radius: Number(picked('radius')) || 100}; local.set('near', S.near);
+    closeModal(); go({view: ['channel', 'account'].includes(S.view) ? 'feed' : S.view, channel: null});
+    return toast(`Noticias cerca de ${c.name}`);
+  }
+  if (kind === 'auth') return submitAuth(f, err);
+  if (kind === 'comment'){ if (Actions.comment(f.dataset.id, f.text.value)) f.text.value = ''; return; }
+
+  if (kind === 'channel'){
+    const name = f.elements.name.value.trim().replace(/\s+/g, ' ');
+    const problem = name.toLowerCase() === (myChannel()?.name || '').toLowerCase() ? '' : validateChannelName(name);
+    if (problem){ err.textContent = problem; return; }
+    closeModal();
+    return Actions.saveChannel({name, cat: safeCat(f.elements.cat.value), about: f.elements.about.value.trim().slice(0, 200), color: safeColor(picked('color')), emoji: safeEmoji(picked('emoji'))});
+  }
+  if (kind === 'post'){
+    const title = f.elements.title.value.trim(), body = f.elements.body.value.trim().slice(0, MAX_BODY), excerpt = f.elements.excerpt.value.trim().slice(0, 200);
+    if (draft?.media.some(m => m.status === 'up')) return err.textContent = 'Espera a que terminen de subirse los archivos.';
+    const media = (draft?.media || []).filter(m => m.status === 'ok' && m.id).map(m => ({id: m.id, kind: m.kind}));
+    if (title.length < 5) return err.textContent = 'El título debe tener al menos 5 caracteres.';
+    if (!media.length && body.length < 20) return err.textContent = 'Escribe al menos 20 caracteres de contenido, o añade una foto o un vídeo.';
+    let link = f.elements.link.value.trim();
+    if (link){
+      if (!/^[a-z][a-z0-9+.-]*:/i.test(link)) link = 'https://' + link;
+      link = cleanLink(link);
+      if (!link) return err.textContent = 'El enlace no es válido. Debe ser una dirección segura (https://…).';
+    }
+    let geo = null; const cityTxt = f.elements.city.value.trim();
+    if (cityTxt){
+      const c = findCity(cityTxt);
+      if (!c) return err.textContent = 'Elige la ciudad de la lista de sugerencias (o deja el campo vacío).';
+      geo = {city: c.id, place: f.elements.place.value.trim().replace(/[<>]/g, '').slice(0, 60)};
+    }
+    const res = Actions.publish({pid: f.dataset.pid || null, title, excerpt, body, emoji: safeEmoji(picked('emoji')), media, link: link || '', geo});
+    if (typeof res === 'string') return err.textContent = res;
+    if (draft){ draft.done = true; draft.removed.forEach(delAsset); }
+    closeModal(); S.view = 'channel'; S.channel = userChannelId(S.uid); S.cat = 'Todo'; S.shown = 12; render(); openReader(res.id); return;
+  }
+
+  const alias = f.alias.value.trim().replace(/\s+/g, ' '), bio = f.bio.value.trim().slice(0, 160);
+  const problem = (kind === 'profile' && alias.toLowerCase() === (me()?.alias || '').toLowerCase()) ? '' : validateAlias(alias);
+  if (problem){ err.textContent = problem; return; }
+  if (kind === 'signup'){
+    const topics = [...f.querySelectorAll('.chip.on')].map(c => c.dataset.cat);
+    Actions.createAccount({alias, bio, topics}); closeModal();
+    toast(`¡Te damos la bienvenida a Yasupo, ${alias}!`);
+    const then = afterSignup; afterSignup = null; if (then) then();
+  }
+  if (kind === 'profile') Actions.updateProfile({alias, bio});
+});
+
+document.addEventListener('input', e => { if (e.target.id === 'pBody') updateCounter(); });
+document.addEventListener('change', e => { if (e.target.id === 'fileIn'){ addFiles(e.target.files); e.target.value = ''; } });
+document.addEventListener('dragover', e => { const z = e.target.closest?.('#drop'); if (z){ e.preventDefault(); z.classList.add('drag'); } });
+document.addEventListener('dragleave', e => { const z = e.target.closest?.('#drop'); if (z) z.classList.remove('drag'); });
+document.addEventListener('drop', e => { const z = e.target.closest?.('#drop'); if (z){ e.preventDefault(); z.classList.remove('drag'); addFiles(e.dataTransfer.files); } });
+// Si una foto o un vídeo no se puede cargar, se muestra un aviso en su lugar
+document.addEventListener('error', e => {
+  const t = e.target;
+  if (t instanceof HTMLElement && t.classList.contains('media-el')){
+    const d = document.createElement('div');
+    d.className = 'broken-media' + (t.classList.contains('media-cover') ? ' media-cover' : '');
+    d.textContent = '🖼️ Archivo no disponible'; t.replaceWith(d);
+  }
+}, true);
+// Puntos de la galería
+document.addEventListener('scroll', e => {
+  const t = e.target;
+  if (!(t instanceof Element) || !t.classList.contains('gallery-track')) return;
+  const n = Math.round(t.scrollLeft / t.clientWidth);
+  t.parentElement.querySelectorAll('.gallery-dots span').forEach((d, k) => d.classList.toggle('on', k === n));
+}, true);
+$('#readerOv').addEventListener('click', e => { if (e.target.id === 'readerOv') closeReader(); });
+$('#modalOv').addEventListener('click', e => { if (e.target.id === 'modalOv') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (modalOpen()) closeModal(); else closeReader(); } });
+let qt; $('#q').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => { S.q = e.target.value.trim(); if (S.view === 'account') S.view = 'feed'; S.shown = 12; render(); }, 200); });
+
+const THEMES = ['auto', 'light', 'dark']; let theme = local.get('theme', 'auto');
+const applyTheme = () => theme === 'auto' ? document.documentElement.removeAttribute('data-theme') : document.documentElement.setAttribute('data-theme', theme);
+function cycleTheme(){ theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; local.set('theme', theme); applyTheme(); toast('Tema: ' + ({auto:'automático', light:'claro', dark:'oscuro'})[theme]); }
+
+const io = new IntersectionObserver(es => {
+  if (!es[0].isIntersecting) return;
+  if (isInfinite() && visibleIds().length <= S.shown + 6) S.pool += 24;
+  S.shown += 9; render();
+}, {rootMargin: '300px'});
+function observeLoader(){ io.disconnect(); const l = $('#loader'); if (l && l.style.display !== 'none') io.observe(l); }
+
+/* ============================================================
+   11. ARRANQUE
+   ============================================================ */
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); installEvt = e;
+  if (local.get('install-no', 0) > Date.now()) return;
+  const b = document.createElement('div'); b.className = 'install';
+  b.innerHTML = '<div class="logo-mark"></div><p><b>Instala Yasupo</b><br><small class="muted">Ábrela como una app desde tu pantalla de inicio.</small></p><button class="btn small" data-i="yes">Instalar</button><button class="icon-btn" data-i="no" aria-label="Ahora no">✕</button>';
+  b.addEventListener('click', async ev => {
+    const k = ev.target.closest('[data-i]')?.dataset.i; if (!k) return;
+    b.remove();
+    if (k === 'yes' && installEvt){ installEvt.prompt(); try { await installEvt.userChoice; } catch {} installEvt = null; }
+    else local.set('install-no', Date.now() + 7 * 864e5);
+  });
+  document.body.appendChild(b);
+});
+window.addEventListener('appinstalled', () => { document.querySelector('.install')?.remove(); installEvt = null; });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+applyTheme();
+$('#cityList').innerHTML = CITIES.map(c => `<option value="${esc(cityLabel(c))}"></option>`).join('');
+render();
+API.init();
+</script>
+</body>
+</html>
