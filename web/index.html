@@ -215,6 +215,10 @@ aside{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 92px);ov
 .link-card .grow{flex:1;min-width:0}
 .link-card small{color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card-link{display:block;margin-top:6px;color:var(--muted);font-size:13px}
+.cat-chip{display:inline-block;margin-top:8px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.cat-chip:hover{background:var(--accent-soft);color:var(--accent)}
+.cat-search{margin-bottom:6px}
+.field select optgroup{font-weight:700}
 
 /* Ubicación */
 .near-btn{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:12px;background:var(--surface-2);flex:none;max-width:220px;white-space:nowrap}
@@ -297,12 +301,35 @@ const mailOf = u => `${u.toLowerCase()}@usuarios.plaza.invalid`;
 /* ============================================================
    2. CATÁLOGO
    ============================================================ */
-const CATS = ['Tecnología','Viajes','Cocina','Ciencia','Deportes','Cine','Salud','Finanzas','Hogar'];
+/* Categorías: 472 temas en 25 grupos. El grupo da los colores e iconos de la portada. */
+const CAT_GROUPS = [{"n": "Noticias y actualidad", "i": "📰", "e": ["📰", "🗞️", "📢", "🏛️", "🎙️"], "g": ["#1f2937", "#6b7280"], "c": ["Noticias", "Última hora", "Noticias locales", "Noticias regionales", "Noticias nacionales", "Noticias internacionales", "América Latina", "Política", "Elecciones", "Gobierno", "Congreso", "Alcaldías y gobernaciones", "Justicia", "Seguridad", "Sucesos", "Orden público", "Protestas y paros", "Paz y conflicto", "Corrupción", "Movilidad y tránsito", "Clima", "Emergencias y desastres", "Opinión", "Entrevistas", "Investigación periodística", "Verificación de datos", "Derechos humanos"]}, {"n": "Deportes", "i": "⚽", "e": ["⚽", "🏀", "🚴", "🏃", "🎾"], "g": ["#7f1d1d", "#f87171"], "c": ["Deportes", "Fútbol", "Fútbol colombiano", "Selección Colombia", "Fútbol internacional", "Champions y ligas europeas", "Fútbol femenino", "Fútbol aficionado", "Microfútbol y fútbol sala", "Baloncesto", "Béisbol", "Softbol", "Tenis", "Ciclismo", "Atletismo", "Running y maratones", "Natación", "Boxeo", "Artes marciales", "Lucha y MMA", "Automovilismo", "Fórmula 1", "Motociclismo", "Golf", "Voleibol", "Patinaje", "Levantamiento de pesas", "Gimnasia", "Esgrima", "Rugby", "Fútbol americano", "Hockey", "Surf", "Escalada", "Deportes extremos", "Deportes acuáticos", "Ajedrez", "Esports", "Juegos Olímpicos", "Apuestas deportivas"]}, {"n": "Comida y bebida", "i": "🍲", "e": ["🥘", "🍰", "🥗", "🍝", "🫓"], "g": ["#92400e", "#fbbf24"], "c": ["Cocina", "Comida", "Recetas", "Comida colombiana", "Comida típica", "Comida latinoamericana", "Comida internacional", "Comida rápida", "Comida callejera", "Restaurantes", "Domicilios", "Desayunos", "Almuerzos", "Cenas", "Postres", "Repostería", "Panadería", "Comida saludable", "Vegetariano y vegano", "Comida sin gluten", "Asados y parrilla", "Mariscos y pescados", "Frutas y verduras", "Café", "Té e infusiones", "Jugos y batidos", "Bebidas", "Vinos", "Cerveza", "Coctelería", "Gastronomía", "Trucos de cocina"]}, {"n": "Viajes y turismo", "i": "✈️", "e": ["🏔️", "🏝️", "🚞", "🗺️", "⛺"], "g": ["#065f46", "#34d399"], "c": ["Viajes", "Turismo", "Destinos nacionales", "Destinos internacionales", "Playas", "Montaña", "Pueblos", "Ciudades", "Ecoturismo", "Turismo de aventura", "Turismo rural", "Camping", "Senderismo", "Mochileros", "Viajes en familia", "Viajes con mascotas", "Viajes económicos", "Hoteles y hospedaje", "Vuelos", "Rutas y carreteras", "Cruceros", "Visas y pasaportes", "Consejos de viaje"]}, {"n": "Tecnología", "i": "💻", "e": ["💻", "📱", "🤖", "🔋", "🛰️"], "g": ["#1e3a8a", "#3b82f6"], "c": ["Tecnología", "Inteligencia artificial", "ChatGPT y asistentes de IA", "Programación", "Desarrollo web", "Desarrollo de apps", "Aplicaciones", "Celulares", "Computadores", "Tablets", "Gadgets", "Accesorios tecnológicos", "Ciberseguridad", "Estafas digitales", "Internet", "Redes sociales", "Robótica", "Startups", "Criptomonedas", "Blockchain", "Ciencia de datos", "Software", "Hardware", "Nube", "Telecomunicaciones", "Realidad virtual", "Domótica y casa inteligente", "Reparación de equipos", "Tutoriales tecnológicos"]}, {"n": "Empleo y negocios", "i": "💼", "e": ["💼", "📈", "🤝", "🏢", "🧾"], "g": ["#1e40af", "#60a5fa"], "c": ["Empleos", "Ofertas de trabajo", "Busco empleo", "Primer empleo", "Trabajo remoto", "Trabajo por días", "Freelance", "Prácticas y pasantías", "Hoja de vida y entrevistas", "Derechos laborales", "Emprendimiento", "Ideas de negocio", "Negocios", "Pymes", "Marketing", "Marketing digital", "Ventas", "Comercio", "Comercio electrónico", "Economía", "Recursos humanos", "Liderazgo", "Productividad", "Franquicias", "Exportaciones e importaciones"]}, {"n": "Dinero y finanzas", "i": "💰", "e": ["💶", "📈", "🏦", "🧾", "💳"], "g": ["#334155", "#94a3b8"], "c": ["Finanzas", "Finanzas personales", "Ahorro", "Presupuesto", "Inversiones", "Bolsa de valores", "Bancos", "Créditos y préstamos", "Deudas", "Tarjetas de crédito", "Impuestos", "Pensiones", "Cesantías", "Seguros", "Dólar y divisas", "Precios y consumo", "Subsidios"]}, {"n": "Educación", "i": "🎓", "e": ["🎓", "📚", "✏️", "🏫", "🧑‍🏫"], "g": ["#4338ca", "#a5b4fc"], "c": ["Educación", "Colegios", "Universidades", "Becas", "Cursos", "Cursos gratuitos", "Educación virtual", "Idiomas", "Inglés", "Matemáticas", "Tareas y estudio", "Exámenes y pruebas", "Orientación vocacional", "Docentes", "Educación infantil", "Educación técnica y tecnológica", "Bibliotecas"]}, {"n": "Ciencia", "i": "🔬", "e": ["🔭", "🧬", "🌌", "⚗️", "🦠"], "g": ["#4c1d95", "#a78bfa"], "c": ["Ciencia", "Astronomía", "Espacio", "Biología", "Física", "Química", "Genética", "Geología", "Arqueología", "Paleontología", "Investigación científica", "Inventos y descubrimientos", "Divulgación científica"]}, {"n": "Salud y bienestar", "i": "🩺", "e": ["🧘", "🥦", "😴", "💧", "🫀"], "g": ["#115e59", "#5eead4"], "c": ["Salud", "Bienestar", "Salud mental", "Ansiedad y estrés", "Nutrición", "Dietas", "Ejercicio", "Fitness", "Gimnasio", "Yoga", "Meditación", "Enfermedades", "Medicamentos", "EPS y servicios de salud", "Hospitales y clínicas", "Salud femenina", "Salud masculina", "Salud sexual", "Embarazo", "Salud infantil", "Salud dental", "Salud visual", "Sueño", "Primeros auxilios", "Medicina natural", "Discapacidad e inclusión", "Adicciones"]}, {"n": "Hogar y vivienda", "i": "🏠", "e": ["🪴", "🛋️", "🧹", "🔨", "🕯️"], "g": ["#713f12", "#facc15"], "c": ["Hogar", "Decoración", "Diseño de interiores", "Jardinería", "Plantas", "Huerta en casa", "Bricolaje", "Reparaciones", "Limpieza", "Organización", "Muebles", "Electrodomésticos", "Vivienda", "Arriendos", "Compra y venta de vivienda", "Finca raíz", "Propiedad horizontal", "Servicios públicos", "Ahorro de energía", "Construcción y remodelación"]}, {"n": "Familia y relaciones", "i": "👨‍👩‍👧", "e": ["👨‍👩‍👧", "👶", "💞", "🎂", "🫶"], "g": ["#9d174d", "#f9a8d4"], "c": ["Familia", "Maternidad", "Paternidad", "Crianza", "Bebés", "Niños", "Adolescentes", "Adultos mayores", "Pareja", "Amor", "Citas", "Amistad", "Bodas", "Divorcio y separación", "Convivencia", "Consejos de vida"]}, {"n": "Mascotas y animales", "i": "🐾", "e": ["🐶", "🐱", "🐾", "🦜", "🐠"], "g": ["#78350f", "#fdba74"], "c": ["Mascotas", "Perros", "Gatos", "Aves", "Peces", "Otras mascotas", "Adopción de mascotas", "Mascotas perdidas", "Cuidado de mascotas", "Veterinaria", "Fauna silvestre", "Protección animal"]}, {"n": "Entretenimiento", "i": "🎬", "e": ["🎬", "🍿", "🎞️", "🎭", "📽️"], "g": ["#831843", "#f472b6"], "c": ["Cine", "Películas", "Series", "Televisión", "Telenovelas", "Plataformas de streaming", "Farándula", "Celebridades", "Influencers y creadores", "Humor", "Memes", "Videojuegos", "Anime y manga", "Cómics", "Podcasts", "Radio", "Reality shows", "Trivias y curiosidades", "Virales"]}, {"n": "Música", "i": "🎵", "e": ["🎵", "🎸", "🎤", "🎧", "🥁"], "g": ["#6d28d9", "#c4b5fd"], "c": ["Música", "Reguetón", "Música urbana", "Vallenato", "Salsa", "Cumbia", "Champeta", "Merengue", "Bachata", "Música popular", "Música llanera", "Rancheras y regional mexicano", "Rock", "Pop", "Rap y hip hop", "Electrónica", "Jazz", "Música clásica", "Baladas", "Música cristiana", "Conciertos", "Festivales de música", "Instrumentos", "Lanzamientos musicales", "Cantantes y bandas"]}, {"n": "Cultura y arte", "i": "🎨", "e": ["🎨", "📚", "🎭", "🖼️", "🏛️"], "g": ["#9a3412", "#fdba74"], "c": ["Cultura", "Arte", "Literatura", "Libros", "Recomendaciones de libros", "Poesía", "Escritura", "Teatro", "Danza", "Fotografía", "Pintura", "Dibujo e ilustración", "Escultura", "Museos", "Historia", "Patrimonio", "Artesanías", "Tradiciones", "Cultura popular", "Pueblos indígenas", "Afrocolombianidad", "Idioma español"]}, {"n": "Moda y belleza", "i": "👗", "e": ["👗", "💄", "💅", "👠", "🕶️"], "g": ["#be185d", "#fbcfe8"], "c": ["Moda", "Moda femenina", "Moda masculina", "Tendencias", "Ropa", "Calzado", "Accesorios", "Joyería", "Belleza", "Maquillaje", "Cuidado de la piel", "Cabello", "Barbería", "Uñas", "Perfumes", "Tatuajes y piercings", "Estética"]}, {"n": "Motor y transporte", "i": "🚗", "e": ["🚗", "🏍️", "🚲", "🚌", "✈️"], "g": ["#374151", "#9ca3af"], "c": ["Carros", "Motos", "Bicicletas", "Patinetas eléctricas", "Movilidad eléctrica", "Transporte público", "Taxis y apps de transporte", "Mecánica", "Compra y venta de vehículos", "Licencias y multas", "SOAT y seguros de vehículos", "Aviación", "Trenes", "Camiones y carga"]}, {"n": "Medio ambiente", "i": "🌱", "e": ["🌱", "🌳", "♻️", "🌎", "💧"], "g": ["#166534", "#86efac"], "c": ["Medio ambiente", "Cambio climático", "Reciclaje", "Sostenibilidad", "Energías renovables", "Agua", "Bosques", "Ríos y mares", "Biodiversidad", "Contaminación", "Calidad del aire", "Animales en peligro", "Vida sostenible"]}, {"n": "Campo y agro", "i": "🌾", "e": ["🌾", "🚜", "🐄", "☕", "🍌"], "g": ["#3f6212", "#bef264"], "c": ["Campo", "Agricultura", "Ganadería", "Cultivos", "Café de origen", "Flores", "Pesca", "Avicultura", "Mercados campesinos", "Desarrollo rural", "Maquinaria agrícola", "Precios del agro"]}, {"n": "Comunidad y barrio", "i": "🏘️", "e": ["🏘️", "🤝", "📍", "📣", "🙋"], "g": ["#0f766e", "#99f6e4"], "c": ["Comunidad", "Mi barrio", "Vecinos", "Eventos locales", "Servicios a la comunidad", "Voluntariado", "Donaciones", "Denuncias ciudadanas", "Objetos perdidos", "Personas desaparecidas", "Clasificados", "Compra y venta", "Se busca", "Recomendaciones", "Preguntas a la comunidad", "Juntas de acción comunal", "Emprendimientos locales"]}, {"n": "Eventos y ocio", "i": "🎉", "e": ["🎉", "🎪", "🎟️", "🎲", "🎈"], "g": ["#b45309", "#fde68a"], "c": ["Eventos", "Planes", "Planes gratis", "Fiestas", "Ferias y fiestas", "Carnavales", "Vida nocturna", "Juegos de mesa", "Hobbies", "Manualidades", "Coleccionismo", "Fotografía aficionada", "Parques y recreación"]}, {"n": "Religión y espiritualidad", "i": "🙏", "e": ["🙏", "🕊️", "✨", "📿", "🕯️"], "g": ["#5b21b6", "#ddd6fe"], "c": ["Religión", "Espiritualidad", "Fe", "Iglesias", "Reflexiones", "Oración", "Astrología y horóscopo"]}, {"n": "Derecho y trámites", "i": "⚖️", "e": ["⚖️", "📄", "🏛️", "🪪", "📑"], "g": ["#1e293b", "#cbd5e1"], "c": ["Derecho", "Leyes", "Trámites", "Documentos e identificación", "Derechos del consumidor", "Migración", "Notarías", "Herencias y sucesiones", "Denuncias y quejas", "Asesoría legal"]}, {"n": "Otros", "i": "🗂️", "e": ["📰", "💡", "⭐", "🌍", "✍️"], "g": ["#475569", "#cbd5e1"], "c": ["General", "Otros", "Preguntas", "Curiosidades", "Historias personales"]}];
+const CATS = CAT_GROUPS.flatMap(g => g.c);
+const CAT_SET = new Set(CATS);
+const GROUP_OF = Object.fromEntries(CAT_GROUPS.flatMap(g => g.c.map(c => [c, g])));
+const GROUP_BY_NAME = Object.fromEntries(CAT_GROUPS.map(g => [g.n, g]));
+const catGroup = c => GROUP_OF[c] || GROUP_BY_NAME['Otros'];
+/** Colores e iconos de un tema: los del catálogo de ejemplo si existen, si no los de su grupo. */
+const styleOf = c => (typeof TOPICS !== 'undefined' && TOPICS[c]) || {e: catGroup(c).e, g: catGroup(c).g};
+const normCat = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+/** Opciones del selector de categorías, agrupadas y filtradas por lo que se escriba. */
+function catOptions(selected, query){
+  const q = normCat(query || '').trim();
+  const html = CAT_GROUPS.map(g => {
+    const list = q ? g.c.filter(c => normCat(c).includes(q) || normCat(g.n).includes(q)) : g.c;
+    return list.length ? `<optgroup label="${g.i} ${g.n}">${list.map(c => `<option ${c === selected ? 'selected' : ''}>${c}</option>`).join('')}</optgroup>` : '';
+  }).join('');
+  return html || '<option value="">Ninguna categoría coincide</option>';
+}
+function catPicker(id, label, selected){
+  return `<div class="field"><label for="${id}">${label} <span class="counter">${CATS.length} temas</span></label>
+    <input type="search" class="cat-search" data-catfor="${id}" placeholder="Busca: fútbol, empleos, recetas, inteligencia artificial…" autocomplete="off">
+    <select id="${id}" name="cat">${catOptions(selected)}</select></div>`;
+}
 const PALETTE = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#ec4899','#14b8a6','#64748b','#a16207','#0ea5e9'];
 const EMOJIS = ['📰','✍️','💡','🎨','📷','🎵','🌱','🧠','🚀','❤️','🍀','🔥','⭐','🌍','🐾','☕'];
 const safeColor = c => PALETTE.includes(c) ? c : PALETTE[0];
-const safeEmoji = e => EMOJIS.includes(e) || Object.values(TOPICS).some(t => t.e.includes(e)) ? e : '📰';
-const safeCat = c => CATS.includes(c) ? c : CATS[0];
+const safeEmoji = e => EMOJIS.includes(e) || Object.values(TOPICS).some(t => t.e.includes(e)) || CAT_GROUPS.some(g => g.e.includes(e)) || e === '👤' ? e : '📰';
+const safeCat = c => CAT_SET.has(c) ? c : 'General';
 
 const DEMO_CHANNELS = [
   {id:'c1',name:'Código Abierto',cat:'Tecnología',color:'#3b82f6',about:'Tecnología útil explicada sin jerga.'},
@@ -481,7 +508,7 @@ function rebuildIndex(){
       const mins = `${Math.max(1, Math.round(words / 200))} min`, cat = safeCat(p.cat || ch.cat);
       items['p_' + p.id] = {id: 'p_' + p.id, pid: p.id, ch, cat, owner: uid, community: true, type: isVideo ? 'video' : 'article',
         title: String(p.title || '').slice(0, 120), excerpt: String(p.excerpt || body[0] || '').slice(0, 220),
-        body, emoji: safeEmoji(p.emoji || ch.emoji), grad: [ch.personal ? TOPICS[cat].g[1] : ch.color, TOPICS[cat].g[0]], media, link: cleanLink(p.link),
+        body, emoji: safeEmoji(p.emoji || ch.emoji), grad: [ch.personal ? styleOf(cat).g[1] : ch.color, styleOf(cat).g[0]], media, link: cleanLink(p.link),
         mins, badge: isVideo ? '🎬 Vídeo' : media.length ? `📷 ${mins}` : `📄 ${mins}`, ts: Number(p.at) || 0, editedAt: p.editedAt, geo: cleanGeo(p.geo)};
     }
   }
@@ -662,7 +689,7 @@ const Actions = {
     S.comments[uid] = (S.comments[uid] || []).filter(c => c.id !== cid);
     rebuildIndex(); render(); saveCommentsOf(uid); toast('Comentario eliminado'); },
   createAccount({alias, bio, topics}){
-    const follows = DEMO_CHANNELS.filter(c => topics.includes(c.cat)).map(c => c.id);
+    const follows = DEMO_CHANNELS.filter(c => topics.includes(catGroup(c.cat).n)).map(c => c.id);
     S.accounts[S.uid] = {alias, bio, createdAt: Date.now(), follows, likes: [], dislikes: []};
     rebuildIndex(); render(); saveAccount(); },
   updateProfile({alias, bio}){ patchMe(a => { a.alias = alias; a.bio = bio; }); toast('Perfil actualizado'); },
@@ -734,8 +761,8 @@ function visibleIds(){
   if (S.cat === 'Vídeos') ids = ids.filter(id => item(id).type === 'video');
   else if (S.cat === 'Artículos') ids = ids.filter(id => item(id).type === 'article');
   else if (S.cat === 'Comunidad') ids = ids.filter(id => item(id).community);
-  else if (S.cat !== 'Todo') ids = ids.filter(id => (item(id).cat || item(id).ch.cat) === S.cat);
-  if (S.q){ const q = S.q.toLowerCase(); ids = ids.filter(id => { const i = item(id); return (i.title + ' ' + i.ch.name + ' ' + i.ch.cat).toLowerCase().includes(q); }); }
+  else if (S.cat !== 'Todo') ids = ids.filter(id => { const c = item(id).cat || item(id).ch.cat; return c === S.cat || catGroup(c).n === S.cat; });
+  if (S.q){ const q = S.q.toLowerCase(); ids = ids.filter(id => { const i = item(id); const c = i.cat || i.ch.cat; return normCat(i.title + ' ' + i.ch.name + ' ' + c + ' ' + catGroup(c).n).includes(normCat(q)); }); }
   if (S.near){
     const here = CITY_BY_ID[S.near.city], dist = id => distKm(here, CITY_BY_ID[item(id).geo?.city]);
     ids = ids.filter(id => dist(id) <= S.near.radius).sort((x, y) => dist(x) - dist(y) || item(y).ts - item(x).ts);
@@ -796,7 +823,7 @@ function cardHTML(i){
     <div class="thumb" data-act="open" data-id="${i.id}" style="background:linear-gradient(135deg,${i.grad[0]},${i.grad[1]})">
       ${coverInner(i)}<span class="badge">${S.pins.post[i.id] && S.view === 'feed' ? '📌 Anclada · ' : ''}${i.badge || (i.type === 'video' ? i.mins : '📄 ' + i.mins)}</span>
     </div>
-    <div class="card-body" data-act="open" data-id="${i.id}"><h3>${esc(i.title)}</h3><p>${esc(i.excerpt)}</p>${i.geo ? `<span class="geo-line">📍 ${esc(geoLabel(i.geo))}${distLabel(i)}</span>` : ''}${i.link ? `<span class="card-link">🔗 ${esc(hostOf(i.link))}</span>` : ''}</div>
+    <div class="card-body" data-act="open" data-id="${i.id}"><h3>${esc(i.title)}</h3><p>${esc(i.excerpt)}</p><button class="cat-chip" data-act="cat-chip" data-cat="${esc(i.cat || i.ch.cat)}">${catGroup(i.cat || i.ch.cat).i} ${esc(i.cat || i.ch.cat)}</button>${i.geo ? `<span class="geo-line">📍 ${esc(geoLabel(i.geo))}${distLabel(i)}</span>` : ''}${i.link ? `<span class="card-link">🔗 ${esc(hostOf(i.link))}</span>` : ''}</div>
     <div class="card-foot">
       ${reactionsHTML(i)}
       <button class="act" data-act="open" data-id="${i.id}" title="Comentarios">💬 ${fmt(nCom)}</button>
@@ -859,7 +886,7 @@ function renderSidebar(){
 }
 
 function channelHeader(c){
-  const tp = TOPICS[c.cat], mine = c.owner && c.owner === S.uid;
+  const tp = styleOf(c.cat), mine = c.owner && c.owner === S.uid;
   const posts = c.community ? (S.posts[c.owner] || []).length : null;
   return `<section class="panel"><div class="ch-cover" style="background:linear-gradient(135deg,${c.community ? c.color : tp.g[0]},${tp.g[1]})">${c.community ? c.emoji : tp.e.slice(0, 3).join(' ')}</div>
     <div class="ch-row">${chAvatar(c, 'lg')}<div style="flex:1;min-width:200px"><h1>${esc(c.name)}${c.personal ? '<span class="tag">Perfil</span>' : c.community ? '<span class="tag">Comunidad</span>' : ''}</h1>
@@ -884,9 +911,9 @@ function renderFeedPage(){
     : needsLogin ? `<div class="empty">Crea tu cuenta para ver aquí ${S.view === 'liked' ? 'lo que te gusta' : 'los canales que sigues'}.<br><br>${API.online() ? '<button class="btn" data-act="signup">Crear cuenta</button>' : ''}</div>`
     : `<div class="empty">${S.cat === 'Comunidad' ? 'La comunidad todavía no ha publicado nada. ¡Anímate a ser la primera persona!' : S.view === 'following' ? 'Aún no sigues ningún canal, o no tienen publicaciones con este filtro.' : 'Aquí todavía no hay nada.'}</div>`;
   const showShorts = S.view === 'feed' && !S.q && S.cat === 'Todo' && !S.near;
-  const tabs = ['Todo', 'Comunidad', 'Artículos', 'Vídeos', ...(S.view === 'channel' ? [] : CATS)].filter(t => !(S.view === 'channel' && t === 'Comunidad'));
+  const tabs = ['Todo', 'Comunidad', 'Artículos', 'Vídeos', ...(CAT_SET.has(S.cat) && !GROUP_BY_NAME[S.cat] ? [S.cat] : []), ...(S.view === 'channel' ? [] : CAT_GROUPS.map(g => g.n))].filter(t => !(S.view === 'channel' && t === 'Comunidad'));
   $('#main').innerHTML = `${statusBanner()}${head}
-    <div class="tabs">${tabs.map(c => `<button class="tab ${c === S.cat ? 'active' : ''}" data-act="cat" data-cat="${c}">${c === 'Comunidad' ? '🌱 Comunidad' : c}</button>`).join('')}</div>
+    <div class="tabs">${tabs.map(c => `<button class="tab ${c === S.cat ? 'active' : ''}" data-act="cat" data-cat="${c}">${c === 'Comunidad' ? '🌱 Comunidad' : GROUP_BY_NAME[c] ? GROUP_BY_NAME[c].i + ' ' + c : CAT_SET.has(c) ? '🏷️ ' + c : c}</button>`).join('')}</div>
     ${showShorts ? `<div class="section-h"><h2>Clips</h2></div><div class="shorts">${SHORTS.map(s => `<button class="short" data-act="short" style="background:linear-gradient(160deg,${s.g[1]},${s.g[0]})"><span class="emoji">${s.emoji}</span><b>${esc(s.title)}</b><small>${esc(s.ch.name)}</small></button>`).join('')}</div>` : ''}
     <div class="section-h"><h2>${S.q ? `Resultados para “${esc(S.q)}”` : S.view === 'channel' ? 'Publicaciones' : titles[S.view]}${S.near ? ` <small class="muted" style="font-size:14px;font-weight:400">📍 ${S.near.radius === 25 ? 'en' : 'a menos de ' + fmt(S.near.radius) + ' km de'} ${esc(CITY_BY_ID[S.near.city].name)}</small>` : ''}</h2></div>
     <div class="feed">${list.map(cardHTML).join('') || empty}</div>
@@ -1201,7 +1228,7 @@ function openSignup(then, suggested){
       <div class="field"><label for="sAlias">Alias público</label><input id="sAlias" name="alias" maxlength="24" value="${esc(alias)}" placeholder="p. ej. lectora_curiosa" required autocomplete="off"></div>
       <div class="field"><label for="sBio">Sobre ti <span class="muted">(opcional)</span></label><textarea id="sBio" name="bio" rows="2" maxlength="160" placeholder="Me gusta la cocina y la ciencia"></textarea></div>
       <div class="field"><label>Temas que te interesan</label><small>Seguirás automáticamente sus canales. Puedes cambiarlo cuando quieras.</small>
-        <div class="chips" style="margin-top:6px">${CATS.map(c => `<button type="button" class="chip" data-act="chip" data-cat="${c}">${c}</button>`).join('')}</div></div>
+        <div class="chips" style="margin-top:6px">${CAT_GROUPS.filter(g => g.n !== 'Otros').map(g => `<button type="button" class="chip" data-act="chip" data-cat="${g.n}">${g.i} ${g.n}</button>`).join('')}</div></div>
       ${actionsRow('Guardar perfil')}
     </form>`, '#sAlias');
 }
@@ -1213,7 +1240,7 @@ function openChannelForm(){
     <p class="muted" style="margin-top:0">${c.name ? 'Los cambios se verán al momento en todas tus publicaciones.' : 'Tu canal es tu espacio para publicar. Las demás personas podrán seguirlo, reaccionar y comentar.'}</p>
     <form data-form="channel">
       <div class="field"><label for="cName">Nombre del canal</label><input id="cName" name="name" maxlength="40" required value="${esc(c.name || '')}" placeholder="p. ej. Cuaderno de Viaje" autocomplete="off"></div>
-      <div class="field"><label for="cCat">Tema principal</label><select id="cCat" name="cat">${CATS.map(x => `<option ${x === c.cat ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      ${catPicker('cCat', 'Tema principal', safeCat(c.cat || 'General'))}
       <div class="field"><label for="cAbout">Descripción <span class="counter">máx. 200</span></label><textarea id="cAbout" name="about" rows="3" maxlength="200" placeholder="¿De qué trata tu canal?">${esc(c.about || '')}</textarea></div>
       <div class="field"><label>Icono</label><div class="swatches">${EMOJIS.map(e => `<button type="button" class="emoji-pick ${e === emoji ? 'on' : ''}" data-act="pick" data-group="emoji" data-val="${e}">${e}</button>`).join('')}</div></div>
       <div class="field"><label>Color</label><div class="swatches">${PALETTE.map(p => `<button type="button" class="swatch ${p === color ? 'on' : ''}" data-act="pick" data-group="color" data-val="${p}" style="background:${p}" aria-label="Color ${p}"></button>`).join('')}</div></div>
@@ -1271,7 +1298,7 @@ function openComposer(pid){
   const p = pid ? (S.posts[S.uid] || []).find(x => x.id === pid) : null;
   if (pid && !p) return toast('Esta publicación ya no existe.');
   const emoji = p ? safeEmoji(p.emoji) : ch.emoji;
-  const emojis = [...new Set([ch.emoji, ...TOPICS[ch.cat].e, ...EMOJIS])];
+  const emojis = [...new Set([ch.emoji, ...styleOf(ch.cat).e, ...EMOJIS])];
   showModal(`<h2>${p ? 'Editar publicación' : 'Nueva publicación'}</h2>
     <p class="muted" style="margin-top:0">${ch.personal
       ? `Se publicará en tu perfil (<b>${esc(me().alias)}</b>). No necesitas un canal; si algún día quieres uno, puedes <button type="button" class="link-btn" style="font-size:inherit" data-act="edit-channel">crearlo aquí</button>.`
@@ -1287,7 +1314,7 @@ function openComposer(pid){
           <div class="swatches" style="margin-top:6px">${emojis.map(e => `<button type="button" class="emoji-pick ${e === emoji ? 'on' : ''}" data-act="pick" data-group="emoji" data-val="${e}">${e}</button>`).join('')}</div></div>
       </div>
       <div class="field"><label for="pTitle">Título</label><input id="pTitle" name="title" maxlength="120" required value="${esc(p?.title || '')}" placeholder="Un título que invite a leer" autocomplete="off"></div>
-      <div class="field"><label for="pCat">Tema</label><select id="pCat" name="cat">${CATS.map(x => `<option ${x === safeCat(p?.cat || ch.cat) ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      ${catPicker('pCat', 'Categoría', safeCat(p?.cat || ch.cat))}
       <div class="field"><label for="pExcerpt">Resumen <span class="muted">(opcional)</span></label><input id="pExcerpt" name="excerpt" maxlength="200" value="${esc(p?.excerpt || '')}" placeholder="Si lo dejas vacío, se usa el primer párrafo"></div>
       <div class="field"><label for="pBody">Contenido <span class="counter" id="bodyCount"></span></label>
         <textarea id="pBody" class="big" name="body" maxlength="${MAX_BODY}" placeholder="Escribe aquí tu artículo. Deja una línea en blanco entre párrafos.">${esc(p?.body || '')}</textarea></div>
@@ -1418,6 +1445,7 @@ document.addEventListener('click', e => {
     case 'channel': return go({view: 'channel', channel: el.dataset.ch, cat: 'Todo', q: ''});
     case 'view': return go({view: el.dataset.view, channel: null});
     case 'cat': S.cat = el.dataset.cat; S.shown = 12; return render();
+    case 'cat-chip': e.stopPropagation(); return go({view: 'feed', channel: null, cat: el.dataset.cat, q: ''});
     case 'home': e.preventDefault(); $('#q').value = ''; return go({view: 'feed', cat: 'Todo', q: '', channel: null});
     case 'menu': return $('#side').classList.toggle('open');
     case 'theme': return cycleTheme();
@@ -1500,6 +1528,7 @@ document.addEventListener('submit', e => {
       if (!c) return err.textContent = 'Elige la ciudad de la lista de sugerencias (o deja el campo vacío).';
       geo = {city: c.id, place: f.elements.place.value.trim().replace(/[<>]/g, '').slice(0, 60)};
     }
+    if (!f.elements.cat.value) return err.textContent = 'Elige una categoría de la lista.';
     const res = Actions.publish({pid: f.dataset.pid || null, title, excerpt, body, emoji: safeEmoji(picked('emoji')), media, link: link || '', geo, cat: safeCat(f.elements.cat.value)});
     if (typeof res === 'string') return err.textContent = res;
     if (draft){ draft.done = true; draft.removed.forEach(delAsset); }
@@ -1518,7 +1547,11 @@ document.addEventListener('submit', e => {
   if (kind === 'profile') Actions.updateProfile({alias, bio});
 });
 
-document.addEventListener('input', e => { if (e.target.id === 'pBody') updateCounter(); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'pBody') updateCounter();
+  const sel = e.target.dataset?.catfor && document.getElementById(e.target.dataset.catfor);
+  if (sel){ const cur = sel.value; sel.innerHTML = catOptions(cur, e.target.value); if (![...sel.options].some(o => o.selected && o.value === cur)) sel.selectedIndex = 0; }
+});
 document.addEventListener('change', e => { if (e.target.id === 'fileIn'){ addFiles(e.target.files); e.target.value = ''; } });
 document.addEventListener('dragover', e => { const z = e.target.closest?.('#drop'); if (z){ e.preventDefault(); z.classList.add('drag'); } });
 document.addEventListener('dragleave', e => { const z = e.target.closest?.('#drop'); if (z) z.classList.remove('drag'); });
