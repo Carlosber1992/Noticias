@@ -423,6 +423,7 @@ const S = {
   channels: {},            // uid -> {name, cat, about, color, emoji, createdAt}
   posts: {},               // uid -> [{id, title, excerpt, body, emoji, at, editedAt}]
   saved: new Set(local.get('saved-guest', [])),
+  pins: {post: {}, channel: {}},   // anclados del panel: id -> puesto
   near: cleanNear(local.get('near', null)),   // filtro por ubicación {city, radius}
   loggedOut: false,
   // índices derivados
@@ -505,10 +506,13 @@ const API = {
       S.backend = 'online';
     } catch (e){ S.backend = 'offline'; }
     clearTimeout(slow);
+    await this.loadPins();
     if (S.uid) await this.afterAuth();
     rebuildIndex(); render();
+    Alerts.init();
     sb.channel('ys-' + Math.random().toString(36).slice(2))
       .on('postgres_changes', {event: '*', schema: 'public', table: 'ys_docs'}, p => this.onChange(p))
+      .on('postgres_changes', {event: '*', schema: 'public', table: 'ys_pins'}, () => this.loadPins().then(render))
       .subscribe(st => { if (st === 'SUBSCRIBED' && S.backend !== 'online') this.loadAll().then(() => { S.backend = 'online'; rebuildIndex(); render(); }).catch(() => {}); });
     sb.auth.onAuthStateChange((ev, session) => {
       const uid = session?.user?.id || null;
@@ -527,6 +531,15 @@ const API = {
     }
     Object.assign(S, fresh);
   },
+  async loadPins(){
+    try {
+      const {data, error} = await sb.from('ys_pins').select('item_id,kind,rank');
+      if (error) return;
+      const pins = {post: {}, channel: {}};
+      for (const r of data || []) if (pins[r.kind]) pins[r.kind][r.item_id] = r.rank;
+      S.pins = pins;
+    } catch {}
+  },
   onChange(p){
     const row = p.eventType === 'DELETE' ? p.old : p.new;
     if (!row || !COLS[row.col]) return;
@@ -536,6 +549,7 @@ const API = {
   },
   async afterAuth(){
     try { await sb.rpc('plaza_touch'); } catch {}
+    Alerts.refreshPush();
     try { const r = await sb.rpc('ys_is_mod'); S.isOwner = r.data === true; } catch { S.isOwner = false; }
     await loadRecovery();
     try { const snap = await DB.doc(`data/users/${S.uid}/saved`).get(); if (snap.exists) S.saved = new Set(snap.data().ids || []); else if (S.saved.size) saveSaved(); } catch {}
@@ -556,7 +570,8 @@ const API = {
     };
   },
   onWriteError(e){
-    if (e && e.code === '23514') toast('Tu canal ha llegado al límite de espacio. Borra publicaciones antiguas.');
+    if (e && /suspendida/i.test(String(e.message || ''))) toast('Tu cuenta está suspendida. No puedes publicar ni cambiar nada por ahora.');
+    else if (e && e.code === '23514') toast('Tu canal ha llegado al límite de espacio. Borra publicaciones antiguas.');
     else if (e && (e.code === '42501' || e.status === 401 || e.status === 403)) toast('Tu sesión ha caducado. Vuelve a entrar.');
     else toast('No se pudo guardar. Inténtalo de nuevo en un momento.');
     render();
@@ -731,7 +746,20 @@ function visibleIds(){
       out.push(...block.filter(id => follows.has(item(id).ch.id)), ...block.filter(id => !follows.has(item(id).ch.id)));
     } ids = out;
   }
+  if (S.view === 'feed' && !S.q && S.cat === 'Todo' && !S.near) ids = withPins(ids, S.pins.post);
   return ids;
+}
+/** Pone cada publicación anclada en su puesto exacto; las demás llenan los puestos libres. */
+function withPins(ids, pins){
+  const pinned = Object.entries(pins).filter(([id]) => item(id)).sort((a, b) => a[1] - b[1]);
+  if (!pinned.length) return ids;
+  const set = new Set(pinned.map(p => p[0])), rest = ids.filter(id => !set.has(id)), out = [];
+  let p = 0, r = 0;
+  while (p < pinned.length || r < rest.length){
+    if (p < pinned.length && (pinned[p][1] <= out.length + 1 || r >= rest.length)) out.push(pinned[p++][0]);
+    else out.push(rest[r++]);
+  }
+  return out;
 }
 const isInfinite = () => S.view === 'feed' && !S.q && S.cat !== 'Comunidad' && !S.near;
 
@@ -766,7 +794,7 @@ function cardHTML(i){
       ${followBtn(i.ch.id)}
     </div>
     <div class="thumb" data-act="open" data-id="${i.id}" style="background:linear-gradient(135deg,${i.grad[0]},${i.grad[1]})">
-      ${coverInner(i)}<span class="badge">${i.badge || (i.type === 'video' ? i.mins : '📄 ' + i.mins)}</span>
+      ${coverInner(i)}<span class="badge">${S.pins.post[i.id] && S.view === 'feed' ? '📌 Anclada · ' : ''}${i.badge || (i.type === 'video' ? i.mins : '📄 ' + i.mins)}</span>
     </div>
     <div class="card-body" data-act="open" data-id="${i.id}"><h3>${esc(i.title)}</h3><p>${esc(i.excerpt)}</p>${i.geo ? `<span class="geo-line">📍 ${esc(geoLabel(i.geo))}${distLabel(i)}</span>` : ''}${i.link ? `<span class="card-link">🔗 ${esc(hostOf(i.link))}</span>` : ''}</div>
     <div class="card-foot">
@@ -817,7 +845,7 @@ function renderSidebar(){
   const a = me(), follows = a?.follows || [], mine = myChannel();
   const nav = (view, label) => `<button data-act="view" data-view="${view}" class="${S.view === view ? 'active' : ''}">${label}</button>`;
   const chBtn = c => `<button data-act="channel" data-ch="${esc(c.id)}" class="${S.view === 'channel' && S.channel === c.id ? 'active' : ''}">${chAvatar(c)}<span class="grow">${esc(c.name)}</span></button>`;
-  const community = Object.values(S.communityChannels).filter(c => c.owner !== S.uid && !follows.includes(c.id)).sort((x, y) => (S.idx.followers[y.id] || 0) - (S.idx.followers[x.id] || 0));
+  const community = Object.values(S.communityChannels).filter(c => c.owner !== S.uid && !follows.includes(c.id)).sort((x, y) => (S.pins.channel[x.id] || 99) - (S.pins.channel[y.id] || 99) || (S.idx.followers[y.id] || 0) - (S.idx.followers[x.id] || 0));
   $('#side').innerHTML = `
     <div class="side-title">Explorar</div>
     <nav class="nav">${nav('feed', '🏠 Para ti')}${nav('following', '⭐ Siguiendo')}</nav>
@@ -875,7 +903,7 @@ function renderAccountPage(){
       <div class="ch-row">${userAvatar(S.uid, 'lg')}<div style="flex:1;min-width:200px">
         <h1 style="margin:0">${esc(a.alias)}</h1>
         <div class="muted">Miembro desde ${new Date(a.createdAt).toLocaleDateString('es', {day:'numeric', month:'long', year:'numeric'})}${S.isOwner ? ' · Administración' : ''}</div>
-        ${a.bio ? `<p style="margin:8px 0 0">${esc(a.bio)}</p>` : ''}</div><button class="btn small ghost" data-act="logout">🚪 Cerrar sesión</button></div>
+        ${a.bio ? `<p style="margin:8px 0 0">${esc(a.bio)}</p>` : ''}</div><div class="row-actions">${Alerts.supported() && Notification.permission === 'default' ? '<button class="btn small" data-act="alerts-on">🔔 Activar alertas</button>' : ''}<button class="btn small ghost" data-act="logout">🚪 Cerrar sesión</button></div></div>
       <div class="stats">
         <div class="stat"><b>${fmt((a.follows || []).length)}</b><span>Canales seguidos</span></div>
         <div class="stat"><b>${fmt((a.likes || []).length)}</b><span>Me gusta</span></div>
@@ -1400,6 +1428,7 @@ document.addEventListener('click', e => {
     case 'forgot': { const u = $('#aUser')?.value.trim(); if (u) recoverUser = u; return openForgot(1); }
     case 'verify-contact': return verifyContact(el.dataset.ch);
     case 'near': $('#side').classList.remove('open'); closeReader(); return openNear();
+    case 'alerts-on': return Alerts.enable().then(ok => { toast(ok ? 'Alertas activadas en este equipo' : 'No se activaron las alertas. Revisa los permisos del navegador.'); render(); });
     case 'near-clear': S.near = null; local.set('near', null); go({view: ['channel', 'account'].includes(S.view) ? 'feed' : S.view, channel: null}); return toast('Mostrando publicaciones de cualquier lugar');
     case 'geo-me': return locateMe(el.dataset.target);
     case 'chip': return el.classList.toggle('on');
@@ -1549,6 +1578,63 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
 applyTheme();
 $('#cityList').innerHTML = CITIES.map(c => `<option value="${esc(cityLabel(c))}"></option>`).join('');
 render();
+/* Alertas del panel: llegan en vivo y, si la persona las activa, también con la app cerrada. */
+const Alerts = {
+  seen: new Set(local.get('alerts-seen', [])), queue: [],
+  async init(){
+    try {
+      const {data} = await sb.from('plaza_alerts').select('id,title,body,level,created_at').gt('expires_at', new Date().toISOString()).order('created_at').limit(10);
+      (data || []).forEach(a => this.add(a));
+    } catch {}
+    sb.channel('alerts-' + Math.random().toString(36).slice(2))
+      .on('postgres_changes', {event: 'INSERT', schema: 'public', table: 'plaza_alerts'}, p => this.add(p.new)).subscribe();
+  },
+  add(a){ if (!a || this.seen.has(a.id)) return; this.seen.add(a.id); this.queue.push(a); if (this.queue.length === 1) this.show(); },
+  show(){
+    const a = this.queue[0]; if (!a) return;
+    const alarm = a.level === 'alarma';
+    let ov = document.getElementById('alertOv');
+    if (!ov){ ov = document.createElement('div'); ov.id = 'alertOv'; ov.className = 'overlay open'; ov.style.zIndex = 80; ov.style.display = 'flex'; ov.style.alignItems = 'center'; ov.style.justifyContent = 'center'; document.body.appendChild(ov); }
+    const canPush = this.supported() && Notification.permission === 'default';
+    ov.innerHTML = `<div role="alertdialog" aria-modal="true" aria-labelledby="alertT" style="background:${alarm ? 'var(--danger)' : 'var(--surface)'};color:${alarm ? '#fff' : 'var(--text)'};border-radius:18px;padding:22px;max-width:420px;width:100%;display:grid;gap:10px">
+      <div style="font-size:30px">${alarm ? '🚨' : '📣'}</div><h2 id="alertT" style="margin:0">${esc(a.title)}</h2>${a.body ? `<p style="margin:0;white-space:pre-wrap">${esc(a.body)}</p>` : ''}
+      <button class="btn" id="alertOk">Entendido</button>${canPush ? '<button class="btn ghost" id="alertPush">Recibir alertas aunque cierre Yasupo</button>' : ''}</div>`;
+    $('#alertOk').onclick = () => { this.queue.shift(); local.set('alerts-seen', [...this.seen].slice(-50)); if (this.queue.length) this.show(); else ov.remove(); };
+    if (canPush) $('#alertPush').onclick = () => this.enable().then(ok => toast(ok ? 'Alertas activadas en este equipo' : 'No se activaron las alertas'));
+    $('#alertOk').focus(); this.ring(alarm);
+  },
+  ring(alarm){
+    try {
+      navigator.vibrate?.(alarm ? [500, 200, 500, 200, 800] : 300);
+      const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+      const ac = new Ctx(), now = ac.currentTime;
+      (alarm ? [0, .35, .7, 1.05, 1.4, 1.75] : [0, .2]).forEach((d, i) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.frequency.value = alarm ? (i % 2 ? 660 : 880) : 740; o.connect(g); g.connect(ac.destination);
+        g.gain.setValueAtTime(.0001, now + d); g.gain.exponentialRampToValueAtTime(.3, now + d + .02); g.gain.exponentialRampToValueAtTime(.0001, now + d + .3);
+        o.start(now + d); o.stop(now + d + .32);
+      });
+    } catch {}
+  },
+  supported: () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
+  async save(){
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub){
+      const r = await fetch(SB_URL + '/functions/v1/plaza-alert', {method: 'POST', headers: {'Content-Type': 'application/json', apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY}, body: JSON.stringify({action: 'vapid'})});
+      const {key} = await r.json(), b = key.replace(/-/g, '+').replace(/_/g, '/');
+      sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: Uint8Array.from(atob(b.padEnd(Math.ceil(b.length / 4) * 4, '=')), c => c.charCodeAt(0))});
+    }
+    const j = sub.toJSON();
+    const {error} = await sb.rpc('plaza_push_save', {p_endpoint: j.endpoint, p_p256dh: j.keys?.p256dh, p_auth: j.keys?.auth});
+    if (error) throw error;
+  },
+  async enable(){
+    if (!this.supported()) return false;
+    try { if ((await Notification.requestPermission()) !== 'granted') return false; await this.save(); return true; } catch { return false; }
+  },
+  refreshPush(){ if (this.supported() && Notification.permission === 'granted') this.save().catch(() => {}); },
+};
 API.init();
 </script>
 </body>

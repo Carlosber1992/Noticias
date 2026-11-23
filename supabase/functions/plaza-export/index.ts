@@ -6,7 +6,7 @@ import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const MAX_EMBED = 35 * 1024 * 1024, LINK_DAYS = 7;
-const KIND: Record<string, string> = { noticia: "Noticia", comentario: "Comentario", pregunta: "Pregunta", respuesta: "Respuesta", mensaje: "Mensaje", grupo: "Grupo", canal: "Canal", foro: "Foro", ingreso: "Ingreso", espacio: "Espacio creado", privado: "Mensaje privado" };
+const KIND: Record<string, string> = { publicacion: "Publicación", comentario_feed: "Comentario en publicación", canal_feed: "Canal de Yasupo", edicion: "Edición", registro: "Registro de cuenta", noticia: "Noticia", comentario: "Comentario", pregunta: "Pregunta", respuesta: "Respuesta", mensaje: "Mensaje", grupo: "Grupo", canal: "Canal", foro: "Foro", ingreso: "Ingreso", espacio: "Espacio creado", privado: "Mensaje privado" };
 
 const e = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 const when = (d?: string) => (d ? new Date(d).toLocaleString("es-CO", { dateStyle: "long", timeStyle: "medium", timeZone: "America/Bogota" }) : "—");
@@ -17,16 +17,16 @@ let used = 0, filesOk = 0, filesMissing = 0; // se reinician en cada solicitud
 async function media(list: any[]) {
   let out = "";
   for (const m of list ?? []) {
-    const { data, error } = await admin.storage.from("plaza-media").download(m.path);
+    const { data, error } = await admin.storage.from(m.bucket ?? "plaza-media").download(m.path);
     if (error || !data) { filesMissing++; out += `<p class="m">Archivo no disponible: ${e(m.name ?? m.path)}</p>`; continue; }
     const buf = new Uint8Array(await data.arrayBuffer());
     const sum = await hex(buf); filesOk++;
     const cap = `<figcaption>${e(m.name ?? m.path)} · ${(buf.length / 1048576).toFixed(2)} MB<br><code>SHA-256 ${sum}</code></figcaption>`;
-    if (m.k === "photo" && used + buf.length <= MAX_EMBED) {
+    if ((m.k === "photo" || m.k === "image") && used + buf.length <= MAX_EMBED) {
       used += buf.length;
       out += `<figure><img src="data:${e(data.type || "image/jpeg")};base64,${encodeBase64(buf)}" alt="${e(m.name ?? "Imagen")}">${cap}</figure>`;
     } else {
-      const { data: s } = await admin.storage.from("plaza-media").createSignedUrl(m.path, LINK_DAYS * 86400, { download: m.name ?? true });
+      const { data: s } = await admin.storage.from(m.bucket ?? "plaza-media").createSignedUrl(m.path, LINK_DAYS * 86400, { download: m.name ?? true });
       out += `<figure>${s ? `<p><a href="${e(s.signedUrl)}">Descargar ${m.k === "video" ? "video" : m.k === "audio" ? "audio" : "archivo"}</a> (enlace válido ${LINK_DAYS} días)</p>` : ""}${cap}</figure>`;
     }
   }
@@ -47,11 +47,11 @@ async function dms(list: any[] | null) {
 }
 const page = (title: string, sub: string, body: string, generated: string) => `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(title)}</title><style>
 body{font:15px/1.5 Georgia,serif;color:#10302C;max-width:860px;margin:0 auto;padding:28px 18px}h1{font:800 28px/1.15 Arial,sans-serif;margin:0}h2{font:700 19px Arial,sans-serif;margin:30px 0 8px;border-bottom:2px solid #0A6B5E;padding-bottom:4px}h3{font:700 15px Arial,sans-serif;margin:0}.m{color:#566D68;font:13px Arial,sans-serif;margin:3px 0}.b{white-space:pre-wrap;overflow-wrap:anywhere}article{border-bottom:1px solid #D3DED8;padding:12px 0;break-inside:avoid}table{border-collapse:collapse;width:100%;font:13px Arial,sans-serif}th,td{border:1px solid #D3DED8;padding:5px 7px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#E3EBE6}figure{margin:10px 0}img{max-width:100%;max-height:520px}figcaption{font:12px Arial,sans-serif;color:#566D68}code{font-size:11px;overflow-wrap:anywhere}
-</style></head><body><h1>${e(title)}</h1><p class="m">${e(sub)}</p><p class="m">Generado el ${e(when(generated))}, hora de Colombia. Plaza, panel de administración.</p>${body}</body></html>`;
+</style></head><body><h1>${e(title)}</h1><p class="m">${e(sub)}</p><p class="m">Generado el ${e(when(generated))}, hora de Colombia. Yasupo, panel de administración.</p>${body}</body></html>`;
 
 async function userDoc(d: any) {
   const p = d.profile;
-  const body = `<h2>Cuenta</h2>${table(["Dato", "Valor"], [["Usuario", "@" + p.username], ["ID", p.id], ["Registro", when(p.created_at)], ["Último inicio de sesión", when(p.last_sign_in_at)], ["Correo vinculado", p.email ?? "Sin vincular"], ["Celular vinculado", p.phone ?? "Sin vincular"], ["Suspensión", p.sanction ? `${p.sanction.until ? "Hasta " + when(p.sanction.until) : "Sin fecha"}. ${p.sanction.reason ?? ""}` : "No"]])}
+  const body = `<h2>Cuenta</h2>${table(["Dato", "Valor"], [["Usuario", "@" + p.username], ["ID", p.id], ["Registro", when(p.created_at)], ["Último inicio de sesión", when(p.last_sign_in_at)], ["Correo vinculado", p.email ?? "Sin vincular"], ["Celular vinculado", p.phone ?? "Sin vincular"], ["Nombre en Yasupo", d.feed?.alias ?? "—"], ["Biografía", d.feed?.bio ?? "—"], ["Canal", d.feed_channel?.name ?? "Sin canal"], ["Canales que sigue", (d.feed?.follows ?? []).join(", ") || "—"], ["Me gusta / no me gusta", `${(d.feed?.likes ?? []).length} / ${(d.feed?.dislikes ?? []).length}`], ["Suspensión", p.sanction ? `${p.sanction.until ? "Hasta " + when(p.sanction.until) : "Sin fecha"}. ${p.sanction.reason ?? ""}` : "No"]])}
 <h2>Actividad por IP (${d.events.length})</h2>${table(["Fecha", "Acción", "IP", "Dispositivo"], d.events.map((v: any) => [when(v.created_at), KIND[v.kind] ?? v.kind, v.ip, v.user_agent ?? ""]))}
 <h2>Publicaciones y comentarios (${d.items.length})</h2>${await items(d.items)}
 <h2>Sigue o pertenece a</h2>${table(["Espacio", "Tipo", "Desde"], d.follows.map((f: any) => [f.name, f.type, when(f.created_at)]))}
