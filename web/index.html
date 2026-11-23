@@ -228,6 +228,9 @@ aside{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 92px);ov
 .near-btn{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:12px;background:var(--surface-2);flex:none;max-width:220px;white-space:nowrap}
 .near-btn .near-label{overflow:hidden;text-overflow:ellipsis}
 .near-btn.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.km-val{color:var(--accent)}
+.km-range{width:100%;height:36px;accent-color:var(--accent);margin:4px 0 0;cursor:pointer}
+.km-scale{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:-4px}
 .geo-line{display:block;margin-top:6px;color:var(--muted);font-size:13px}
 
 @media (max-width:900px){
@@ -429,7 +432,13 @@ const CITIES = [
   ['houston','Houston','Estados Unidos',29.7604,-95.3698],
 ].map(([id, name, country, lat, lon]) => ({id, name, country, lat, lon}));
 const CITY_BY_ID = Object.fromEntries(CITIES.map(c => [c.id, c]));
-const RADII = [{km: 25, label: 'Misma ciudad'}, {km: 100, label: '100 km'}, {km: 300, label: '300 km'}, {km: 1000, label: '1.000 km'}];
+/* Distancia elegida con una barra: de 5 a 2.000 km. La barra avanza más fino en distancias cortas. */
+const KM_MIN = 5, KM_MAX = 2000;
+const niceKm = k => k < 50 ? Math.round(k / 5) * 5 : k < 200 ? Math.round(k / 10) * 10 : k < 1000 ? Math.round(k / 50) * 50 : Math.round(k / 100) * 100;
+const kmFromPos = t => Math.min(KM_MAX, Math.max(KM_MIN, niceKm(KM_MIN * Math.pow(KM_MAX / KM_MIN, t / 100))));
+const posFromKm = k => Math.round(100 * Math.log(Math.min(KM_MAX, Math.max(KM_MIN, k)) / KM_MIN) / Math.log(KM_MAX / KM_MIN));
+const kmText = k => Number(k).toLocaleString('es-CO') + ' km';
+const kmLabel = k => k <= 25 ? `${kmText(k)} · misma ciudad` : kmText(k);
 const cityLabel = c => `${c.name}, ${c.country}`;
 const norm = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 function findCity(text){
@@ -444,7 +453,7 @@ function distKm(a, b){
 }
 const nearestCity = (lat, lon) => CITIES.reduce((best, c) => distKm({lat, lon}, c) < distKm({lat, lon}, best) ? c : best, CITIES[0]);
 function cleanGeo(g){ if (!g || !CITY_BY_ID[g.city]) return null; return {city: g.city, place: String(g.place || '').replace(/[<>]/g, '').slice(0, 60)}; }
-function cleanNear(n){ return n && CITY_BY_ID[n.city] && RADII.some(r => r.km === n.radius) ? {city: n.city, radius: n.radius} : null; }
+function cleanNear(n){ const r = Number(n?.radius); return n && CITY_BY_ID[n.city] && r >= KM_MIN && r <= KM_MAX ? {city: n.city, radius: Math.round(r)} : null; }
 function geoLabel(g, full){ const c = CITY_BY_ID[g.city]; return `${g.place ? g.place + ', ' : ''}${c.name}${full ? ' (' + c.country + ')' : ''}`; }
 function distLabel(i){
   if (!S.near || !i.geo) return '';
@@ -877,7 +886,7 @@ function statusBanner(){
 function renderHeader(){
   const nb = $('#nearBtn'), nc = S.near && CITY_BY_ID[S.near.city];
   nb.classList.toggle('on', !!nc);
-  nb.querySelector('.near-label').textContent = nc ? `${nc.name} · ${S.near.radius === 25 ? 'ciudad' : fmt(S.near.radius) + ' km'}` : 'Cualquier lugar';
+  nb.querySelector('.near-label').textContent = nc ? `${nc.name} · ${S.near.radius <= 25 ? 'ciudad' : kmText(S.near.radius)}` : 'Cualquier lugar';
   const a = me();
   const publish = API.online() && !S.readonly ? `<button class="btn" data-act="compose" title="Publicar">✍️<span class="me-name"> Publicar</span></button>` : '';
   $('#meSlot').innerHTML = `<div style="display:flex;gap:8px;align-items:center">${publish}${a
@@ -923,7 +932,7 @@ function renderFeedPage(){
   }
   const mineChannel = S.view === 'channel' && channelById(S.channel)?.owner === S.uid;
   const needsLogin = (S.view === 'following' || S.view === 'liked') && !me();
-  const empty = S.near && !mineChannel ? `<div class="empty">No hay publicaciones a menos de ${fmt(S.near.radius)} km de ${esc(CITY_BY_ID[S.near.city].name)} con estos filtros.<br><br><button class="btn ghost" data-act="near">Cambiar ubicación o distancia</button></div>`
+  const empty = S.near && !mineChannel ? `<div class="empty">No hay publicaciones a menos de ${kmText(S.near.radius)} de ${esc(CITY_BY_ID[S.near.city].name)} con estos filtros.<br><br><button class="btn ghost" data-act="near">Cambiar ubicación o distancia</button></div>`
     : mineChannel ? `<div class="empty">Tu canal todavía no tiene publicaciones.<br><br><button class="btn" data-act="compose">Escribir la primera</button></div>`
     : needsLogin ? `<div class="empty">Crea tu cuenta para ver aquí ${S.view === 'liked' ? 'lo que te gusta' : 'los canales que sigues'}.<br><br>${API.online() ? '<button class="btn" data-act="signup">Crear cuenta</button>' : ''}</div>`
     : `<div class="empty">${S.cat === 'Comunidad' ? 'La comunidad todavía no ha publicado nada. ¡Anímate a ser la primera persona!' : S.view === 'following' ? 'Aún no sigues ningún canal, o no tienen publicaciones con este filtro.' : S.view === 'feed' && !S.q && S.cat === 'Todo' && !S.near ? `Yasupo está empezando y todavía no hay publicaciones.<br>¿Ya supo algo? Cuéntalo primero.<br><br><button class="btn" data-act="compose">✍️ Publicar</button>` : 'Aquí todavía no hay nada.'}</div>`;
@@ -932,7 +941,7 @@ function renderFeedPage(){
   $('#main').innerHTML = `${statusBanner()}${head}
     <div class="tabs">${tabs.map(c => `<button class="tab ${c === S.cat ? 'active' : ''}" data-act="cat" data-cat="${c}">${c === 'Comunidad' ? '🌱 Comunidad' : GROUP_BY_NAME[c] ? GROUP_BY_NAME[c].i + ' ' + c : CAT_SET.has(c) ? '🏷️ ' + c : c}</button>`).join('')}</div>
     ${showShorts ? `<div class="section-h"><h2>Clips</h2></div><div class="shorts">${SHORTS.map(s => `<button class="short" data-act="short" style="background:linear-gradient(160deg,${s.g[1]},${s.g[0]})"><span class="emoji">${s.emoji}</span><b>${esc(s.title)}</b><small>${esc(s.ch.name)}</small></button>`).join('')}</div>` : ''}
-    <div class="section-h"><h2>${S.q ? `Resultados para “${esc(S.q)}”` : S.view === 'channel' ? 'Publicaciones' : titles[S.view]}${S.near ? ` <small class="muted" style="font-size:14px;font-weight:400">📍 ${S.near.radius === 25 ? 'en' : 'a menos de ' + fmt(S.near.radius) + ' km de'} ${esc(CITY_BY_ID[S.near.city].name)}</small>` : ''}</h2></div>
+    <div class="section-h"><h2>${S.q ? `Resultados para “${esc(S.q)}”` : S.view === 'channel' ? 'Publicaciones' : titles[S.view]}${S.near ? ` <small class="muted" style="font-size:14px;font-weight:400">📍 ${S.near.radius <= 25 ? 'en' : 'a menos de ' + kmText(S.near.radius) + ' de'} ${esc(CITY_BY_ID[S.near.city].name)}</small>` : ''}</h2></div>
     <div class="feed">${list.map(cardHTML).join('') || empty}</div>
     <div class="loader" id="loader" style="display:${isInfinite() || ids.length > S.shown ? 'block' : 'none'}">Cargando más…</div>`;
   observeLoader();
@@ -1209,8 +1218,10 @@ function openNear(){
       <div class="field"><label for="nCity">Ciudad</label>
         <div style="display:flex;gap:8px"><input id="nCity" name="city" list="cityList" value="${c ? esc(cityLabel(c)) : ''}" placeholder="Escribe una ciudad…" autocomplete="off" style="flex:1;min-width:0">
         <button type="button" class="btn ghost small" data-act="geo-me" data-target="nCity">📍 Mi ubicación</button></div></div>
-      <div class="field"><label>Distancia</label>
-        <div class="chips">${RADII.map(r => `<button type="button" class="chip ${r.km === (n?.radius ?? 100) ? 'on' : ''}" data-act="pick" data-group="radius" data-val="${r.km}">${r.label}</button>`).join('')}</div></div>
+      <div class="field"><label for="nKm">Distancia: <span class="km-val" id="kmVal">hasta ${kmLabel(n?.radius ?? 100)}</span></label>
+        <input type="range" id="nKm" name="km" class="km-range" min="0" max="100" step="1" value="${posFromKm(n?.radius ?? 100)}" aria-describedby="kmVal">
+        <div class="km-scale"><span>${kmText(KM_MIN)}</span><span>${kmText(KM_MAX)}</span></div>
+        <small>Desliza para ampliar o reducir la zona de búsqueda.</small></div>
       <div class="err" data-err></div>
       <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap">
         ${n ? '<button type="button" class="btn ghost" data-act="near-clear">Quitar filtro</button>' : '<span></span>'}
@@ -1510,7 +1521,7 @@ document.addEventListener('submit', e => {
   if (kind === 'near'){
     const c = findCity(f.elements.city.value);
     if (!c) return err.textContent = 'Elige una ciudad de la lista de sugerencias.';
-    S.near = {city: c.id, radius: Number(picked('radius')) || 100}; local.set('near', S.near);
+    S.near = {city: c.id, radius: kmFromPos(Number(f.elements.km.value))}; local.set('near', S.near);
     closeModal(); go({view: ['channel', 'account'].includes(S.view) ? 'feed' : S.view, channel: null});
     return toast(`Noticias cerca de ${c.name}`);
   }
@@ -1567,6 +1578,7 @@ document.addEventListener('submit', e => {
 });
 
 document.addEventListener('input', e => {
+  if (e.target.id === 'nKm') $('#kmVal').textContent = 'hasta ' + kmLabel(kmFromPos(Number(e.target.value)));
   if (e.target.id === 'pBody') updateCounter();
   const sel = e.target.dataset?.catfor && document.getElementById(e.target.dataset.catfor);
   if (sel){ const cur = sel.value; sel.innerHTML = catOptions(cur, e.target.value); if (![...sel.options].some(o => o.selected && o.value === cur)) sel.selectedIndex = 0; }
