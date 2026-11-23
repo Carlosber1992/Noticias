@@ -535,7 +535,9 @@ const API = {
     rebuildIndex(); render();
   },
   async afterAuth(){
+    try { await sb.rpc('plaza_touch'); } catch {}
     try { const r = await sb.rpc('ys_is_mod'); S.isOwner = r.data === true; } catch { S.isOwner = false; }
+    await loadRecovery();
     try { const snap = await DB.doc(`data/users/${S.uid}/saved`).get(); if (snap.exists) S.saved = new Set(snap.data().ids || []); else if (S.saved.size) saveSaved(); } catch {}
   },
   online(){ return S.backend !== 'offline'; },
@@ -904,6 +906,13 @@ function renderAccountPage(){
       ${mine.slice(0, 50).map(c => { const it = item(c.itemId); return `<div class="list-row"><div class="grow"><b>${esc(it ? it.title : 'Publicación eliminada')}</b><br><small>${timeAgo(c.at)}</small><div style="overflow-wrap:anywhere">${esc(c.text)}</div></div>
         ${it ? `<button class="btn small ghost" data-act="open" data-id="${esc(c.itemId)}">Ver</button>` : ''}<button class="btn small danger" data-act="del-comment" data-uid="${esc(S.uid)}" data-cid="${esc(c.id)}">Borrar</button></div>`; }).join('') || '<p class="muted">Aún no has comentado nada.</p>'}
     </section>
+    ${recoveryHTML()}
+    <section class="panel"><h2 style="margin-top:0">Cambiar contraseña</h2>
+      <form data-form="password">
+        <div class="field"><label for="pwNew">Contraseña nueva</label><input id="pwNew" name="pass" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></div>
+        <div class="field"><label for="pwNew2">Repite la contraseña</label><input id="pwNew2" name="pass2" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></div>
+        <div class="err" data-err></div><button class="btn">Cambiar contraseña</button>
+      </form></section>
     <section class="panel"><h2 style="margin-top:0">Zona de peligro</h2>
       <p class="muted">Eliminar tu cuenta borra tu perfil, tu canal con todas sus publicaciones, tus reacciones y tus comentarios.</p>
       <button class="btn danger" data-act="delete-account">Eliminar mi cuenta</button>
@@ -943,7 +952,11 @@ function renderReader(){
 
 function render(){
   renderHeader(); renderSidebar();
+  const typed = [...document.querySelectorAll('#main input[id], #main textarea[id]')].filter(el => el.value !== el.defaultValue).map(el => [el.id, el.value]);
+  const focusId = document.activeElement?.closest?.('#main') ? document.activeElement.id : null;
   S.view === 'account' ? renderAccountPage() : renderFeedPage();
+  for (const [id, v] of typed){ const el = document.getElementById(id); if (el) el.value = v; }
+  if (focusId) document.getElementById(focusId)?.focus();
   if (S.openId) renderReader();
 }
 
@@ -955,7 +968,7 @@ let afterSignup = null, afterLogin = null;
 /** Cerrar sesión: este navegador vuelve a modo invitado. */
 async function logout(){
   try { await sb.auth.signOut(); } catch {}
-  S.uid = null; S.isOwner = false; S.saved = new Set(local.get('saved-guest', []));
+  S.uid = null; S.isOwner = false; S.recovery = null; S.saved = new Set(local.get('saved-guest', []));
   rebuildIndex(); go({view: 'feed', channel: null});
   toast('Has cerrado sesión en Yasupo.');
 }
@@ -966,16 +979,132 @@ function enter(then){
   openSignup(then);
 }
 let afterAuth = null, authMode = 'login';
+
+/* ---------- Respaldo: correo y celular (opcionales) ---------- */
+S.recovery = null;
+async function loadRecovery(){
+  if (!S.uid){ S.recovery = null; return; }
+  try { const {data} = await sb.from('plaza_recovery').select('email,phone,email_verified_at,phone_verified_at').eq('user_id', S.uid).maybeSingle(); S.recovery = data || null; } catch {}
+}
+const normPhone = p => { let d = String(p || '').replace(/[\s().-]/g, ''); if (/^3\d{9}$/.test(d)) d = '+57' + d; return /^\+[1-9]\d{7,14}$/.test(d) ? d : ''; };
+const okEmail = e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) && e.length <= 254;
+async function accountFn(body){
+  const r = await sb.functions.invoke('yasupo-account', {body});
+  if (r.error){ let m = 'Algo salió mal. Inténtalo de nuevo.'; try { m = (await r.error.context.json()).error || m; } catch {} throw new Error(m); }
+  return r.data;
+}
+function recoveryHTML(){
+  const r = S.recovery || {};
+  const state = (val, at, ch) => !val ? '' : at ? '<span class="tag" style="background:#dcfce7;color:#166534">✓ Verificado</span>'
+    : `<span class="tag">Sin verificar</span> <button type="button" class="link-btn" style="font-size:13px" data-act="verify-contact" data-ch="${ch}">Verificar ahora</button>`;
+  return `<section class="panel"><h2 style="margin-top:0">🔐 Respaldo de tu cuenta <span class="muted" style="font-size:14px;font-weight:400">(opcional)</span></h2>
+    <p class="muted" style="margin-top:0">Asocia tu correo o tu celular para recuperar tu cuenta si olvidas la contraseña. Solo tú los ves; no se muestran a nadie.</p>
+    <form data-form="recovery">
+      <div class="field"><label for="rEmail">Correo ${state(r.email, r.email_verified_at, 'email')}</label><input id="rEmail" name="email" type="email" inputmode="email" maxlength="254" value="${esc(r.email || '')}" placeholder="tucorreo@ejemplo.com" autocomplete="email"></div>
+      <div class="field"><label for="rPhone">Celular ${state(r.phone, r.phone_verified_at, 'phone')}</label><input id="rPhone" name="phone" type="tel" inputmode="tel" maxlength="20" value="${esc(r.phone || '')}" placeholder="+57 300 123 4567" autocomplete="tel"><small>Con el indicativo del país. Si es de Colombia, basta con los 10 dígitos.</small></div>
+      <div class="err" data-err></div><button class="btn">Guardar respaldo</button>
+    </form></section>`;
+}
+async function saveRecovery(f, err){
+  const email = f.elements.email.value.trim().toLowerCase(), phoneTxt = f.elements.phone.value.trim(), phone = phoneTxt ? normPhone(phoneTxt) : '';
+  if (email && !okEmail(email)) return err.textContent = 'Ese correo no parece válido.';
+  if (phoneTxt && !phone) return err.textContent = 'Escribe el celular con el indicativo del país, por ejemplo +57 300 123 4567.';
+  const btn = f.querySelector('button.btn'); btn.disabled = true; err.textContent = '';
+  const {data, error} = await sb.rpc('plaza_recovery_save', {p_email: email || null, p_phone: phone || null});
+  btn.disabled = false;
+  if (error) return err.textContent = 'No se pudo guardar. Inténtalo de nuevo.';
+  const before = S.recovery || {};
+  S.recovery = data; f.elements.email.defaultValue = f.elements.email.value = data?.email || ''; f.elements.phone.defaultValue = f.elements.phone.value = data?.phone || '';
+  render();
+  toast(data ? 'Respaldo guardado' : 'Quitaste el correo y el celular de respaldo');
+  const next = data && ((data.email && data.email !== before.email && 'email') || (data.phone && data.phone !== before.phone && 'phone'));
+  if (next) verifyContact(next);
+}
+async function verifyContact(ch){
+  const what = ch === 'email' ? 'correo' : 'celular';
+  let sent;
+  try { sent = await accountFn({action: 'verify-send', channel: ch}); }
+  catch (e){ return toast(e.message); }
+  showModal(`<h2>Verifica tu ${what}</h2>
+    <p class="muted" style="margin-top:0">Enviamos un código de 6 dígitos a <b>${esc(sent.sentTo || '')}</b>. Vence en 15 minutos.</p>
+    <form data-form="verify" data-ch="${ch}">
+      <div class="field"><label for="vCode">Código</label><input id="vCode" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required placeholder="123456"></div>
+      ${actionsRow('Verificar')}
+      <p style="margin:14px 0 0;text-align:center"><button type="button" class="link-btn" style="font-size:14px" data-act="verify-contact" data-ch="${ch}">Enviar otro código</button></p>
+    </form>`, '#vCode');
+}
+async function submitVerify(f, err){
+  const btn = f.querySelector('button.btn:not(.ghost)'); btn.disabled = true; err.textContent = '';
+  try { await accountFn({action: 'verify', channel: f.dataset.ch, code: f.elements.code.value.trim()}); }
+  catch (e){ btn.disabled = false; return err.textContent = e.message; }
+  await loadRecovery(); closeModal(); render();
+  toast(f.dataset.ch === 'email' ? '¡Correo verificado!' : '¡Celular verificado!');
+}
+async function changePassword(f, err){
+  const a = f.elements.pass.value, b = f.elements.pass2.value;
+  if (a.length < 8) return err.textContent = 'La contraseña necesita al menos 8 caracteres.';
+  if (a !== b) return err.textContent = 'Las dos contraseñas no coinciden.';
+  const btn = f.querySelector('button.btn'); btn.disabled = true; err.textContent = '';
+  const {error} = await sb.auth.updateUser({password: a});
+  btn.disabled = false;
+  if (error) return err.textContent = /different|same/i.test(error.message) ? 'La contraseña nueva debe ser distinta de la actual.' : 'No se pudo cambiar. Vuelve a entrar e inténtalo de nuevo.';
+  f.reset(); toast('Contraseña cambiada');
+}
+
+/* ---------- Recuperar la contraseña ---------- */
+let recoverUser = '';
+function openForgot(step){
+  if (step === 2) return showModal(`<h2>Crea una contraseña nueva</h2>
+    <p class="muted" style="margin-top:0">Si los datos coinciden con una cuenta, te enviamos un código de 6 dígitos. Vence en 15 minutos.</p>
+    <form data-form="reset">
+      <div class="field"><label for="fCode">Código</label><input id="fCode" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required placeholder="123456"></div>
+      <div class="field"><label for="fPass">Contraseña nueva</label><input id="fPass" name="pass" type="password" minlength="8" maxlength="72" required autocomplete="new-password"><small>Al menos 8 caracteres.</small></div>
+      ${actionsRow('Cambiar y entrar')}
+      <p style="margin:14px 0 0;text-align:center"><button type="button" class="link-btn" style="font-size:14px" data-act="forgot">Pedir otro código</button></p>
+    </form>`, '#fCode');
+  showModal(`<h2>Recupera tu cuenta</h2>
+    <p class="muted" style="margin-top:0">Escribe tu usuario y el correo o celular que asociaste a tu cuenta. Te enviaremos un código.</p>
+    <form data-form="forgot">
+      <div class="field"><label for="fUser">Usuario</label><input id="fUser" name="user" maxlength="20" required autocomplete="username" autocapitalize="none" spellcheck="false" value="${esc(recoverUser)}"></div>
+      <div class="field"><label for="fContact">Correo o celular de respaldo</label><input id="fContact" name="contact" maxlength="254" required autocomplete="email" placeholder="tucorreo@ejemplo.com o +57 300 123 4567"></div>
+      ${actionsRow('Enviar código')}
+      <p class="muted" style="margin:14px 0 0;font-size:13px">¿No asociaste correo ni celular? Entonces no es posible recuperar la cuenta automáticamente.</p>
+    </form>`, recoverUser ? '#fContact' : '#fUser');
+}
+async function submitForgot(f, err){
+  const user = f.elements.user.value.trim(), c = f.elements.contact.value.trim();
+  if (!/^[A-Za-z0-9._]{3,20}$/.test(user)) return err.textContent = 'Escribe tu usuario de Yasupo.';
+  const contact = c.includes('@') ? c.toLowerCase() : (normPhone(c) || c);
+  if (!(c.includes('@') ? okEmail(contact) : normPhone(c))) return err.textContent = 'Escribe un correo válido o un celular con indicativo (+57…).';
+  const btn = f.querySelector('button.btn:not(.ghost)'); btn.disabled = true; err.textContent = '';
+  try { await accountFn({action: 'recover', username: user, contact}); }
+  catch (e){ btn.disabled = false; return err.textContent = e.message; }
+  recoverUser = user; openForgot(2);
+}
+async function submitReset(f, err){
+  const code = f.elements.code.value.trim(), pass = f.elements.pass.value;
+  if (pass.length < 8) return err.textContent = 'La contraseña necesita al menos 8 caracteres.';
+  const btn = f.querySelector('button.btn:not(.ghost)'); btn.disabled = true; err.textContent = '';
+  try {
+    await accountFn({action: 'reset', username: recoverUser, code, password: pass});
+    const {data, error} = await sb.auth.signInWithPassword({email: mailOf(recoverUser), password: pass});
+    if (error) throw new Error('Cambiamos tu contraseña. Entra con la nueva.');
+    S.uid = data.user.id; await API.afterAuth(); closeModal(); rebuildIndex(); render();
+    toast('Contraseña cambiada. ¡Bienvenida/o de nuevo!');
+    if (!me()) openSignup(null, recoverUser);
+  } catch (e){ btn.disabled = false; err.textContent = e.message; }
+}
 function openAuth(then, mode){
   afterAuth = then || null; authMode = mode || authMode;
   const reg = authMode === 'register';
   showModal(`<h2>${reg ? 'Crea tu cuenta en Yasupo' : 'Entrar en Yasupo'}</h2>
-    <p class="muted" style="margin-top:0">${reg ? 'Solo necesitas un usuario y una contraseña. Sin correo ni teléfono.' : 'Entra con tu usuario y contraseña de Yasupo.'}</p>
+    <p class="muted" style="margin-top:0">${reg ? 'Solo necesitas un usuario y una contraseña. Más adelante, si quieres, puedes agregar tu correo o celular para respaldar tu cuenta.' : 'Entra con tu usuario y contraseña de Yasupo.'}</p>
     <div class="chips" style="margin-bottom:14px"><button type="button" class="chip ${reg ? '' : 'on'}" data-act="auth-mode" data-mode="login">Ya tengo cuenta</button><button type="button" class="chip ${reg ? 'on' : ''}" data-act="auth-mode" data-mode="register">Crear cuenta</button></div>
     <form data-form="auth">
       <div class="field"><label for="aUser">Usuario</label><input id="aUser" name="user" maxlength="20" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="p. ej. lectora_curiosa">${reg ? '<small>De 3 a 20 letras, números, punto o guion bajo.</small>' : ''}</div>
-      <div class="field"><label for="aPass">Contraseña</label><input id="aPass" name="pass" type="password" minlength="${reg ? 8 : 1}" maxlength="72" required autocomplete="${reg ? 'new-password' : 'current-password'}">${reg ? '<small>Al menos 8 caracteres. Guárdala bien: no hay forma de recuperarla por correo.</small>' : ''}</div>
+      <div class="field"><label for="aPass">Contraseña</label><input id="aPass" name="pass" type="password" minlength="${reg ? 8 : 1}" maxlength="72" required autocomplete="${reg ? 'new-password' : 'current-password'}">${reg ? '<small>Al menos 8 caracteres. Si agregas un correo o celular en «Mi cuenta», podrás recuperarla si la olvidas.</small>' : ''}</div>
       ${actionsRow(reg ? 'Crear cuenta' : 'Entrar')}
+      ${reg ? '' : '<p style="margin:14px 0 0;text-align:center"><button type="button" class="link-btn" style="font-size:14px" data-act="forgot">¿Olvidaste tu contraseña?</button></p>'}
     </form>`, '#aUser');
 }
 async function submitAuth(f, err){
@@ -1268,6 +1397,8 @@ document.addEventListener('click', e => {
     case 'signup': return enter();
     case 'logout': return logout();
     case 'auth-mode': return openAuth(afterAuth, el.dataset.mode);
+    case 'forgot': { const u = $('#aUser')?.value.trim(); if (u) recoverUser = u; return openForgot(1); }
+    case 'verify-contact': return verifyContact(el.dataset.ch);
     case 'near': $('#side').classList.remove('open'); closeReader(); return openNear();
     case 'near-clear': S.near = null; local.set('near', null); go({view: ['channel', 'account'].includes(S.view) ? 'feed' : S.view, channel: null}); return toast('Mostrando publicaciones de cualquier lugar');
     case 'geo-me': return locateMe(el.dataset.target);
@@ -1308,6 +1439,11 @@ document.addEventListener('submit', e => {
     return toast(`Noticias cerca de ${c.name}`);
   }
   if (kind === 'auth') return submitAuth(f, err);
+  if (kind === 'recovery') return saveRecovery(f, err);
+  if (kind === 'verify') return submitVerify(f, err);
+  if (kind === 'password') return changePassword(f, err);
+  if (kind === 'forgot') return submitForgot(f, err);
+  if (kind === 'reset') return submitReset(f, err);
   if (kind === 'comment'){ if (Actions.comment(f.dataset.id, f.text.value)) f.text.value = ''; return; }
 
   if (kind === 'channel'){
