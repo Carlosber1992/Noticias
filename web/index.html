@@ -1542,7 +1542,7 @@ function setPostKind(f, kind){
   body.placeholder = body.dataset['ph' + kind[0].toUpperCase() + kind.slice(1)];
   body.classList.toggle('big', kind === 'article');
   f.elements.title.placeholder = kind === 'classified' ? 'Qué ofreces, p. ej. «Bicicleta de montaña rin 29»' : kind === 'quick' ? 'Qué pasó, en pocas palabras' : 'Un título que invite a leer';
-  if (kind === 'classified' && !f.dataset.pid){ const sel = f.elements.cat; if (sel.value === 'Noticias' || !sel.value){ sel.innerHTML = catOptions('Compra y venta'); } }
+  if (!f.dataset.pid && !f.dataset.catTouched){ const sel = f.elements.cat; f.dataset.catDefault ||= sel.value; sel.innerHTML = catOptions(kind === 'classified' ? 'Compra y venta' : f.dataset.catDefault); f.querySelector('.cat-search').value = ''; }
   updateCounter();
 }
 
@@ -1752,7 +1752,6 @@ document.addEventListener('submit', async e => {
     const kind = POST_KINDS[f.dataset.kind] ? f.dataset.kind : 'article';
     if (title.length < (kind === 'classified' ? 3 : 5)) return err.textContent = `El título debe tener al menos ${kind === 'classified' ? 3 : 5} caracteres.`;
     if (kind === 'article' && !media.length && body.length < 20) return err.textContent = 'Escribe al menos 20 caracteres de contenido, o añade una foto o un vídeo.';
-    if (kind !== 'article' && !media.length && body.length < 10) return err.textContent = 'Escribe una descripción corta (al menos 10 caracteres) o añade una foto.';
     if (kind === 'quick' && body.length > QUICK_MAX) return err.textContent = `La descripción de una noticia rápida puede tener hasta ${QUICK_MAX} caracteres.`;
     let extra = {kind, price: null, currency: null, negotiable: false, condition: null, contact: ''};
     if (kind === 'classified'){
@@ -1762,6 +1761,7 @@ document.addEventListener('submit', async e => {
       extra = {kind, price, currency: f.elements.currency.value === 'USD' ? 'USD' : 'COP', negotiable, condition: CONDITIONS[f.elements.condition.value] !== undefined ? f.elements.condition.value : 'na',
         contact: f.elements.contact.value.replace(/[^\d+ ()-]/g, '').trim().slice(0, 40)};
     }
+    if (kind !== 'article' && !media.length && body.length < 10) return err.textContent = 'Escribe una descripción corta (al menos 10 caracteres) o añade una foto.';
     let link = kind === 'classified' ? '' : f.elements.link.value.trim();
     if (link){
       if (!/^[a-z][a-z0-9+.-]*:/i.test(link)) link = 'https://' + link;
@@ -1814,11 +1814,12 @@ document.addEventListener('input', e => {
   if (e.target.id === 'nKm') $('#kmVal').textContent = 'hasta ' + kmLabel(kmFromPos(Number(e.target.value)));
   if (e.target.id === 'pBody') updateCounter();
   const sel = e.target.dataset?.catfor && document.getElementById(e.target.dataset.catfor);
-  if (sel){ const cur = sel.value; sel.innerHTML = catOptions(cur, e.target.value); if (![...sel.options].some(o => o.selected && o.value === cur)) sel.selectedIndex = 0; }
+  if (sel){ const fm = sel.closest('form'); if (fm) fm.dataset.catTouched = '1'; const cur = sel.value; sel.innerHTML = catOptions(cur, e.target.value); if (![...sel.options].some(o => o.selected && o.value === cur)) sel.selectedIndex = 0; }
 });
 document.addEventListener('keydown', e => { if (e.target.matches?.('[data-handle-input]')) e.target.dataset.touched = '1'; });
 document.addEventListener('change', e => {
   if (e.target.id === 'fileIn'){ addFiles(e.target.files); e.target.value = ''; }
+  if (e.target.id === 'pCat') e.target.closest('form').dataset.catTouched = '1';
   if (e.target.dataset?.photo){ const f = e.target.files[0]; e.target.value = ''; if (f) setPhoto(e.target.dataset.photo, f); }
 });
 /** Recorta la foto en cuadrado (512 px), la sube y la pone en el perfil o en el formulario del canal. */
