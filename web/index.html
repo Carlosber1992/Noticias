@@ -331,7 +331,9 @@ const safeColor = c => PALETTE.includes(c) ? c : PALETTE[0];
 const safeEmoji = e => EMOJIS.includes(e) || Object.values(TOPICS).some(t => t.e.includes(e)) || CAT_GROUPS.some(g => g.e.includes(e)) || e === '👤' ? e : '📰';
 const safeCat = c => CAT_SET.has(c) ? c : 'General';
 
-const DEMO_CHANNELS = [
+/** Contenido de muestra: apagado para que Yasupo empiece vacío. Cambia a true para volver a mostrarlo. */
+const SHOW_SAMPLES = false;
+const SAMPLE_CHANNELS = [
   {id:'c1',name:'Código Abierto',cat:'Tecnología',color:'#3b82f6',about:'Tecnología útil explicada sin jerga.'},
   {id:'c2',name:'Mochila al Hombro',cat:'Viajes',color:'#10b981',about:'Rutas, trenes y pueblos con encanto.'},
   {id:'c3',name:'La Olla de Lucía',cat:'Cocina',color:'#f59e0b',about:'Recetas caseras para todos los días.'},
@@ -342,6 +344,7 @@ const DEMO_CHANNELS = [
   {id:'c8',name:'Bolsillo Claro',cat:'Finanzas',color:'#64748b',about:'Finanzas personales sin complicaciones.'},
   {id:'c9',name:'Casa con Alma',cat:'Hogar',color:'#a16207',about:'Ideas para un hogar más cómodo.'},
 ];
+const DEMO_CHANNELS = SHOW_SAMPLES ? SAMPLE_CHANNELS : [];
 const TOPICS = {
   'Tecnología':{e:['💻','📱','🤖','🔋','🛰️'],g:['#1e3a8a','#3b82f6'],t:['Cinco atajos de teclado que te ahorrarán una hora a la semana','Probamos un portátil sin ventilador durante un mes: esto aprendimos','Cómo proteger tus contraseñas sin volverte loco','La inteligencia artificial en el móvil: qué cambia realmente','Guía para montar tu primer servidor casero']},
   'Viajes':{e:['🏔️','🏝️','🚞','🗺️','⛺'],g:['#065f46','#34d399'],t:['Tres pueblos de montaña que casi nadie visita en invierno','Recorrer la costa en tren: itinerario de diez días','Qué llevar en la mochila para un viaje de una semana','Cómo encontrar vuelos baratos sin trucos raros','Una noche en un refugio a 2.000 metros']},
@@ -434,7 +437,7 @@ function distLabel(i){
   return d < 1 ? ' · en tu ciudad' : ` · a ${fmt(Math.round(d))} km`;
 }
 
-const SHORTS = (() => { const r = rng(424242), pick = a => a[Math.floor(r() * a.length)];
+const SHORTS = !DEMO_CHANNELS.length ? [] : (() => { const r = rng(424242), pick = a => a[Math.floor(r() * a.length)];
   return Array.from({length:10}, () => { const ch = pick(DEMO_CHANNELS), tp = TOPICS[ch.cat]; return {ch, emoji: pick(tp.e), g: tp.g, title: pick(tp.t).split(':')[0].slice(0, 48)}; }); })();
 
 /* ============================================================
@@ -467,7 +470,7 @@ const allChannels = () => [...DEMO_CHANNELS, ...Object.values(S.communityChannel
 const channelById = id => DEMO_CHANNELS.find(c => c.id === id) || S.communityChannels[id] || null;
 function item(id){
   id = String(id);
-  if (/^d\d+$/.test(id)) return demoItem(Number(id.slice(1)));
+  if (/^d\d+$/.test(id)) return DEMO_CHANNELS.length ? demoItem(Number(id.slice(1))) : null;
   return S.communityItems[id] || null;
 }
 
@@ -749,7 +752,7 @@ function validateChannelName(name){
    6. CONSULTAS SOBRE EL FEED
    ============================================================ */
 function visibleIds(){
-  const demo = Array.from({length: S.near ? Math.max(S.pool, 300) : S.pool}, (_, i) => 'd' + (i + 1));
+  const demo = DEMO_CHANNELS.length ? Array.from({length: S.near ? Math.max(S.pool, 300) : S.pool}, (_, i) => 'd' + (i + 1)) : [];
   let ids = [...S.communityOrder, ...demo];
   const a = me(), follows = new Set(a?.follows || []), dis = new Set(a?.dislikes || []);
   if (S.view === 'following') ids = ids.filter(id => follows.has(item(id).ch.id));
@@ -788,7 +791,7 @@ function withPins(ids, pins){
   }
   return out;
 }
-const isInfinite = () => S.view === 'feed' && !S.q && S.cat !== 'Comunidad' && !S.near;
+const isInfinite = () => DEMO_CHANNELS.length > 0 && S.view === 'feed' && !S.q && S.cat !== 'Comunidad' && !S.near;
 
 /* ============================================================
    7. COMPONENTES
@@ -881,8 +884,8 @@ function renderSidebar(){
     ${a ? `<div class="side-title">Tus publicaciones</div><nav class="nav"><button data-act="compose">✍️ Nueva publicación</button>${S.communityChannels[userChannelId(S.uid)] ? chBtn(S.communityChannels[userChannelId(S.uid)]) : ''}${mine ? '' : '<button data-act="edit-channel">➕ Crear un canal <span class="muted">(opcional)</span></button>'}</nav>` : ''}
     ${follows.length ? `<div class="side-title">Canales que sigues</div><nav class="nav">${follows.map(channelById).filter(Boolean).map(chBtn).join('')}</nav>` : ''}
     ${community.length ? `<div class="side-title">Canales y perfiles de la comunidad</div><nav class="nav">${community.map(chBtn).join('')}</nav>` : ''}
-    <div class="side-title">Canales de Yasupo</div>
-    <nav class="nav">${DEMO_CHANNELS.filter(c => !follows.includes(c.id)).map(chBtn).join('') || '<p class="muted" style="padding:0 12px">Ya los sigues todos.</p>'}</nav>`;
+    ${DEMO_CHANNELS.length ? `<div class="side-title">Canales de Yasupo</div>
+    <nav class="nav">${DEMO_CHANNELS.filter(c => !follows.includes(c.id)).map(chBtn).join('') || '<p class="muted" style="padding:0 12px">Ya los sigues todos.</p>'}</nav>` : ''}`;
 }
 
 function channelHeader(c){
@@ -909,8 +912,8 @@ function renderFeedPage(){
   const empty = S.near && !mineChannel ? `<div class="empty">No hay publicaciones a menos de ${fmt(S.near.radius)} km de ${esc(CITY_BY_ID[S.near.city].name)} con estos filtros.<br><br><button class="btn ghost" data-act="near">Cambiar ubicación o distancia</button></div>`
     : mineChannel ? `<div class="empty">Tu canal todavía no tiene publicaciones.<br><br><button class="btn" data-act="compose">Escribir la primera</button></div>`
     : needsLogin ? `<div class="empty">Crea tu cuenta para ver aquí ${S.view === 'liked' ? 'lo que te gusta' : 'los canales que sigues'}.<br><br>${API.online() ? '<button class="btn" data-act="signup">Crear cuenta</button>' : ''}</div>`
-    : `<div class="empty">${S.cat === 'Comunidad' ? 'La comunidad todavía no ha publicado nada. ¡Anímate a ser la primera persona!' : S.view === 'following' ? 'Aún no sigues ningún canal, o no tienen publicaciones con este filtro.' : 'Aquí todavía no hay nada.'}</div>`;
-  const showShorts = S.view === 'feed' && !S.q && S.cat === 'Todo' && !S.near;
+    : `<div class="empty">${S.cat === 'Comunidad' ? 'La comunidad todavía no ha publicado nada. ¡Anímate a ser la primera persona!' : S.view === 'following' ? 'Aún no sigues ningún canal, o no tienen publicaciones con este filtro.' : S.view === 'feed' && !S.q && S.cat === 'Todo' && !S.near ? `Yasupo está empezando y todavía no hay publicaciones.<br>¿Ya supo algo? Cuéntalo primero.<br><br><button class="btn" data-act="compose">✍️ Publicar</button>` : 'Aquí todavía no hay nada.'}</div>`;
+  const showShorts = SHORTS.length > 0 && S.view === 'feed' && !S.q && S.cat === 'Todo' && !S.near;
   const tabs = ['Todo', 'Comunidad', 'Artículos', 'Vídeos', ...(CAT_SET.has(S.cat) && !GROUP_BY_NAME[S.cat] ? [S.cat] : []), ...(S.view === 'channel' ? [] : CAT_GROUPS.map(g => g.n))].filter(t => !(S.view === 'channel' && t === 'Comunidad'));
   $('#main').innerHTML = `${statusBanner()}${head}
     <div class="tabs">${tabs.map(c => `<button class="tab ${c === S.cat ? 'active' : ''}" data-act="cat" data-cat="${c}">${c === 'Comunidad' ? '🌱 Comunidad' : GROUP_BY_NAME[c] ? GROUP_BY_NAME[c].i + ' ' + c : CAT_SET.has(c) ? '🏷️ ' + c : c}</button>`).join('')}</div>
