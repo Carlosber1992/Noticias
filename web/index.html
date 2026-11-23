@@ -217,6 +217,12 @@ aside{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 92px);ov
 .link-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:18px 0}
 .link-card:hover{background:var(--surface-2)}
 .link-card .grow{flex:1;min-width:0}
+.link-preview{display:block;position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:18px 0;color:inherit;text-decoration:none}
+.link-preview:hover{background:var(--surface-2)}
+.link-preview img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--surface-2)}
+.link-preview .lp-in{display:block;padding:10px 40px 12px 14px}
+.link-preview .lp-in small{display:block;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.04em}
+.link-preview > :last-child{position:absolute;right:14px;bottom:14px}
 .link-card small{color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card-link{display:block;margin-top:6px;color:var(--muted);font-size:13px}
 .cat-chip{display:inline-block;margin-top:8px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
@@ -542,7 +548,7 @@ function rebuildIndex(){
       const mins = `${Math.max(1, Math.round(words / 200))} min`, cat = safeCat(p.cat || ch.cat);
       items['p_' + p.id] = {id: 'p_' + p.id, pid: p.id, ch, cat, owner: uid, community: true, type: isVideo ? 'video' : 'article',
         title: String(p.title || '').slice(0, 120), excerpt: String(p.excerpt || body[0] || '').slice(0, 220),
-        body, emoji: safeEmoji(p.emoji || ch.emoji), grad: [ch.personal ? styleOf(cat).g[1] : ch.color, styleOf(cat).g[0]], media, link: cleanLink(p.link),
+        body, emoji: safeEmoji(p.emoji || ch.emoji), grad: [ch.personal ? styleOf(cat).g[1] : ch.color, styleOf(cat).g[0]], media, link: cleanLink(p.link), linkImage: p.link ? cleanLink(p.linkImage) : null,
         mins, badge: isVideo ? '🎬 Vídeo' : media.length ? `📷 ${mins}` : `📄 ${mins}`, ts: Number(p.at) || 0, editedAt: p.editedAt, geo: cleanGeo(p.geo)};
     }
   }
@@ -1085,7 +1091,8 @@ function renderReader(){
         <small class="muted">${timeAgo(i.ts)}${i.editedAt ? ' · editado' : ''} · ${i.type === 'video' ? 'Vídeo de ' + i.mins : 'Lectura de ' + i.mins}</small>
         ${i.geo ? `<div class="geo-line">📍 ${esc(geoLabel(i.geo, true))}${distLabel(i)}</div>` : ''}
         ${i.body.map(p => `<p style="white-space:pre-line">${esc(p)}</p>`).join('')}
-        ${i.link ? `<a class="link-card" href="${esc(i.link)}" target="_blank" rel="noopener noreferrer nofollow ugc"><span style="font-size:22px">🔗</span><span class="grow"><b>Enlace relacionado</b><small>${esc(i.link)}</small></span>↗</a>` : ''}
+        ${i.link && i.linkImage ? `<a class="link-preview" href="${esc(i.link)}" target="_blank" rel="noopener noreferrer nofollow ugc"><img src="${esc(i.linkImage)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"><span class="lp-in"><small>${esc(hostOf(i.link))}</small><b>Ver la nota completa en ${esc(hostOf(i.link))}</b></span>↗</a>`
+        : i.link ? `<a class="link-card" href="${esc(i.link)}" target="_blank" rel="noopener noreferrer nofollow ugc"><span style="font-size:22px">🔗</span><span class="grow"><b>Enlace relacionado</b><small>${esc(i.link)}</small></span>↗</a>` : ''}
         <div id="rOwner"></div>
         <div class="card-foot" style="padding:0" id="rActions"></div>
         <div class="comments" id="rComments"></div>
@@ -1384,6 +1391,7 @@ const dropAssets = posts => posts.forEach(p => cleanMedia(p.media).forEach(m => 
 /** Portada de la tarjeta del feed. */
 function coverInner(i){
   const m = i.media?.[0];
+  if (!m && i.linkImage) return `${i.emoji}<img class="media-cover media-el" src="${esc(i.linkImage)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"><span class="count">Foto: ${esc(hostOf(i.link))}</span>`;
   if (!m) return `${i.emoji}${i.type === 'video' ? '<span class="play">▶</span>' : ''}`;
   const el = m.kind === 'video'
     ? `<video class="media-cover media-el" src="${blobUrl(m.id)}#t=0.1" muted playsinline preload="metadata"></video><span class="play">▶</span>`
