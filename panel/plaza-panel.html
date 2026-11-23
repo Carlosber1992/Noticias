@@ -1,88 +1,189 @@
 <title>Panel de Yasupo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: mesa de control con riel de secciones a la izquierda y trabajo a la derecha; usa la identidad de la app Plaza. */
-:root{--bg:#EDF2EE;--surface:#FFFFFF;--surface2:#E3EBE6;--ink:#10302C;--muted:#566D68;--line:#D3DED8;--brand:#0A6B5E;--brand-ink:#FFFFFF;--sun:#FFC02E;--sun-ink:#3A2A00;--danger:#B3261E;--danger-ink:#FFFFFF;--canal:#3B4CB8;--foro:#C8451F;--shade:rgba(16,48,44,.45);
---display:"Bricolage Grotesque","Trebuchet MS",sans-serif;--body:"Figtree","Segoe UI",system-ui,sans-serif}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1A19;--surface:#152523;--surface2:#1E322F;--ink:#E6F0EC;--muted:#9DB3AD;--line:#2A403C;--brand:#3CC2AC;--brand-ink:#06211D;--sun:#FFC94D;--sun-ink:#2C2000;--danger:#FF8A80;--danger-ink:#3A0906;--canal:#A3B0FF;--foro:#FF8A63;--shade:rgba(0,0,0,.6);color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0E1A19;--surface:#152523;--surface2:#1E322F;--ink:#E6F0EC;--muted:#9DB3AD;--line:#2A403C;--brand:#3CC2AC;--brand-ink:#06211D;--sun:#FFC94D;--sun-ink:#2C2000;--danger:#FF8A80;--danger-ink:#3A0906;--canal:#A3B0FF;--foro:#FF8A63;--shade:rgba(0,0,0,.6);color-scheme:dark}
+/* Layout: sala de control con riel oscuro a la izquierda, barra de búsqueda arriba y tarjetas vivas; el amarillo es la oreja de la lora de Yasupo. */
+:root{--bg:#F1F4F2;--surface:#FFFFFF;--surface2:#E8EEEB;--ink:#10282A;--muted:#5B6F6C;--line:#DCE4E0;--rail:#0F2A2E;--rail-ink:#D7E6E2;--rail-muted:#8FA9A4;--brand:#0A8F7A;--brand-ink:#FFFFFF;--brand-soft:#D6F1EA;--sun:#FFC02E;--sun-ink:#3A2A00;--sun-soft:#FFF1CC;--danger:#C2362C;--danger-ink:#FFFFFF;--danger-soft:#FCE3E0;--violet:#5B5BD6;--violet-soft:#E6E6FB;--shade:rgba(10,30,32,.5);
+--c1:#0A8F7A;--c2:#5B5BD6;--c3:#E07A1F;--c4:#C2362C;--c5:#2B7BB9;--c6:#9A4FB5;
+--display:"Bricolage Grotesque","Trebuchet MS",sans-serif;--body:"Figtree","Segoe UI",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B1617;--surface:#132324;--surface2:#1B3032;--ink:#E4EFEC;--muted:#97AFAA;--line:#243C3E;--rail:#081112;--rail-ink:#D7E6E2;--rail-muted:#7D9894;--brand:#35C9AE;--brand-ink:#04231D;--brand-soft:#123B35;--sun:#FFC94D;--sun-ink:#2C2000;--sun-soft:#3A2F10;--danger:#FF7D70;--danger-ink:#3A0906;--danger-soft:#3E1714;--violet:#A4A4FF;--violet-soft:#25254A;--shade:rgba(0,0,0,.65);--c1:#35C9AE;--c2:#A4A4FF;--c3:#F5A25A;--c4:#FF7D70;--c5:#6CB4EA;--c6:#D08BE6;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0B1617;--surface:#132324;--surface2:#1B3032;--ink:#E4EFEC;--muted:#97AFAA;--line:#243C3E;--rail:#081112;--rail-ink:#D7E6E2;--rail-muted:#7D9894;--brand:#35C9AE;--brand-ink:#04231D;--brand-soft:#123B35;--sun:#FFC94D;--sun-ink:#2C2000;--sun-soft:#3A2F10;--danger:#FF7D70;--danger-ink:#3A0906;--danger-soft:#3E1714;--violet:#A4A4FF;--violet-soft:#25254A;--shade:rgba(0,0,0,.65);--c1:#35C9AE;--c2:#A4A4FF;--c3:#F5A25A;--c4:#FF7D70;--c5:#6CB4EA;--c6:#D08BE6;color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--body)}
-#app{display:grid;grid-template-columns:200px minmax(0,1fr);min-height:100vh}
-nav{background:var(--surface);border-right:1px solid var(--line);padding-block:18px;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:14px;display:flex;flex-direction:column;gap:3px;position:sticky;top:0;height:100vh;overflow:auto}
-.logo{font:800 24px/1 var(--display);padding:0 10px 12px}
-nav button{all:unset;cursor:pointer;padding:9px 10px;border-radius:8px;font-weight:600}
-nav button:hover{background:var(--surface2)}
-nav button[aria-current="page"]{background:var(--brand);color:var(--brand-ink)}
-nav button:focus-visible,.b:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.link:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-.who{margin-top:auto;padding:12px 10px 0;border-top:1px solid var(--line);display:grid;gap:6px;font-size:13px}
-main{padding-block:22px 48px;padding-left:24px;padding-right:max(16px,env(safe-area-inset-right,0px));min-width:0;display:grid;gap:16px;align-content:start;max-width:1200px}
-h1{font:800 28px/1.1 var(--display);margin:0;text-wrap:balance}
+button{font:inherit;color:inherit}
+#app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
+nav{background:var(--rail);color:var(--rail-ink);padding-block:20px;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:14px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow:auto}
+.logo{display:flex;align-items:center;gap:10px;padding:0 8px 18px;font:800 23px/1 var(--display);color:#fff}
+.logo i{width:34px;height:34px;border-radius:11px;background:var(--sun);display:grid;place-items:center;font-style:normal;font-size:19px}
+.logo small{display:block;font:500 11px var(--body);color:var(--rail-muted);letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
+nav .nb{all:unset;cursor:pointer;display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font-weight:600;color:var(--rail-ink)}
+nav .nb svg{width:18px;height:18px;flex:none;opacity:.85}
+nav .nb:hover{background:rgba(255,255,255,.07)}
+nav .nb[aria-current="page"]{background:var(--sun);color:var(--sun-ink)}
+nav .nb[aria-current="page"] svg{opacity:1}
+nav .nb .cnt{margin-left:auto;font-size:12px;background:var(--danger);color:#fff;border-radius:99px;padding:0 7px}
+.who{margin-top:auto;padding:14px 10px 0;border-top:1px solid rgba(255,255,255,.1);display:grid;gap:2px;font-size:13px}
+.who span{color:var(--rail-muted)}
+.shell{min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:10px;align-items:center;padding-block:14px;padding-left:28px;padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line)}
+.search{flex:1;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 12px;max-width:560px}
+.search svg{width:17px;height:17px;color:var(--muted);flex:none}
+.search input{border:0;background:transparent;padding:10px 0;width:100%;min-width:0;font:inherit;color:var(--ink);outline:none}
+.search:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.fresh{font-size:12px;color:var(--muted);white-space:nowrap}
+main{padding-block:24px 56px;padding-left:28px;padding-right:max(16px,env(safe-area-inset-right,0px));min-width:0;display:grid;gap:18px;align-content:start;max-width:1280px;width:100%}
+h1{font:800 30px/1.1 var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
 h2{font:700 16px/1.3 var(--body);margin:0}
 p{margin:0}
-.muted{color:var(--muted)}.small{font-size:13px}
-.head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}
-.tile{all:unset;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
-.tile:hover{border-color:var(--brand)}
-.tile b{display:block;font:800 28px/1.1 var(--display);font-variant-numeric:tabular-nums}
-.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
-.f{display:grid;gap:3px;font-size:12px;color:var(--muted);flex:1 1 150px;min-width:0}
-input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
-textarea{resize:vertical;min-height:80px}
-.b{font:600 14px/1.2 var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 12px;border-radius:8px;cursor:pointer}
-.b:hover{border-color:var(--brand)}.b[disabled]{opacity:.5;cursor:not-allowed}
+.muted{color:var(--muted)}.small{font-size:13px}.mono{font-family:var(--mono);font-size:13px}
+.head{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.head p{margin-top:4px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:14px;min-width:0;align-content:start}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:10px;transition:transform .15s,border-color .15s}
+.kpi:hover{transform:translateY(-2px);border-color:var(--brand)}
+.kpi:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.kpi .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center}
+.kpi .ic svg{width:19px;height:19px}
+.kpi b{font:800 32px/1 var(--display);font-variant-numeric:tabular-nums}
+.kpi span{font-size:13px;color:var(--muted)}
+.kpi.alert{border-color:var(--danger);background:var(--danger-soft)}
+.t-brand{background:var(--brand-soft);color:var(--brand)}.t-violet{background:var(--violet-soft);color:var(--violet)}.t-sun{background:var(--sun-soft);color:var(--sun-ink)}.t-danger{background:var(--danger-soft);color:var(--danger)}
+:root[data-theme="dark"] .t-sun{color:var(--sun)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .t-sun{color:var(--sun)}}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{all:unset;cursor:pointer;font-size:13px;font-weight:600;padding:6px 12px;border-radius:99px;background:var(--surface);border:1px solid var(--line);white-space:nowrap}
+.chip:hover{border-color:var(--brand)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.f{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:600;flex:1 1 150px;min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+textarea{resize:vertical;min-height:84px}
+.b{font:600 14px/1.2 var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none;white-space:nowrap}
+.b svg{width:16px;height:16px}
+.b:hover{border-color:var(--brand)}.b[disabled]{opacity:.45;cursor:not-allowed}
+.b:focus-visible,.link:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .b.pri{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
 .b.sun{background:var(--sun);border-color:var(--sun);color:var(--sun-ink)}
+.b.dark{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .b.bad{color:var(--danger);border-color:var(--danger);background:transparent}
 .b.badfill{background:var(--danger);border-color:var(--danger);color:var(--danger-ink)}
-.b.mini{padding:5px 8px;font-size:13px}a.b{text-decoration:none;display:inline-block}
+.b.mini{padding:6px 10px;font-size:13px;border-radius:8px}
 .link{all:unset;cursor:pointer;color:var(--brand);font-weight:600;overflow-wrap:anywhere}
 .link:hover{text-decoration:underline}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;border-radius:99px;padding:2px 9px;background:var(--surface2);color:var(--ink);white-space:nowrap}
+.pill.brand{background:var(--brand-soft);color:var(--brand)}.pill.sun{background:var(--sun);color:var(--sun-ink)}.pill.bad{background:var(--danger);color:var(--danger-ink)}.pill.violet{background:var(--violet-soft);color:var(--violet)}.pill.soft-bad{background:var(--danger-soft);color:var(--danger)}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font:800 15px/1 var(--display);color:#fff;flex:none;text-transform:uppercase}
+.av.lg{width:76px;height:76px;font-size:28px;border:4px solid var(--surface)}
+.av.sm{width:26px;height:26px;font-size:11px}
+.ucards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.ucard{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px;align-content:start;transition:transform .15s,border-color .15s;min-width:0}
+.ucard:hover{transform:translateY(-2px);border-color:var(--brand)}
+.ucard:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.ucard .top2{display:flex;gap:11px;align-items:center;min-width:0}
+.ucard .nm{min-width:0}.ucard .nm b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.nums div{background:var(--surface2);border-radius:10px;padding:7px 4px}
+.nums b{display:block;font:800 18px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.nums span{font-size:11px;color:var(--muted)}
+.ucard.susp{border-color:var(--danger)}
+.items{display:grid;gap:10px}
+.item{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--k,var(--line));border-radius:12px;padding:13px 15px;display:grid;gap:7px;min-width:0}
+.item p.body{overflow-wrap:anywhere;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.item strong{font-size:15px;overflow-wrap:anywhere}
+.item .foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:14px}
-th{font-size:12px;text-align:left;color:var(--muted);font-weight:600;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;font-variant-numeric:tabular-nums}
+th{font-size:12px;text-align:left;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle;font-variant-numeric:tabular-nums}
 tr:last-child td{border-bottom:0}
-.pill{display:inline-block;font-size:12px;font-weight:700;border-radius:99px;padding:1px 8px;background:var(--surface2);color:var(--ink);white-space:nowrap}
-.pill.brand{background:var(--brand);color:var(--brand-ink)}.pill.sun{background:var(--sun);color:var(--sun-ink)}.pill.bad{background:var(--danger);color:var(--danger-ink)}
-.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.item{display:grid;gap:6px;padding:12px 0;border-bottom:1px solid var(--line);min-width:0}
-.item:last-child{border-bottom:0}
-.item p{overflow-wrap:anywhere;white-space:pre-wrap}
-.chart{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;align-items:end;height:130px;border-bottom:1px solid var(--line)}
-.chart div{position:relative;height:100%;display:flex;align-items:end}
-.chart i{display:block;width:100%;background:var(--brand);border-radius:4px 4px 0 0;min-height:2px}
-.axis{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
-.notice{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:10px;max-width:560px}
+tr.hot td{background:var(--danger-soft)}
+.bar{height:8px;border-radius:99px;background:var(--surface2);overflow:hidden;min-width:70px}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+.bar.bad i{background:var(--danger)}
+.stack{display:flex;margin-left:4px}.stack .av{margin-left:-6px;border:2px solid var(--surface)}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:220px;overflow:visible}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;padding:5px 8px;border-radius:7px;white-space:nowrap;transform:translate(-50%,-120%)}
+.hbars{display:grid;gap:10px}
+.hb{display:grid;grid-template-columns:150px minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:13px}
+.hb .bar{height:12px}
+.hb b{text-align:right;font-variant-numeric:tabular-nums}
+.feed{display:grid;gap:2px}
+.fi{display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--line);min-width:0}
+.fi:last-child{border-bottom:0}
+.fi .tx{min-width:0;flex:1}.fi .tx p{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;margin-top:6px;flex:none;background:var(--k,var(--muted))}
+.notice{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:grid;gap:12px;max-width:560px}
 .err{color:var(--danger);font-weight:600}
-.pager{display:flex;justify-content:space-between;align-items:center;gap:8px}
-#shade{position:fixed;inset:0;background:var(--shade);z-index:20;display:flex;justify-content:flex-end}
-#shade.center{align-items:center;justify-content:center;padding:16px}
-.drawer{background:var(--bg);width:min(680px,100%);height:100%;overflow:auto;padding:20px;display:grid;gap:14px;align-content:start}
-.dialog{background:var(--surface);border-radius:14px;padding:18px;width:min(440px,100%);display:grid;gap:12px;max-height:100%;overflow:auto}
-#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;z-index:30;font-weight:600;max-width:calc(100% - 32px)}
-dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;margin:0}dt{color:var(--muted)}dd{margin:0;overflow-wrap:anywhere}
-@media (max-width:760px){#app{grid-template-columns:minmax(0,1fr)}nav{position:static;height:auto;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding-block:8px;padding-right:max(16px,env(safe-area-inset-right,0px));padding-left:max(16px,env(safe-area-inset-left,0px));align-items:center}nav button{white-space:nowrap}.logo{padding:0 8px 0 0;font-size:20px}.who{margin:0;padding:0 0 0 10px;border:0;border-left:1px solid var(--line);min-width:150px}main{padding-left:max(16px,env(safe-area-inset-left,0px))}}
+.pager{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.empty{padding:28px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
+.skel{height:90px;border-radius:16px;background:linear-gradient(90deg,var(--surface2),var(--surface),var(--surface2));background-size:200% 100%;animation:sk 1.2s infinite linear}
+@keyframes sk{to{background-position:-200% 0}}
+.prof{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.prof .cover{height:92px}
+.prof .in{padding:0 20px 20px;display:grid;gap:14px;margin-top:-38px}
+.prof .idt{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.prof .idt .nm{flex:1;min-width:200px;margin-top:46px}.prof .idt>.row{margin-top:46px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{all:unset;cursor:pointer;padding:10px 14px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--sun)}
+.tab:focus-visible{outline:2px solid var(--brand)}
+dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;margin:0}dt{color:var(--muted);font-size:13px}dd{margin:0;overflow-wrap:anywhere}
+#shade{position:fixed;inset:0;background:var(--shade);z-index:20;display:flex;align-items:center;justify-content:center;padding:16px}
+.dialog{background:var(--surface);border-radius:18px;padding:20px;width:min(460px,100%);display:grid;gap:14px;max-height:100%;overflow:auto}
+#toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;font-weight:600;max-width:calc(100% - 32px)}
+.spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--surface2);border-top-color:var(--brand);animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(1turn)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:980px){.grid2{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){#app{grid-template-columns:minmax(0,1fr)}nav{position:static;height:auto;flex-direction:row;overflow-x:auto;padding-block:10px;padding-right:max(16px,env(safe-area-inset-right,0px));padding-left:max(16px,env(safe-area-inset-left,0px));align-items:center}nav .nb{white-space:nowrap;padding:8px 10px}.logo{padding:0 8px 0 0;font-size:19px}.logo small,.who{display:none}.top,main{padding-left:max(16px,env(safe-area-inset-left,0px))}.top{position:static}.fresh{display:none}.hb{grid-template-columns:110px minmax(0,1fr) 36px}h1{font-size:25px}}
 </style>
-<div id="app"><nav id="nav" aria-label="Secciones"></nav><main id="main"><div class="notice"><h1>Conectando con Plaza</h1><p class="muted">Aquí verás usuarios, publicaciones, IP, anclados y alertas en cuanto Claude abra la conexión con Supabase.</p></div></main></div>
+<div id="app"><nav id="nav" aria-label="Secciones" hidden></nav><div class="shell"><div class="top" id="top" hidden></div><main id="main"><div class="notice"><h1>Conectando con Yasupo</h1><p class="muted">Aquí verás usuarios, publicaciones, canales, comentarios, IP, anclados y alertas en cuanto Claude abra la conexión con Supabase.</p></div></main></div></div>
 <div id="layer"></div>
 <script>
 const PROJECT='qbcabwbpobqgwblrzhzb';
-const VIEWS=[['resumen','Resumen',1],['usuarios','Usuarios',1],['contenido','Contenido',1],['ip','Direcciones IP',2],['anclados','Anclados',1],['alertas','Alertas',1],['registro','Registro',3]];
-const KIND={publicacion:'Publicación',comentario_feed:'Comentario en publicación',canal_feed:'Canal de Yasupo',noticia:'Noticia',comentario:'Comentario',pregunta:'Pregunta',respuesta:'Respuesta',mensaje:'Mensaje',grupo:'Grupo',canal:'Canal',foro:'Foro'};
-const S={mcp:null,view:'resumen',ids:{},cont:{},users:{}};
+const IC={
+ home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+ users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M16 14.6c2.8-.3 5 1.3 5.5 4.4"/>',
+ doc:'<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
+ globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.7 3.8 5.7 3.8 9s-1.2 6.3-3.8 9c-2.6-2.7-3.8-5.7-3.8-9S9.4 5.7 12 3z"/>',
+ pin:'<path d="M9 3h6l-1 6 4 4H6l4-4zM12 13v8"/>',
+ bell:'<path d="M6 17V11a6 6 0 1 1 12 0v6l2 2H4zM10 21h4"/>',
+ list:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+ chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+ tv:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M8 2l4 4 4-4"/>',
+ shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+ dl:'<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>',
+ refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
+ back:'<path d="M15 5l-7 7 7 7"/>',
+ news:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>'
+};
+const svg=(k)=>{const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('fill','none');s.setAttribute('stroke','currentColor');s.setAttribute('stroke-width','1.9');s.setAttribute('stroke-linecap','round');s.setAttribute('stroke-linejoin','round');s.setAttribute('aria-hidden','true');s.innerHTML=IC[k];return s};
+const VIEWS=[['resumen','Resumen','home'],['usuarios','Usuarios','users'],['contenido','Contenido','doc'],['ip','Direcciones IP','globe'],['anclados','Anclados','pin'],['alertas','Alertas','bell'],['registro','Registro','list']];
+const KIND={publicacion:'Publicación',comentario_feed:'Comentario',canal_feed:'Canal',noticia:'Noticia (app anterior)',comentario:'Comentario (app anterior)',pregunta:'Pregunta',respuesta:'Respuesta',mensaje:'Mensaje',grupo:'Grupo',canal:'Canal (app anterior)',foro:'Foro'};
+const KCOL={publicacion:'var(--c1)',comentario_feed:'var(--c2)',canal_feed:'var(--c3)',noticia:'var(--c5)',comentario:'var(--c2)',pregunta:'var(--c6)',respuesta:'var(--c6)',mensaje:'var(--c6)',grupo:'var(--c3)',canal:'var(--c3)',foro:'var(--c6)'};
+const PINK={noticia:'noticia',publicacion:'post',canal_feed:'channel'};
+const S={mcp:null,view:'resumen',cont:{},users:{},ipq:{min:2,q:''},loadedAt:null,timer:null,profile:null};
 const $=(s)=>document.querySelector(s);
 const rc=Element.prototype.replaceChildren;Element.prototype.replaceChildren=function(...k){rc.call(this,...k.flat(9).filter(x=>x!=null&&x!==false))};
 // Todo el contenido de usuarios entra como texto, nunca como HTML.
-function h(tag,attrs,...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs||{})){if(v==null||v===false)continue;if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else if(k==='class')e.className=v;else if(k==='value')e.value=v;else e.setAttribute(k,v===true?'':v)}for(const c of kids.flat(9)){if(c==null||c===false)continue;e.append(c.nodeType?c:String(c))}return e}
+function h(tag,attrs,...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs||{})){if(v==null||v===false)continue;if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else if(k==='class')e.className=v;else if(k==='value')e.value=v;else if(k==='style')e.setAttribute('style',v);else e.setAttribute(k,v===true?'':v)}for(const c of kids.flat(9)){if(c==null||c===false)continue;e.append(c.nodeType?c:String(c))}return e}
 const fmt=(d)=>d?new Date(d).toLocaleString('es-CO',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Bogota'}):'—';
+function ago(d){if(!d)return '—';const s=(Date.now()-new Date(d))/1000;if(s<60)return 'hace un momento';if(s<3600)return `hace ${Math.floor(s/60)} min`;if(s<86400)return `hace ${Math.floor(s/3600)} h`;if(s<86400*30)return `hace ${Math.floor(s/86400)} d`;return fmt(d)}
 const n=(x)=>Number(x||0).toLocaleString('es-CO');
+const AVC=['#0A8F7A','#5B5BD6','#E07A1F','#C2362C','#2B7BB9','#9A4FB5'];
+function avColor(s){let x=0;for(const c of String(s||''))x=(x*31+c.charCodeAt(0))>>>0;return AVC[x%AVC.length]}
+const av=(name,size)=>h('span',{class:'av'+(size?' '+size:''),style:`background:${avColor(name)}`,'aria-hidden':'true'},String(name||'?').replace(/^@/,'').slice(0,2));
 function b64(s){return btoa(Array.from(new TextEncoder().encode(s),c=>String.fromCharCode(c)).join(''))}
-function toast(t){let e=$('#toast');if(e)e.remove();e=h('div',{id:'toast',role:'status'},t);document.body.append(e);setTimeout(()=>e.remove(),3200)}
+function toast(t){let e=$('#toast');if(e)e.remove();e=h('div',{id:'toast',role:'status'},t);document.body.append(e);setTimeout(()=>e.remove(),3400)}
 function parseResult(p){let t=p;if(t&&typeof t==='object'&&t.result!=null)t=t.result;if(typeof t!=='string')throw{code:'parse',message:'Supabase devolvió una respuesta que no se pudo leer.'};const m=t.match(/\n<untrusted-data-([0-9a-f-]+)>\s*\n([\s\S]*)\n\s*<\/untrusted-data-\1>/);return JSON.parse(m?m[2]:t)}
 function cleanErr(e){let m=e&&e.message||'No se pudo completar la acción.';if(e&&e.code==='tool_error'){try{const j=JSON.parse(m);m=j.error&&j.error.message||m}catch{}const x=String(m).match(/ERROR:\s*(?:P0001:|[0-9A-Z]{5}:)?\s*([^\n"]+)/);if(x)m=x[1]}return m}
 async function call(fn,args={}){
@@ -90,86 +191,183 @@ async function call(fn,args={}){
  const res=await S.mcp.callTool('Supabase','execute_sql',{project_id:PROJECT,query:q},{cache:false});
  return parseResult(res.payload)[0].r;
 }
-function block(title,text,btn){$('#nav').replaceChildren();$('#app').style.gridTemplateColumns='minmax(0,1fr)';$('#nav').hidden=true;$('#main').replaceChildren(h('div',{class:'notice'},h('h1',null,title),h('p',null,text),btn||null))}
+function block(title,text,btn){$('#nav').hidden=true;$('#top').hidden=true;$('#app').style.gridTemplateColumns='minmax(0,1fr)';$('#main').replaceChildren(h('div',{class:'notice'},h('h1',null,title),h('p',null,text),btn||null))}
 function connError(e){const m={server_not_connected:['Conecta Supabase','Agrega Supabase en Ajustes de Claude, Conectores, y vuelve a abrir este panel.'],needs_reauth:['Vuelve a conectar Supabase','La sesión del conector venció. Reconéctalo en Ajustes de Claude, Conectores.'],selection_required:['Elige la cuenta de Supabase','Tienes más de una conexión con ese nombre. Elige una cuando Claude te lo pida.'],not_in_manifest:['Falta tu permiso','Este panel necesita tu permiso para usar Supabase. Vuelve a abrirlo y acepta.'],blocked_by_policy:['Bloqueado por tu organización','Un administrador de tu organización debe permitir Supabase.'],approval_required:['Falta tu aprobación','Claude necesita que apruebes la consulta a Supabase.'],server_unavailable:['Supabase no responde','Espera unos segundos e inténtalo de nuevo.']}[e&&e.code]||['No se pudo conectar',cleanErr(e)];block(m[0],m[1],h('button',{class:'b pri',onclick:boot},'Reintentar'))}
-function nav(){$('#nav').hidden=false;$('#app').style.gridTemplateColumns='';$('#nav').replaceChildren(h('div',{class:'logo'},'Yasupo'),VIEWS.map(([k,l])=>h('button',{'aria-current':S.view===k?'page':null,onclick:()=>go(k)},l)),h('div',{class:'who'},h('strong',null,'Administrador'),h('span',{class:'muted'},'Solo el dueño del proyecto')))}
-async function go(v){S.view=v;nav();const main=$('#main');main.replaceChildren(h('p',{class:'muted'},'Cargando…'));try{await VIEW[v]()}catch(e){if(['server_not_connected','needs_reauth','approval_required'].includes(e.code))return connError(e);main.replaceChildren(h('div',{class:'notice'},h('h2',null,'No se pudo cargar esta sección'),h('p',{class:'err'},cleanErr(e)),h('button',{class:'b',onclick:()=>go(v)},'Reintentar')))}}
-const can=()=>true;
+
+function chrome(){
+ $('#nav').hidden=false;$('#top').hidden=false;$('#app').style.gridTemplateColumns='';
+ $('#nav').replaceChildren(h('div',{class:'logo'},h('i',null,'🦜'),h('div',null,'Yasupo',h('small',null,'Administración'))),
+  VIEWS.map(([k,l,i])=>h('button',{class:'nb','aria-current':S.view===k||(k==='usuarios'&&S.view==='perfil')?'page':null,onclick:()=>go(k)},svg(i),l,k==='ip'&&S.sharedIps?h('span',{class:'cnt'},S.sharedIps):null)),
+  h('div',{class:'who'},h('strong',null,'Administrador'),h('span',null,'Solo el dueño del proyecto')));
+ if(!$('#gq')){let t;const inp=h('input',{id:'gq',type:'search',placeholder:'Buscar usuario, publicación, canal o IP','aria-label':'Buscar en todo Yasupo',onkeydown:e=>{if(e.key==='Enter'){clearTimeout(t);search(e.target.value)}},oninput:e=>{clearTimeout(t);const v=e.target.value;t=setTimeout(()=>{if(v.trim().length>=2)search(v)},450)}});
+  $('#top').replaceChildren(h('label',{class:'search'},svg('search'),inp),h('span',{class:'fresh',id:'fresh'}),h('button',{class:'b mini',onclick:()=>go(S.view==='perfil'?'usuarios':S.view)},svg('refresh'),'Actualizar'))}
+ stamp();
+}
+function stamp(){const e=$('#fresh');if(e)e.textContent=S.loadedAt?`Datos ${ago(S.loadedAt)}`:''}
+setInterval(stamp,30000);
+function search(v){v=v.trim();if(!v)return;if(/^[0-9a-f.:]{6,}$/i.test(v)&&/[.:]/.test(v)){S.users={ip:v};S.cont={ip:v};}S.gq=v;go('buscar')}
+async function go(v,keep){S.view=v;clearInterval(S.timer);chrome();if(!keep)closeLayer();const main=$('#main');main.replaceChildren(h('div',{class:'kpis'},[1,2,3,4].map(()=>h('div',{class:'skel'}))));window.scrollTo(0,0);try{await VIEW[v]();S.loadedAt=new Date();stamp()}catch(e){if(['server_not_connected','needs_reauth','approval_required'].includes(e.code))return connError(e);main.replaceChildren(h('div',{class:'notice'},h('h2',null,'No se pudo cargar esta sección'),h('p',{class:'err'},cleanErr(e)),h('button',{class:'b',onclick:()=>go(v)},'Reintentar')))}}
 async function act(fn,args,done,ok){try{await call(fn,args);toast(ok);closeLayer();if(done)await done()}catch(e){toast(cleanErr(e))}}
 function closeLayer(){$('#layer').replaceChildren()}
-function layer(node,center){const sh=h('div',{id:'shade',class:center?'center':null,onclick:e=>{if(e.target===sh)closeLayer()}},node);$('#layer').replaceChildren(sh)}
-function ask(title,text,fields,label,danger,onok){const inputs={};const err=h('p',{class:'err',hidden:true});const f=h('form',{class:'dialog',onsubmit:async e=>{e.preventDefault();const v={};for(const k in inputs)v[k]=inputs[k].value.trim();try{await onok(v)}catch(x){err.hidden=false;err.textContent=cleanErr(x)}}},h('h2',null,title),text?h('p',{class:'muted'},text):null,(fields||[]).map(x=>{const id='f-'+x.k;const el=x.options?h('select',{id},x.options.map(o=>h('option',{value:o[0]},o[1]))):h('input',{id,type:x.type||'text',placeholder:x.ph,min:x.min,max:x.max,value:x.value,required:x.req});inputs[x.k]=el;return h('label',{class:'f',for:id},x.l,el)}),err,h('div',{class:'row'},h('button',{class:'b '+(danger?'badfill':'pri')},label),h('button',{class:'b',type:'button',onclick:closeLayer},'Cancelar')));layer(f,true)}
-function pager(st,total,load){const lim=50;return h('div',{class:'pager'},h('span',{class:'muted small'},`${n(total)} en total`),h('div',{class:'row'},h('button',{class:'b mini',disabled:!st.offset,onclick:()=>{st.offset=Math.max(0,(st.offset||0)-lim);load()}},'Anteriores'),h('button',{class:'b mini',disabled:(st.offset||0)+lim>=total,onclick:()=>{st.offset=(st.offset||0)+lim;load()}},'Siguientes')))}
-
-function itemCard(i,after){
- const media=(i.media||[]).length;
- return h('div',{class:'item'},h('div',{class:'row'},h('span',{class:'pill '+(['noticia','publicacion'].includes(i.kind)?'brand':'')},KIND[i.kind]||i.kind),i.is_breaking?h('span',{class:'pill bad'},'Última hora'):null,i.pin_rank?h('span',{class:'pill sun'},`Puesto ${i.pin_rank}`):null,i.is_private?h('span',{class:'pill'},'Privado'):null,media?h('span',{class:'pill'},`${media} ${media===1?'archivo':'archivos'}`):null,
-  i.username?h('button',{class:'link',onclick:()=>openUser(i.author_id)},'@'+i.username):null,h('span',{class:'muted small'},fmt(i.created_at),i.municipio?` · ${i.municipio}`:'',i.space_name&&!['grupo','canal','foro','canal_feed'].includes(i.kind)?` · ${i.space_name}`:'')),
-  i.title?h('strong',null,i.title):null,i.body?h('p',null,i.body):null,
-  h('div',{class:'row'},['noticia','publicacion'].includes(i.kind)?h('span',{class:'muted small'},`${n(i.up)} me gusta · ${n(i.down)} no me gusta`):null,i.ip?h('button',{class:'link small',onclick:()=>{S.cont={ip:i.ip};go('contenido')}},'IP '+i.ip):null,
-   ['noticia','publicacion','canal_feed','grupo','canal','foro'].includes(i.kind)?h('button',{class:'b mini',onclick:()=>pinAsk(PINK[i.kind]||'espacio',i.id,i.title,i.pin_rank,after)},i.pin_rank?'Cambiar puesto':'Anclar'):null,
-   h('button',{class:'b mini bad',onclick:()=>ask(`Eliminar ${(KIND[i.kind]||'').toLowerCase()}`,'Se borra de la app para todos y no se puede recuperar. Queda en el registro.',[{k:'reason',l:'Motivo'}],'Eliminar',true,v=>act('eliminar',{kind:i.kind,id:i.id,reason:v.reason},after,'Eliminado'))},'Eliminar')))}
-const PINK={noticia:'noticia',publicacion:'post',canal_feed:'channel'};
-function pinAsk(kind,id,title,rank,after){ask('Anclar en un puesto',`«${title}» queda fija en ese puesto de la lista. Lo nuevo se acomoda en los demás puestos. Si el puesto está ocupado, los siguientes bajan uno. La app lo muestra al instante.`,[{k:'rank',l:'Puesto (1 a 50)',type:'number',min:1,max:50,value:rank||1,req:true}],'Anclar',false,v=>act('anclar',{kind,id,rank:Number(v.rank)},after,`Anclada en el puesto ${v.rank}`))}
-
-async function openUser(id){layer(h('div',{class:'drawer'},h('p',{class:'muted'},'Cargando usuario…')));let u;try{u=await call('usuario',{user:id})}catch(e){layer(h('div',{class:'drawer'},h('p',{class:'err'},cleanErr(e)),h('button',{class:'b',onclick:closeLayer},'Cerrar')));return}
- const refresh=()=>{openUser(id);if(S.view==='usuarios')go(S.view)};
- const group=(t,f)=>{const l=u.items.filter(f);return l.length?h('section',{class:'panel'},h('h2',null,`${t} (${l.length})`),h('div',null,l.map(i=>itemCard({...i,username:null},()=>openUser(id))))):null};
- const mine=false;
- layer(h('div',{class:'drawer'},
-  h('div',{class:'head'},h('h1',null,'@'+u.username),h('button',{class:'b',onclick:closeLayer},'Cerrar')),
-  h('div',{class:'row'},u.suspended?h('span',{class:'pill bad'},u.until?`Suspendido hasta ${fmt(u.until)}`:'Suspendido sin fecha'):h('span',{class:'pill'},'Activo')),
-  h('section',{class:'panel'},h('dl',null,h('dt',null,'Registro'),h('dd',null,fmt(u.created_at)),u.feed?[h('dt',null,'Nombre en Yasupo'),h('dd',null,u.feed.alias||'—'),h('dt',null,'Biografía'),h('dd',null,u.feed.bio||'—'),h('dt',null,'Sigue'),h('dd',null,`${(u.feed.follows||[]).length} canales`),h('dt',null,'Reacciones'),h('dd',null,`${(u.feed.likes||[]).length} me gusta, ${(u.feed.dislikes||[]).length} no me gusta`)]:null,
-   can(2)?[h('dt',null,'Correo'),h('dd',null,u.email||'Sin vincular'),h('dt',null,'Celular'),h('dd',null,u.phone||'Sin vincular')]:[h('dt',null,'Contacto'),h('dd',{class:'muted'},'Visible para supervisor y administrador')],
-   h('dt',null,'Mensajes privados'),h('dd',null,`${n(u.dm_count)} (el contenido no se muestra)`),u.suspended&&u.reason?[h('dt',null,'Motivo'),h('dd',null,u.reason)]:null),
-   h('div',{class:'row'},h('button',{class:'b sun',onclick:()=>exportAsk(`Descargar historial de @${u.username}`,{type:'usuario',user:id})},'Descargar historial'),can(2)&&!mine?(u.suspended?h('button',{class:'b',onclick:()=>act('reactivar',{user:id},refresh,'Suspensión levantada')},'Levantar suspensión'):h('button',{class:'b',onclick:()=>ask('Suspender cuenta','La persona podrá leer, pero no publicar, comentar ni escribir. Deja los días vacíos para una suspensión sin fecha.',[{k:'days',l:'Días',type:'number',min:1},{k:'reason',l:'Motivo'}],'Suspender',true,v=>act('suspender',{user:id,days:v.days?Number(v.days):null,reason:v.reason},refresh,'Cuenta suspendida'))},'Suspender')):null,
-    can(3)&&!mine?h('button',{class:'b bad',onclick:()=>ask('Eliminar cuenta',`Se borran la cuenta de @${u.username} y todo lo que publicó. No se puede recuperar.`,[{k:'confirm',l:`Escribe ${u.username} para confirmar`,req:true}],'Eliminar cuenta',true,v=>act('eliminar_cuenta',{user:id,confirm:v.confirm},()=>go(S.view),'Cuenta eliminada'))},'Eliminar cuenta'):null)),
-  u.ips&&u.ips.length?h('section',{class:'panel'},h('h2',null,'Direcciones IP'),h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['IP','Eventos','Cuentas','Última vez'].map(t=>h('th',null,t)))),h('tbody',null,u.ips.map(i=>h('tr',null,h('td',null,h('button',{class:'link',onclick:()=>{closeLayer();S.users={ip:i.ip};go('usuarios')}},i.ip)),h('td',null,i.events),h('td',null,i.users>1?h('span',{class:'pill bad'},i.users):i.users),h('td',null,fmt(i.last_seen)))))))):null,
-  group('Publicaciones',i=>i.kind==='publicacion'),group('Canal',i=>i.kind==='canal_feed'),group('Comentarios',i=>['comentario','comentario_feed'].includes(i.kind)),group('Noticias (app anterior)',i=>i.kind==='noticia'),group('Preguntas',i=>i.kind==='pregunta'),group('Canales, grupos y foros (app anterior)',i=>['canal','grupo','foro'].includes(i.kind)),group('Respuestas y mensajes',i=>['respuesta','mensaje'].includes(i.kind)),
-  u.following.length?h('section',{class:'panel'},h('h2',null,`Sigue (${u.following.length})`),h('div',{class:'row'},u.following.map(f=>h('span',{class:'pill'},f.name)))):null))}
-
+function layer(node){const sh=h('div',{id:'shade',onclick:e=>{if(e.target===sh)closeLayer()}},node);$('#layer').replaceChildren(sh);const f=node.querySelector('input,select,button');if(f)setTimeout(()=>f.focus(),30)}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#shade'))closeLayer()});
+function ask(title,text,fields,label,danger,onok){const inputs={};const err=h('p',{class:'err',hidden:true});const f=h('form',{class:'dialog',onsubmit:async e=>{e.preventDefault();const v={};for(const k in inputs)v[k]=inputs[k].value.trim();try{await onok(v)}catch(x){err.hidden=false;err.textContent=cleanErr(x)}}},h('h2',{style:'font:800 21px var(--display)'},title),text?h('p',{class:'muted'},text):null,(fields||[]).map(x=>{const id='f-'+x.k;const el=x.options?h('select',{id},x.options.map(o=>h('option',{value:o[0]},o[1]))):h('input',{id,type:x.type||'text',placeholder:x.ph,min:x.min,max:x.max,value:x.value,required:x.req});inputs[x.k]=el;return h('label',{class:'f',for:id},x.l,el)}),err,h('div',{class:'row'},h('button',{class:'b '+(danger?'badfill':'pri')},label),h('button',{class:'b',type:'button',onclick:closeLayer},'Cancelar')));layer(f)}
+function pager(st,total,load){const lim=st.lim||50;return total>lim?h('div',{class:'pager'},h('span',{class:'muted small'},`${n((st.offset||0)+1)} a ${n(Math.min(total,(st.offset||0)+lim))} de ${n(total)}`),h('div',{class:'row'},h('button',{class:'b mini',disabled:!st.offset,onclick:()=>{st.offset=Math.max(0,(st.offset||0)-lim);load()}},'Anteriores'),h('button',{class:'b mini',disabled:(st.offset||0)+lim>=total,onclick:()=>{st.offset=(st.offset||0)+lim;load()}},'Siguientes'))):h('span',{class:'muted small'},`${n(total)} en total`)}
+const chips=(opts,val,on)=>h('div',{class:'chips',role:'group'},opts.map(([k,l])=>h('button',{class:'chip','aria-pressed':String(val===k),onclick:()=>on(k)},l)));
 const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
-function exportAsk(title,args){ask(title,'Se crea un archivo HTML con imágenes, textos, fechas e IP. Se abre sin internet y puedes guardarlo como PDF desde el navegador con Imprimir. Queda anotado en el registro.',[{k:'dms',l:'Mensajes privados',options:[['0','No incluir el contenido'],['1','Incluir el contenido']]}],'Crear archivo',false,async v=>{
- const status=h('p',{class:'muted'},'Preparando el archivo. Puede tardar hasta dos minutos si hay muchas imágenes.');
- const dlg=h('div',{class:'dialog'},h('h2',null,title),status);layer(dlg,true);
+
+/* ---------- Descargas ---------- */
+function exportAsk(title,args){ask(title,'Se crean dos archivos, uno HTML y uno PDF, con fotos, textos, fechas, IP y huellas SHA-256. Queda anotado en el Registro.',[{k:'dms',l:'Mensajes privados',options:[['0','No incluir el contenido'],['1','Incluir el contenido']]}],'Crear archivo',false,async v=>{
+ const status=h('p',{class:'muted'},'Preparando el archivo. Puede tardar hasta dos minutos si hay muchas fotos.');
+ const dlg=h('div',{class:'dialog'},h('h2',{style:'font:800 21px var(--display)'},title),h('div',{class:'row'},h('div',{class:'spin'}),status));layer(dlg);
  const fail=m=>dlg.replaceChildren(h('h2',null,'No se pudo crear el archivo'),h('p',{class:'err'},m),h('button',{class:'b',onclick:closeLayer},'Cerrar'));
  try{const {request}=await call('exportar',{...args,dms:v.dms==='1'});let r={ready:false};for(let i=0;i<75&&!r.ready;i++){await wait(2000);r=await call('exportar_estado',{request})}
   if(!r.ready)return fail('Tardó demasiado. Inténtalo de nuevo.');if(!r.result||!r.result.url)return fail((r.result&&r.result.error)||r.error||'Supabase no devolvió el archivo.');
-  const x=r.result;dlg.replaceChildren(h('h2',null,'Archivo listo'),h('dl',null,h('dt',null,'Archivo'),h('dd',null,x.file),h('dt',null,'Tamaño'),h('dd',null,(x.size/1048576).toFixed(2)+' MB'),h('dt',null,'Adjuntos'),h('dd',null,x.files+(x.missing?`, ${x.missing} no disponibles`:'')),h('dt',null,'Huella SHA-256'),h('dd',null,x.sha256)),h('div',{class:'row'},h('a',{class:'b pri',href:x.url,target:'_blank',rel:'noopener noreferrer'},'Descargar HTML'),h('button',{class:'b',onclick:closeLayer},'Cerrar')),h('p',{class:'muted small'},'El enlace vale una hora. La huella queda en el Registro y sirve para demostrar que el archivo no cambió.'))
+  const x=r.result;dlg.replaceChildren(h('h2',{style:'font:800 21px var(--display)'},'Archivo listo'),h('dl',null,h('dt',null,'Archivo'),h('dd',{class:'mono'},x.file),h('dt',null,'Tamaño'),h('dd',null,(x.size/1048576).toFixed(2)+' MB'),h('dt',null,'Adjuntos'),h('dd',null,n(x.files)+(x.missing?`, ${x.missing} no disponibles`:'')),h('dt',null,'Huella del HTML'),h('dd',{class:'mono',style:'font-size:11px'},x.sha256),x.pdf_sha256?[h('dt',null,'Huella del PDF'),h('dd',{class:'mono',style:'font-size:11px'},x.pdf_sha256)]:null),
+   h('div',{class:'row'},h('a',{class:'b pri',href:x.url,target:'_blank',rel:'noopener noreferrer'},svg('dl'),'Descargar HTML'),x.pdf_url?h('a',{class:'b dark',href:x.pdf_url,target:'_blank',rel:'noopener noreferrer'},svg('doc'),'Descargar PDF'):null,h('button',{class:'b',onclick:closeLayer},'Cerrar')),
+   h('p',{class:'muted small'},'El HTML trae también los videos. Los enlaces valen una hora; los archivos quedan guardados en tu Supabase y sus huellas en el Registro.'))
  }catch(e){fail(cleanErr(e))}
 })}
+
+/* ---------- Piezas ---------- */
+function itemCard(i,after,showUser=true){
+ const media=(i.media||[]).length;
+ return h('article',{class:'item',style:`--k:${KCOL[i.kind]||'var(--line)'}`},
+  h('div',{class:'row'},h('span',{class:'pill',style:`background:${KCOL[i.kind]||'var(--surface2)'};color:#fff`},KIND[i.kind]||i.kind),i.pin_rank?h('span',{class:'pill sun'},`📌 Puesto ${i.pin_rank}`):null,i.is_breaking?h('span',{class:'pill bad'},'Última hora'):null,i.is_private?h('span',{class:'pill'},'Privado'):null,media?h('span',{class:'pill violet'},`${media} ${media===1?'archivo':'archivos'}`):null,
+   showUser&&i.username?h('button',{class:'link',onclick:()=>openUser(i.author_id)},'@'+i.username):null,h('span',{class:'muted small'},ago(i.created_at),i.municipio?` · 📍 ${i.municipio}`:'',i.space_name&&!['grupo','canal','foro','canal_feed'].includes(i.kind)?` · ${i.space_name}`:'')),
+  i.title?h('strong',null,i.kind==='comentario_feed'||i.kind==='comentario'?'En: '+i.title:i.title):null,i.body?h('p',{class:'body'},i.body):null,
+  h('div',{class:'foot'},h('div',{class:'row'},['noticia','publicacion'].includes(i.kind)?h('span',{class:'muted small'},`👍 ${n(i.up)} · 👎 ${n(i.down)}`):null,i.ip?h('button',{class:'link small mono',onclick:()=>{S.cont={ip:i.ip};go('contenido')}},'IP '+i.ip):null),
+   h('div',{class:'row'},PINK[i.kind]||['grupo','canal','foro'].includes(i.kind)?h('button',{class:'b mini',onclick:()=>pinAsk(PINK[i.kind]||'espacio',i.id,i.title,i.pin_rank,after)},svg('pin'),i.pin_rank?'Cambiar puesto':'Anclar'):null,
+    h('button',{class:'b mini bad',onclick:()=>ask(`Eliminar ${(KIND[i.kind]||'').toLowerCase()}`,'Se borra de Yasupo para todos y desaparece al instante. No se puede recuperar; el texto queda en el Registro.',[{k:'reason',l:'Motivo'}],'Eliminar',true,v=>act('eliminar',{kind:i.kind,id:i.id,reason:v.reason},after,'Eliminado'))},'Eliminar'))))}
+function pinAsk(kind,id,title,rank,after){ask('Anclar en un puesto',`«${title}» queda fija en ese puesto. Lo nuevo se acomoda en los demás puestos y Yasupo lo muestra al instante.`,[{k:'rank',l:'Puesto (1 a 50)',type:'number',min:1,max:50,value:rank||1,req:true}],'Anclar',false,v=>act('anclar',{kind,id,rank:Number(v.rank)},after,`Anclado en el puesto ${v.rank}`))}
+function userCard(u){return h('button',{class:'ucard'+(u.suspended?' susp':''),onclick:()=>openUser(u.id)},
+ h('div',{class:'top2'},av(u.alias||u.username),h('div',{class:'nm'},h('b',null,u.alias||u.username),h('span',{class:'muted small'},'@'+u.username))),
+ h('div',{class:'nums'},h('div',null,h('b',null,n(u.posts+(u.news||0))),h('span',null,'publicó')),h('div',null,h('b',null,n(u.comments)),h('span',null,'comentarios')),h('div',null,h('b',null,n(u.spaces)),h('span',null,'canales'))),
+ h('div',{class:'row'},u.suspended?h('span',{class:'pill bad'},'Suspendido'):h('span',{class:'pill brand'},'Activo'),u.last_ip?h('span',{class:'pill mono'},u.last_ip):null,u.email||u.phone?h('span',{class:'pill violet'},'Contacto vinculado'):null),
+ h('span',{class:'muted small'},'Registro ',ago(u.created_at),u.last_seen?' · visto '+ago(u.last_seen):''))}
+
+/* ---------- Gráficas ---------- */
+function areaChart(series){
+ const W=640,H=220,P={l:34,r:12,t:14,b:26};const max=Math.max(1,...series.map(x=>x.count));const nice=max<=4?4:Math.ceil(max/4)*4;
+ const X=i=>P.l+i*(W-P.l-P.r)/(series.length-1),Y=v=>H-P.b-v/nice*(H-P.t-P.b);
+ const pts=series.map((x,i)=>[X(i),Y(x.count)]);const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+ const day=d=>new Date(d+'T12:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'});
+ let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Publicaciones por día en los últimos 14 días"><defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--brand)" stop-opacity=".35"/><stop offset="1" stop-color="var(--brand)" stop-opacity="0"/></linearGradient></defs>`;
+ for(let k=0;k<=4;k++){const v=nice/4*k,y=Y(v);s+=`<line x1="${P.l}" x2="${W-P.r}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/><text x="${P.l-8}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`}
+ s+=`<path d="${line} L${X(series.length-1)} ${H-P.b} L${X(0)} ${H-P.b}Z" fill="url(#ga)"/><path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linejoin="round"/>`;
+ [0,Math.floor((series.length-1)/2),series.length-1].forEach(i=>{s+=`<text x="${X(i)}" y="${H-6}" text-anchor="${i===0?'start':i===series.length-1?'end':'middle'}" font-size="11" fill="var(--muted)">${day(series[i].day)}</text>`});
+ const last=pts[pts.length-1];s+=`<circle cx="${last[0]}" cy="${last[1]}" r="5" fill="var(--brand)" stroke="var(--surface)" stroke-width="2"/>`;
+ series.forEach((x,i)=>{const w=(W-P.l-P.r)/(series.length-1);s+=`<rect data-i="${i}" x="${X(i)-w/2}" y="${P.t}" width="${w}" height="${H-P.t-P.b}" fill="transparent"/>`});
+ s+='</svg>';
+ const box=h('div',{class:'chart'});box.innerHTML=s;const tip=h('div',{class:'tip',hidden:true});box.append(tip);
+ const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('r','5');dot.setAttribute('fill','var(--sun)');dot.setAttribute('stroke','var(--surface)');dot.setAttribute('stroke-width','2');dot.style.display='none';box.querySelector('svg').append(dot);
+ box.querySelectorAll('rect[data-i]').forEach(r=>{r.addEventListener('pointerenter',()=>{const i=+r.dataset.i,b=box.getBoundingClientRect(),sc=b.width/W;tip.hidden=false;tip.textContent=`${day(series[i].day)}: ${series[i].count} ${series[i].count===1?'publicación':'publicaciones'}`;tip.style.left=pts[i][0]*sc+'px';tip.style.top=pts[i][1]*sc+'px';dot.setAttribute('cx',pts[i][0]);dot.setAttribute('cy',pts[i][1]);dot.style.display=''})});
+ box.addEventListener('pointerleave',()=>{tip.hidden=true;dot.style.display='none'});
+ return box}
+function hbars(rows){const max=Math.max(1,...rows.map(r=>r[1]));return h('div',{class:'hbars'},rows.map(([l,v,c,on])=>h('div',{class:'hb'},h('button',{class:'link',style:'color:var(--ink);font-weight:500',onclick:on},l),h('div',{class:'bar'},h('i',{style:`width:${v/max*100}%;background:${c}`})),h('b',null,n(v)))))}
+
+/* ---------- Perfil de usuario ---------- */
+function openUser(id){S.profile={id,tab:'publicaciones'};go('perfil')}
 const VIEW={
- async resumen(){const s=await call('resumen');const max=Math.max(1,...s.series.map(x=>x.count));const tile=(v,l,go2)=>h('button',{class:'tile',onclick:go2},h('b',null,v==null?'—':n(v)),h('span',{class:'muted small'},l));
-  $('#main').replaceChildren(h('div',{class:'head'},h('h1',null,'Resumen'),h('button',{class:'b',onclick:()=>go('resumen')},'Actualizar')),
-  h('div',{class:'tiles'},tile(s.users,`usuarios, ${n(s.users_today)} hoy`,()=>go('usuarios')),tile(s.posts,'publicaciones en Yasupo',()=>{S.cont={kind:'publicacion'};go('contenido')}),tile(s.feed_comments,'comentarios en publicaciones',()=>{S.cont={kind:'comentario_feed'};go('contenido')}),tile(s.feed_channels,'canales de Yasupo',()=>{S.cont={kind:'canal_feed'};go('contenido')}),tile(s.news,'noticias de la app anterior',()=>{S.cont={kind:'noticia'};go('contenido')}),tile(s.spaces,'canales, grupos y foros',()=>{S.cont={kind:'espacios'};go('contenido')}),tile(s.threads,'preguntas',()=>{S.cont={kind:'pregunta'};go('contenido')}),tile(s.comments,'comentarios',()=>{S.cont={kind:'comentario'};go('contenido')}),tile(s.messages,'respuestas y mensajes',()=>{S.cont={kind:'mensaje'};go('contenido')}),tile(s.suspended,'cuentas suspendidas',()=>{S.users={filter:'suspendidos'};go('usuarios')}),can(2)?tile(s.shared_ips,'IP con varias cuentas',()=>go('ip')):null,tile(s.active_alerts,`alertas activas, ${n(s.push_subs)} equipos suscritos`,()=>go('alertas'))),
-  h('section',{class:'panel'},h('h2',null,'Publicaciones por día, últimos 14 días'),h('div',{class:'chart'},s.series.map(x=>h('div',{title:`${x.day}: ${x.count}`},h('i',{style:`height:${x.count/max*100}%`,'aria-label':`${x.day}: ${x.count}`})))),h('div',{class:'axis'},h('span',null,s.series[0].day.slice(5)),h('span',null,`Máximo ${max}`),h('span',null,s.series[13].day.slice(5)))))},
- async usuarios(){const st=S.users;const load=async()=>{const r=await call('usuarios',{...st,limit:50,offset:st.offset||0});box.replaceChildren(h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['Usuario',...(can(2)?['Correo','Celular','Última IP']:[]),'Publicó','Registro','Estado'].map(t=>h('th',null,t)))),h('tbody',null,r.rows.length?r.rows.map(u=>h('tr',null,h('td',null,h('button',{class:'link',onclick:()=>openUser(u.id)},'@'+u.username),u.alias&&u.alias.toLowerCase()!==u.username.toLowerCase()?h('div',{class:'muted small'},u.alias):null),can(2)?[h('td',null,u.email||'—'),h('td',null,u.phone||'—'),h('td',null,u.last_ip?h('button',{class:'link',onclick:()=>{S.users={ip:u.last_ip};go('usuarios')}},u.last_ip):'—')]:null,h('td',null,`${u.posts} publicaciones, ${u.comments} comentarios, ${u.spaces} canales o espacios${u.news?`, ${u.news} noticias`:''}${u.threads?`, ${u.threads} preguntas`:''}`),h('td',null,fmt(u.created_at)),h('td',null,h('div',{class:'row'},u.suspended?h('span',{class:'pill bad'},'Suspendido'):h('span',{class:'pill'},'Activo'))))):h('tr',null,h('td',{colspan:7,class:'muted'},'Ningún usuario coincide con el filtro.'))))),pager(st,r.total,load))};
-  const box=h('section',{class:'panel'},h('p',{class:'muted'},'Cargando…'));
-  const apply=e=>{e.preventDefault();st.q=$('#u-q').value;st.filter=$('#u-f').value;if($('#u-ip'))st.ip=$('#u-ip').value.trim();st.offset=0;load().catch(x=>toast(cleanErr(x)))};
-  const o=[['todos','Todos'],['suspendidos','Suspendidos'],...(can(2)?[['contacto','Con correo o celular'],['ip_compartida','IP compartida']]:[])];
-  $('#main').replaceChildren(h('h1',null,'Usuarios'),h('form',{class:'filters',onsubmit:apply},h('label',{class:'f',for:'u-q'},can(2)?'Usuario, correo o celular':'Usuario',h('input',{id:'u-q',value:st.q||''})),can(2)?h('label',{class:'f',for:'u-ip'},'IP',h('input',{id:'u-ip',value:st.ip||''})):null,h('label',{class:'f',for:'u-f'},'Filtro',(()=>{const s=h('select',{id:'u-f'},o.map(x=>h('option',{value:x[0]},x[1])));s.value=st.filter||'todos';return s})()),h('button',{class:'b pri'},'Buscar')),box);await load()},
- async contenido(){const st=S.cont;const box=h('section',{class:'panel'},h('p',{class:'muted'},'Cargando…'));let munis=[];
-  const load=async()=>{const r=await call('contenido',{...st,from:st.from?st.from+'T00:00:00-05:00':'',to:st.to?st.to+'T23:59:59-05:00':'',limit:50,offset:st.offset||0});munis=r.municipios;const sel=$('#c-m');if(sel&&sel.options.length<=1){munis.forEach(m=>sel.append(h('option',{value:m},m)));sel.value=st.municipio||''}box.replaceChildren(r.rows.length?h('div',null,r.rows.map(i=>itemCard(i,load))):h('p',{class:'muted'},'Nada coincide con estos filtros.'),pager(st,r.total,load))};
-  const v=id=>{const e=$(id);return e?e.value:''};
-  const apply=e=>{e.preventDefault();Object.assign(st,{kind:v('#c-k'),tipo:v('#c-t'),q:v('#c-q'),author:v('#c-a'),municipio:v('#c-m'),from:v('#c-f'),to:v('#c-to'),offset:0});if($('#c-ip'))st.ip=v('#c-ip').trim();load().catch(x=>toast(cleanErr(x)))};
-  const sel=(id,opts,val)=>{const s=h('select',{id},opts.map(o=>h('option',{value:o[0]},o[1])));s.value=val||opts[0][0];return s};
-  $('#main').replaceChildren(h('h1',null,'Contenido'),h('form',{class:'filters',onsubmit:apply},h('label',{class:'f',for:'c-k'},'Tipo',sel('c-k',[['todos','Todo'],['feed','Todo Yasupo'],['publicacion','Publicaciones de Yasupo'],['comentario_feed','Comentarios en publicaciones'],['canal_feed','Canales de Yasupo'],['noticia','Noticias (app anterior)'],['pregunta','Preguntas'],['respuesta','Respuestas'],['comentario','Comentarios'],['mensaje','Mensajes de grupo o canal'],['espacios','Canales, grupos y foros'],['canal','Canales'],['grupo','Grupos'],['foro','Foros']],st.kind)),h('label',{class:'f',for:'c-t'},'Tipo de publicación',sel('c-t',[['todos','Todas'],['ultima_hora','Última hora'],['normal','Normal'],['con_archivos','Con archivos'],['anclado','Ancladas']],st.tipo)),h('label',{class:'f',for:'c-q'},'Palabra',h('input',{id:'c-q',value:st.q||''})),h('label',{class:'f',for:'c-a'},'Usuario',h('input',{id:'c-a',value:st.author||''})),h('label',{class:'f',for:'c-m'},'Localidad',sel('c-m',[['','Todas']],'')),can(2)?h('label',{class:'f',for:'c-ip'},'IP',h('input',{id:'c-ip',value:st.ip||''})):null,h('label',{class:'f',for:'c-f'},'Desde',h('input',{id:'c-f',type:'date',value:st.from||''})),h('label',{class:'f',for:'c-to'},'Hasta',h('input',{id:'c-to',type:'date',value:st.to||''})),h('button',{class:'b pri'},'Filtrar')),box);await load()},
- async ip(){let q='';let min=2;const box=h('section',{class:'panel'},h('p',{class:'muted'},'Cargando…'));
-  const load=async()=>{const r=await call('ips',{q,min_users:min});box.replaceChildren(h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['IP','Cuentas','Usuarios','Publicaciones','Ingresos','Última vez',''].map(t=>h('th',null,t)))),h('tbody',null,r.length?r.map(x=>h('tr',null,h('td',null,x.ip),h('td',null,x.users>1?h('span',{class:'pill bad'},x.users):x.users),h('td',null,h('div',{class:'row'},x.usernames.slice(0,8).map(u=>h('span',{class:'pill'},'@'+u)))),h('td',null,x.posts),h('td',null,x.logins),h('td',null,fmt(x.last_seen)),h('td',null,h('div',{class:'row'},h('button',{class:'b mini',onclick:()=>{S.users={ip:x.ip};go('usuarios')}},'Usuarios'),h('button',{class:'b mini',onclick:()=>{S.cont={ip:x.ip};go('contenido')}},'Publicaciones'),h('button',{class:'b mini sun',onclick:()=>exportAsk(`Descargar historial de la IP ${x.ip}`,{type:'ip',ip:x.ip})},'Descargar'))))):h('tr',null,h('td',{colspan:7,class:'muted'},min>1?'Ninguna IP tiene varias cuentas todavía. La captura empezó hoy, así que lo publicado antes no tiene IP.':'Todavía no hay direcciones registradas.')))))) };
-  $('#main').replaceChildren(h('h1',null,'Direcciones IP'),h('form',{class:'filters',onsubmit:e=>{e.preventDefault();q=$('#i-q').value.trim();min=Number($('#i-m').value);load().catch(x=>toast(cleanErr(x)))}},h('label',{class:'f',for:'i-q'},'IP',h('input',{id:'i-q'})),h('label',{class:'f',for:'i-m'},'Mostrar',(()=>{const s=h('select',{id:'i-m'},h('option',{value:2},'Con varias cuentas'),h('option',{value:1},'Todas'));return s})()),h('button',{class:'b pri'},'Buscar')),box);await load()},
- async anclados(){const r=await call('anclados');const lst=(title,kind,arr,hint)=>h('section',{class:'panel'},h('h2',null,title),h('p',{class:'muted small'},hint),arr.length?h('div',null,arr.map((x,i)=>h('div',{class:'item'},h('div',{class:'row'},h('span',{class:'pill sun'},`Puesto ${x.pin_rank}`),x.type?h('span',{class:'pill'},KIND[x.type]):null,h('strong',null,x.title)),can(2)?h('div',{class:'row'},h('button',{class:'b mini',disabled:x.pin_rank<=1,onclick:()=>act('anclar',{kind,id:x.id,rank:x.pin_rank-1},()=>go('anclados'),'Puesto actualizado')},'Subir'),h('button',{class:'b mini',onclick:()=>act('anclar',{kind,id:x.id,rank:x.pin_rank+1},()=>go('anclados'),'Puesto actualizado')},'Bajar'),h('button',{class:'b mini',onclick:()=>pinAsk(kind,x.id,x.title,x.pin_rank,()=>go('anclados'))},'Elegir puesto'),h('button',{class:'b mini bad',onclick:()=>act('anclar',{kind,id:x.id,rank:null},()=>go('anclados'),'Desanclado')},'Desanclar')):null))):h('p',{class:'muted'},'Nada anclado todavía.'),h('button',{class:'b sun',onclick:()=>{S.cont={kind:{noticia:'noticia',post:'publicacion',channel:'canal_feed'}[kind]||'espacios'};go('contenido')}},{noticia:'Elegir una noticia',post:'Elegir una publicación',channel:'Elegir un canal'}[kind]||'Elegir un canal, grupo o foro'));
-  $('#main').replaceChildren(h('h1',null,'Anclados'),lst('Publicaciones en el inicio de Yasupo','post',r.feed.filter(x=>x.type==='post'),'Se ven en su puesto en el inicio, con la pestaña Todo y sin buscar ni filtrar por lugar. Lo nuevo llena los puestos libres.'),lst('Canales de Yasupo','channel',r.feed.filter(x=>x.type==='channel'),'Salen primero, en su orden, en Canales y perfiles de la comunidad.'),lst('Noticias de la app anterior','noticia',r.news,'Solo se ven en la app anterior, no en yasupo.com.'),lst('Canales, grupos y foros de la app anterior','espacio',r.spaces,'Solo se ven en la app anterior, no en yasupo.com.'))},
- async alertas(){const r=await call('alertas');const send=can(2)?h('form',{class:'panel',onsubmit:e=>{e.preventDefault();const aud=$('#a-a').value;const d={title:$('#a-t').value.trim(),body:$('#a-b').value.trim(),level:$('#a-l').value,audience:aud,username:aud==='usuario'?$('#a-u').value.trim():null,hours:Number($('#a-h').value)};ask(d.level==='alarma'?'Enviar alarma':'Enviar aviso',`«${d.title}» llegará de inmediato a ${aud==='todos'?'todas las personas de la app, con o sin cuenta':aud==='usuarios'?'todos los usuarios con cuenta':'@'+d.username}. No se puede retirar de las notificaciones ya recibidas.`,[],'Enviar ahora',d.level==='alarma',()=>act('enviar_alerta',d,()=>go('alertas'),'Alerta enviada'))}},h('h2',null,'Nueva alerta'),h('label',{class:'f',for:'a-t'},'Título',h('input',{id:'a-t',required:true,minlength:3,maxlength:80})),h('label',{class:'f',for:'a-b'},'Mensaje',h('textarea',{id:'a-b',maxlength:500})),h('div',{class:'filters'},h('label',{class:'f',for:'a-l'},'Tipo',h('select',{id:'a-l'},h('option',{value:'aviso'},'Aviso: ventana con un sonido corto'),h('option',{value:'alarma'},'Alarma: ventana roja con sonido fuerte'))),h('label',{class:'f',for:'a-a'},'Para',h('select',{id:'a-a',onchange:e=>{$('#a-uw').hidden=e.target.value!=='usuario';$('#a-u').required=e.target.value==='usuario'}},h('option',{value:'todos'},'Todos, con o sin cuenta'),h('option',{value:'usuarios'},'Usuarios con cuenta'),h('option',{value:'usuario'},'Un usuario'))),h('label',{class:'f',for:'a-u',id:'a-uw',hidden:true},'Usuario',h('input',{id:'a-u',placeholder:'@usuario'})),h('label',{class:'f',for:'a-h'},'Se muestra durante',h('select',{id:'a-h'},h('option',{value:6},'6 horas'),(()=>{const o=h('option',{value:24},'24 horas');o.selected=true;return o})(),h('option',{value:72},'3 días'),h('option',{value:168},'7 días')))),h('button',{class:'b sun'},'Revisar y enviar'),h('p',{class:'muted small'},'Las apps abiertas la reciben al instante. Con la app cerrada llega como notificación a quienes activaron las alertas en su navegador.')):null;
-  $('#main').replaceChildren(h('h1',null,'Alertas'),send,h('section',{class:'panel'},h('h2',null,'Enviadas'),r.length?h('div',null,r.map(a=>h('div',{class:'item'},h('div',{class:'row'},h('span',{class:'pill '+(a.level==='alarma'?'bad':'brand')},a.level==='alarma'?'Alarma':'Aviso'),a.active?h('span',{class:'pill sun'},'Activa'):h('span',{class:'pill'},'Terminada'),h('span',{class:'muted small'},fmt(a.created_at),' · ',a.audience==='todos'?'Todos':a.audience==='usuarios'?'Usuarios con cuenta':'@'+a.username)),h('strong',null,a.title),a.body?h('p',null,a.body):null,a.active&&can(2)?h('div',null,h('button',{class:'b mini',onclick:()=>act('terminar_alerta',{id:a.id},()=>go('alertas'),'Alerta terminada')},'Terminar')):null))):h('p',{class:'muted'},'Aún no has enviado alertas.')))},
- async registro(){const r=await call('registro');$('#main').replaceChildren(h('h1',null,'Registro'),h('section',{class:'panel'},r.length?h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['Fecha','Quién','Acción','Sobre'].map(t=>h('th',null,t)))),h('tbody',null,r.map(a=>h('tr',null,h('td',null,fmt(a.created_at)),h('td',null,a.actor_name),h('td',null,a.action),h('td',null,a.target)))))):h('p',{class:'muted'},'Aún no hay acciones registradas.')))}
+ async resumen(){
+  const [s,ips,us,ct]=await Promise.all([call('resumen'),call('ips',{min_users:2}),call('usuarios',{limit:5}),call('contenido',{kind:'todos',limit:8})]);
+  S.sharedIps=ips.length;chrome();
+  const kpi=(v,l,ic,tone,on,alert)=>h('button',{class:'kpi'+(alert?' alert':''),onclick:on},h('div',{class:'ic '+tone},svg(ic)),h('b',null,v==null?'—':n(v)),h('span',null,l));
+  const hour=+new Date().toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:'America/Bogota'});
+  $('#main').replaceChildren(
+   h('div',{class:'head'},h('div',null,h('h1',null,(hour<12?'Buenos días':hour<19?'Buenas tardes':'Buenas noches')+', así va Yasupo'),h('p',{class:'muted'},`${n(s.users_today)} ${s.users_today===1?'cuenta nueva':'cuentas nuevas'} hoy · ${n(s.users)} en total`)),h('button',{class:'b sun',onclick:()=>go('alertas')},svg('bell'),'Enviar alerta')),
+   h('div',{class:'kpis'},kpi(s.users,'usuarios','users','t-brand',()=>go('usuarios')),kpi(s.posts,'publicaciones en Yasupo','news','t-brand',()=>{S.cont={kind:'publicacion'};go('contenido')}),kpi(s.feed_comments,'comentarios','chat','t-violet',()=>{S.cont={kind:'comentario_feed'};go('contenido')}),kpi(s.feed_channels,'canales de la comunidad','tv','t-sun',()=>{S.cont={kind:'canal_feed'};go('contenido')}),kpi(s.shared_ips,'IP con varias cuentas','globe',s.shared_ips?'t-danger':'t-brand',()=>go('ip'),s.shared_ips>0),kpi(s.suspended,'cuentas suspendidas','shield','t-danger',()=>{S.users={filter:'suspendidos'};go('usuarios')})),
+   h('div',{class:'grid2'},
+    h('section',{class:'panel'},h('div',{class:'ph'},h('h2',null,'Publicaciones por día, últimos 14 días'),h('span',{class:'muted small'},'Todo tipo de contenido')),areaChart(s.series)),
+    h('section',{class:'panel'},h('h2',null,'Qué hay en Yasupo'),hbars([['Publicaciones',s.posts,'var(--c1)',()=>{S.cont={kind:'publicacion'};go('contenido')}],['Comentarios',s.feed_comments,'var(--c2)',()=>{S.cont={kind:'comentario_feed'};go('contenido')}],['Canales',s.feed_channels,'var(--c3)',()=>{S.cont={kind:'canal_feed'};go('contenido')}],['Noticias, app anterior',s.news,'var(--c5)',()=>{S.cont={kind:'noticia'};go('contenido')}],['Preguntas y foros',s.threads,'var(--c6)',()=>{S.cont={kind:'pregunta'};go('contenido')}]]),
+     h('p',{class:'muted small'},`${n(s.active_alerts)} ${s.active_alerts===1?'alerta activa':'alertas activas'} · ${n(s.push_subs)} equipos reciben alertas con la app cerrada`))),
+   h('div',{class:'grid2'},
+    h('section',{class:'panel'},h('div',{class:'ph'},h('h2',null,'Lo último publicado'),h('button',{class:'link small',onclick:()=>{S.cont={};go('contenido')}},'Ver todo')),ct.rows.length?h('div',{class:'feed'},ct.rows.map(i=>h('div',{class:'fi'},h('span',{class:'dot',style:`--k:${KCOL[i.kind]}`}),h('div',{class:'tx'},h('p',null,h('b',null,KIND[i.kind]||i.kind),' de ',h('button',{class:'link',onclick:()=>openUser(i.author_id)},'@'+i.username)),h('p',{class:'muted small'},i.title||i.body||'Sin texto')),h('span',{class:'muted small',style:'white-space:nowrap'},ago(i.created_at))))):h('p',{class:'empty'},'Aún no hay publicaciones.')),
+    h('section',{class:'panel'},h('div',{class:'ph'},h('h2',null,ips.length?'⚠️ IP con varias cuentas':'IP con varias cuentas'),h('button',{class:'link small',onclick:()=>go('ip')},'Ver todas')),ips.length?h('div',{class:'feed'},ips.slice(0,5).map(x=>h('div',{class:'fi'},h('div',{class:'tx'},h('p',{class:'mono'},x.ip),h('p',{class:'muted small'},x.usernames.map(u=>'@'+u).join(', '))),h('span',{class:'pill soft-bad'},`${x.users} ${x.users===1?'cuenta':'cuentas'}`)))):h('p',{class:'empty'},'Ninguna IP tiene varias cuentas.'),
+     h('div',{class:'ph'},h('h2',null,'Cuentas nuevas'),h('button',{class:'link small',onclick:()=>go('usuarios')},'Ver todas')),h('div',{class:'feed'},us.rows.map(u=>h('div',{class:'fi',style:'align-items:center'},av(u.alias||u.username,'sm'),h('div',{class:'tx'},h('button',{class:'link',onclick:()=>openUser(u.id)},u.alias||u.username)),h('span',{class:'muted small'},ago(u.created_at))))))));
+  clearInterval(S.timer);S.timer=setInterval(()=>{if(S.view==='resumen'&&!$('#shade')&&document.visibilityState==='visible')go('resumen')},90000);
+ },
+ async usuarios(){const st=S.users;const box=h('div',null,h('div',{class:'ucards'},[1,2,3].map(()=>h('div',{class:'skel'}))));
+  const load=async()=>{const r=await call('usuarios',{q:st.q||'',ip:st.ip||'',filter:st.filter||'todos',limit:48,offset:st.offset||0});st.lim=48;box.replaceChildren(r.rows.length?h('div',{class:'ucards'},r.rows.map(userCard)):h('p',{class:'empty'},'Ningún usuario coincide con la búsqueda.'),h('div',{style:'margin-top:14px'},pager(st,r.total,load)))};
+  let t;const q=h('input',{id:'u-q',type:'search',value:st.q||'',placeholder:'Nombre, usuario, correo o celular',oninput:e=>{clearTimeout(t);t=setTimeout(()=>{st.q=e.target.value;st.offset=0;load().catch(x=>toast(cleanErr(x)))},350)}});
+  const ip=h('input',{id:'u-ip',value:st.ip||'',placeholder:'Ej. 190.7.114.226',class:'mono',oninput:e=>{clearTimeout(t);t=setTimeout(()=>{st.ip=e.target.value.trim();st.offset=0;load().catch(x=>toast(cleanErr(x)))},500)}});
+  const setF=k=>{st.filter=k;st.offset=0;fil.replaceWith(fil=chips(FO,k,setF));load().catch(x=>toast(cleanErr(x)))};
+  const FO=[['todos','Todos'],['suspendidos','Suspendidos'],['contacto','Con correo o celular'],['ip_compartida','Comparten IP']];let fil=chips(FO,st.filter||'todos',setF);
+  $('#main').replaceChildren(h('div',{class:'head'},h('div',null,h('h1',null,'Usuarios'),h('p',{class:'muted'},'Toca una cuenta para ver todo lo que ha hecho.'))),h('div',{class:'filters'},h('label',{class:'f',for:'u-q',style:'flex:2 1 240px'},'Buscar',q),h('label',{class:'f',for:'u-ip'},'IP',ip)),fil,box);await load()},
+ async perfil(){const id=S.profile.id;const u=await call('usuario',{user:id});const P=S.profile;
+  const refresh=()=>go('perfil');const items=u.items;
+  const cnt={publicaciones:items.filter(i=>i.kind==='publicacion').length,canal:items.filter(i=>['canal_feed','canal','grupo','foro'].includes(i.kind)).length,comentarios:items.filter(i=>['comentario_feed','comentario','respuesta','mensaje'].includes(i.kind)).length,anterior:items.filter(i=>['noticia','pregunta'].includes(i.kind)).length,ip:(u.ips||[]).length};
+  const name=(u.feed&&u.feed.alias)||u.username;const color=avColor(name);
+  const tabs=[['publicaciones','Publicaciones'],['canal','Canales'],['comentarios','Comentarios'],['ip','IP y actividad'],['anterior','App anterior'],['datos','Datos']];
+  const pane=h('div');
+  const showTab=k=>{P.tab=k;tb.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.k===k)));
+   const list=f=>{const l=items.filter(f);return l.length?h('div',{class:'items'},l.map(i=>itemCard(i,refresh,false))):h('p',{class:'empty'},'Nada por aquí.')};
+   if(k==='publicaciones')pane.replaceChildren(list(i=>i.kind==='publicacion'));
+   else if(k==='canal')pane.replaceChildren(list(i=>['canal_feed','canal','grupo','foro'].includes(i.kind)));
+   else if(k==='comentarios')pane.replaceChildren(list(i=>['comentario_feed','comentario','respuesta','mensaje'].includes(i.kind)));
+   else if(k==='anterior')pane.replaceChildren(list(i=>['noticia','pregunta'].includes(i.kind)));
+   else if(k==='ip')pane.replaceChildren((u.ips||[]).length?h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['IP','Eventos','Cuentas en esa IP','Última vez',''].map(t=>h('th',null,t)))),h('tbody',null,u.ips.map(i=>h('tr',{class:i.users>1?'hot':null},h('td',{class:'mono'},i.ip),h('td',null,n(i.events)),h('td',null,i.users>1?h('span',{class:'pill bad'},`${i.users} cuentas`):'Solo esta'),h('td',null,ago(i.last_seen)),h('td',null,h('div',{class:'row'},h('button',{class:'b mini',onclick:()=>{S.users={ip:i.ip};go('usuarios')}},'Ver cuentas'),h('button',{class:'b mini',onclick:()=>exportAsk(`Historial de la IP ${i.ip}`,{type:'ip',ip:i.ip})},svg('dl'),'Historial')))))))):h('p',{class:'empty'},'Todavía no hay IP registradas para esta cuenta. Se guardan desde que entra, publica o comenta.'));
+   else pane.replaceChildren(h('dl',null,h('dt',null,'Usuario'),h('dd',{class:'mono'},'@'+u.username),h('dt',null,'Nombre en Yasupo'),h('dd',null,(u.feed&&u.feed.alias)||'—'),h('dt',null,'Biografía'),h('dd',null,(u.feed&&u.feed.bio)||'—'),h('dt',null,'Registro'),h('dd',null,fmt(u.created_at)),h('dt',null,'Correo'),h('dd',null,u.email||'Sin vincular'),h('dt',null,'Celular'),h('dd',null,u.phone||'Sin vincular'),h('dt',null,'Sigue'),h('dd',null,u.feed?`${(u.feed.follows||[]).length} canales`:'—'),h('dt',null,'Reacciones'),h('dd',null,u.feed?`${(u.feed.likes||[]).length} me gusta · ${(u.feed.dislikes||[]).length} no me gusta`:'—'),h('dt',null,'Mensajes privados'),h('dd',null,`${n(u.dm_count)} (el contenido solo entra en la descarga si lo pides)`),u.suspended?[h('dt',null,'Suspensión'),h('dd',null,(u.until?'Hasta '+fmt(u.until):'Sin fecha')+(u.reason?'. '+u.reason:''))]:null,h('dt',null,'ID'),h('dd',{class:'mono',style:'font-size:12px'},u.id)))};
+  const tb=h('div',{class:'tabs',role:'tablist'},tabs.map(([k,l])=>h('button',{class:'tab',role:'tab','data-k':k,'aria-selected':'false',onclick:()=>showTab(k)},l,cnt[k]!=null?` (${cnt[k]})`:'')));
+  const stat=(v,l)=>h('div',null,h('b',null,n(v)),h('span',null,l));
+  $('#main').replaceChildren(h('button',{class:'b mini',style:'justify-self:start',onclick:()=>go('usuarios')},svg('back'),'Usuarios'),
+   h('section',{class:'prof'},h('div',{class:'cover',style:`background:linear-gradient(120deg,${color},var(--sun))`}),h('div',{class:'in'},
+    h('div',{class:'idt'},av(name,'lg'),h('div',{class:'nm'},h('h1',null,name),h('p',{class:'muted'},'@'+u.username,' · se unió ',ago(u.created_at))),h('div',{class:'row'},u.suspended?h('span',{class:'pill bad'},u.until?`Suspendido hasta ${fmt(u.until)}`:'Suspendido sin fecha'):h('span',{class:'pill brand'},'Activo'))),
+    (u.feed&&u.feed.bio)?h('p',null,u.feed.bio):null,
+    h('div',{class:'nums',style:'grid-template-columns:repeat(auto-fit,minmax(90px,1fr))'},stat(cnt.publicaciones,'publicaciones'),stat(cnt.comentarios,'comentarios'),stat(cnt.canal,'canales'),stat(u.feed?(u.feed.likes||[]).length:0,'me gusta'),stat(cnt.ip,'IP distintas')),
+    h('div',{class:'row'},h('button',{class:'b pri',onclick:()=>exportAsk(`Historial de @${u.username}`,{type:'usuario',user:id})},svg('dl'),'Descargar HTML o PDF'),
+     u.suspended?h('button',{class:'b',onclick:()=>act('reactivar',{user:id},refresh,'Suspensión levantada')},'Levantar suspensión'):h('button',{class:'b',onclick:()=>ask('Suspender cuenta','La persona podrá leer, pero no publicar, comentar ni cambiar su canal. Deja los días vacíos para una suspensión sin fecha.',[{k:'days',l:'Días',type:'number',min:1},{k:'reason',l:'Motivo'}],'Suspender',true,v=>act('suspender',{user:id,days:v.days?Number(v.days):null,reason:v.reason},refresh,'Cuenta suspendida'))},svg('shield'),'Suspender'),
+     h('button',{class:'b',onclick:()=>{S.cont={author:u.username};go('contenido')}},'Ver en Contenido'),
+     h('button',{class:'b bad',onclick:()=>ask('Eliminar cuenta',`Se borran la cuenta de @${u.username} y todo lo que publicó. No se puede recuperar. Si te lo pueden pedir como prueba, descarga antes su historial.`,[{k:'confirm',l:`Escribe ${u.username} para confirmar`,req:true}],'Eliminar cuenta',true,v=>act('eliminar_cuenta',{user:id,confirm:v.confirm},()=>go('usuarios'),'Cuenta eliminada'))},'Eliminar cuenta')))),
+   h('section',{class:'panel'},tb,pane));
+  showTab(P.tab)},
+ async contenido(){const st=S.cont;const box=h('div',{class:'items'},[1,2,3].map(()=>h('div',{class:'skel'})));
+  const load=async()=>{const r=await call('contenido',{...st,from:st.from?st.from+'T00:00:00-05:00':'',to:st.to?st.to+'T23:59:59-05:00':'',limit:30,offset:st.offset||0});st.lim=30;const sel=$('#c-m');if(sel&&sel.options.length<=1){r.municipios.filter(Boolean).forEach(m=>sel.append(h('option',{value:m},m)));sel.value=st.municipio||''}box.replaceChildren(r.rows.length?r.rows.map(i=>itemCard(i,load)):h('p',{class:'empty'},'Nada coincide con estos filtros.'),pager(st,r.total,load))};
+  const reload=()=>{st.offset=0;load().catch(x=>toast(cleanErr(x)))};let t;const deb=(k,ms)=>e=>{clearTimeout(t);t=setTimeout(()=>{st[k]=e.target.value.trim();reload()},ms||350)};
+  const KO=[['todos','Todo'],['publicacion','Publicaciones'],['comentario_feed','Comentarios'],['canal_feed','Canales'],['noticia','Noticias (app anterior)'],['pregunta','Preguntas']];
+  const setK=k=>{st.kind=k;kc.replaceWith(kc=chips(KO,k,setK));reload()};let kc=chips(KO,st.kind||'todos',setK);
+  const TO=[['todos','Cualquiera'],['con_archivos','Con fotos o video'],['anclado','Ancladas'],['ultima_hora','Última hora']];
+  const setT=k=>{st.tipo=k;tc.replaceWith(tc=chips(TO,k,setT));reload()};let tc=chips(TO,st.tipo||'todos',setT);
+  $('#main').replaceChildren(h('div',{class:'head'},h('div',null,h('h1',null,'Contenido'),h('p',{class:'muted'},'Todo lo publicado en Yasupo, lo más nuevo primero.'))),kc,
+   h('div',{class:'filters'},h('label',{class:'f',for:'c-q',style:'flex:2 1 220px'},'Palabra',h('input',{id:'c-q',type:'search',value:st.q||'',oninput:deb('q')})),h('label',{class:'f',for:'c-a'},'Usuario',h('input',{id:'c-a',value:st.author||'',oninput:deb('author')})),h('label',{class:'f',for:'c-ip'},'IP',h('input',{id:'c-ip',class:'mono',value:st.ip||'',oninput:deb('ip',500)})),h('label',{class:'f',for:'c-m'},'Lugar',h('select',{id:'c-m',onchange:e=>{st.municipio=e.target.value;reload()}},h('option',{value:''},'Todos'))),h('label',{class:'f',for:'c-f'},'Desde',h('input',{id:'c-f',type:'date',value:st.from||'',onchange:e=>{st.from=e.target.value;reload()}})),h('label',{class:'f',for:'c-to'},'Hasta',h('input',{id:'c-to',type:'date',value:st.to||'',onchange:e=>{st.to=e.target.value;reload()}}))),tc,box);await load()},
+ async ip(){const st=S.ipq;const box=h('section',{class:'panel'},h('div',{class:'skel'}));
+  const load=async()=>{const r=await call('ips',{q:st.q,min_users:st.min});const mx=Math.max(1,...r.map(x=>x.users));
+   box.replaceChildren(r.length?h('div',{class:'scroll'},h('table',null,h('thead',null,h('tr',null,['Dirección IP','Cuentas','Quiénes','Publicó','Ingresos','Última vez','Acciones'].map(t=>h('th',null,t)))),h('tbody',null,r.map(x=>h('tr',{class:x.users>1?'hot':null},h('td',{class:'mono'},x.ip),h('td',null,h('div',{class:'row',style:'flex-wrap:nowrap'},h('b',{style:'min-width:18px'},x.users),h('div',{class:'bar'+(x.users>1?' bad':''),style:'width:90px'},h('i',{style:`width:${x.users/mx*100}%`})))),h('td',null,h('div',{class:'row',style:'flex-wrap:nowrap'},h('div',{class:'stack'},x.usernames.slice(0,5).map(u=>av(u,'sm'))),h('span',{class:'small'},x.usernames.slice(0,3).map(u=>'@'+u).join(', ')+(x.usernames.length>3?` y ${x.usernames.length-3} más`:'')))),h('td',null,n(x.posts)),h('td',null,n(x.logins)),h('td',null,ago(x.last_seen)),
+     h('td',null,h('div',{class:'row',style:'flex-wrap:nowrap'},h('button',{class:'b mini',onclick:()=>{S.users={ip:x.ip};go('usuarios')}},'Cuentas'),h('button',{class:'b mini',onclick:()=>{S.cont={ip:x.ip};go('contenido')}},'Publicaciones'),h('button',{class:'b mini pri',onclick:()=>exportAsk(`Historial de la IP ${x.ip}`,{type:'ip',ip:x.ip})},svg('dl'),'Historial')))))))):h('p',{class:'empty'},st.min>1?'Ninguna IP tiene varias cuentas.':'Todavía no hay direcciones registradas.'))};
+  const setM=k=>{st.min=k;mc.replaceWith(mc=chips([[2,'Con varias cuentas'],[1,'Todas']],k,setM));load().catch(x=>toast(cleanErr(x)))};let mc=chips([[2,'Con varias cuentas'],[1,'Todas']],st.min,setM);
+  let t;$('#main').replaceChildren(h('div',{class:'head'},h('div',null,h('h1',null,'Direcciones IP'),h('p',{class:'muted'},'Cuántas cuentas entran o publican desde la misma conexión. En rojo, las compartidas.'))),
+   h('div',{class:'filters'},h('label',{class:'f',for:'i-q'},'Buscar IP',h('input',{id:'i-q',class:'mono',value:st.q,placeholder:'Ej. 190.7',oninput:e=>{clearTimeout(t);t=setTimeout(()=>{st.q=e.target.value.trim();load().catch(x=>toast(cleanErr(x)))},400)}}))),mc,box,
+   h('p',{class:'muted small'},'Varias cuentas en una IP no siempre son la misma persona: una casa, una oficina o una red móvil comparten dirección.'));await load()},
+ async buscar(){const q=S.gq;const isIp=/[.:]/.test(q)&&/^[0-9a-f.:]+$/i.test(q);
+  const [us,ct]=await Promise.all([call('usuarios',isIp?{ip:q,limit:24}:{q,limit:24}),call('contenido',isIp?{ip:q,limit:30}:{q,limit:30})]);
+  const reload=()=>go('buscar');
+  $('#main').replaceChildren(h('div',{class:'head'},h('div',null,h('h1',null,`Resultados para «${q}»`),h('p',{class:'muted'},`${n(us.total)} ${us.total===1?'usuario':'usuarios'} · ${n(ct.total)} publicaciones y comentarios`)),isIp?h('button',{class:'b pri',onclick:()=>exportAsk(`Historial de la IP ${q}`,{type:'ip',ip:q})},svg('dl'),'Historial de esta IP'):null),
+   h('h2',null,'Usuarios'),us.rows.length?h('div',{class:'ucards'},us.rows.map(userCard)):h('p',{class:'empty'},'Ningún usuario.'),
+   h('h2',null,'Publicaciones, comentarios y canales'),ct.rows.length?h('div',{class:'items'},ct.rows.map(i=>itemCard(i,reload))):h('p',{class:'empty'},'Nada publicado coincide.'))},
+ async anclados(){const r=await call('anclados');
+  const lst=(title,kind,arr,hint,pick)=>h('section',{class:'panel'},h('div',{class:'ph'},h('h2',null,title),h('button',{class:'b mini sun',onclick:pick},svg('pin'),'Anclar otro')),h('p',{class:'muted small'},hint),arr.length?h('div',{class:'feed'},arr.map(x=>h('div',{class:'fi',style:'align-items:center;flex-wrap:wrap'},h('span',{class:'pill sun'},`Puesto ${x.pin_rank}`),h('div',{class:'tx'},h('b',null,x.title)),h('div',{class:'row'},h('button',{class:'b mini',disabled:x.pin_rank<=1,'aria-label':'Subir',onclick:()=>act('anclar',{kind,id:x.id,rank:x.pin_rank-1},()=>go('anclados'),'Puesto actualizado')},'↑'),h('button',{class:'b mini','aria-label':'Bajar',onclick:()=>act('anclar',{kind,id:x.id,rank:x.pin_rank+1},()=>go('anclados'),'Puesto actualizado')},'↓'),h('button',{class:'b mini',onclick:()=>pinAsk(kind,x.id,x.title,x.pin_rank,()=>go('anclados'))},'Elegir puesto'),h('button',{class:'b mini bad',onclick:()=>act('anclar',{kind,id:x.id,rank:null},()=>go('anclados'),'Desanclado')},'Quitar'))))):h('p',{class:'empty'},'Nada anclado todavía.'));
+  $('#main').replaceChildren(h('div',{class:'head'},h('div',null,h('h1',null,'Anclados'),h('p',{class:'muted'},'Lo que fijas aquí sale en su puesto exacto en Yasupo, al instante.'))),
+   h('div',{class:'grid2'},lst('Publicaciones en el inicio','post',r.feed.filter(x=>x.type==='post'),'Pestaña Todo del inicio, sin buscar ni filtrar por lugar.',()=>{S.cont={kind:'publicacion'};go('contenido')}),lst('Canales de la comunidad','channel',r.feed.filter(x=>x.type==='channel'),'Salen primero en Canales y perfiles de la comunidad.',()=>{S.cont={kind:'canal_feed'};go('contenido')})),
+   r.news.length||r.spaces.length?h('div',{class:'grid2'},lst('Noticias de la app anterior','noticia',r.news,'Solo se ven en la app anterior, no en yasupo.com.',()=>{S.cont={kind:'noticia'};go('contenido')}),lst('Espacios de la app anterior','espacio',r.spaces,'Solo se ven en la app anterior.',()=>{S.cont={kind:'espacios'};go('contenido')})):null)},
+ async alertas(){const r=await call('alertas');let lvl='aviso',aud='todos';
+  const prev=h('div',{class:'item',style:'--k:var(--brand)'});
+  const upd=()=>{const t=$('#a-t').value.trim()||'Título de la alerta',b=$('#a-b').value.trim();prev.style.setProperty('--k',lvl==='alarma'?'var(--danger)':'var(--brand)');prev.style.background=lvl==='alarma'?'var(--danger)':'';prev.style.color=lvl==='alarma'?'var(--danger-ink)':'';prev.replaceChildren(h('span',{style:'font-size:26px'},lvl==='alarma'?'🚨':'📣'),h('strong',{style:'font:800 20px var(--display)'},t),b?h('p',null,b):null,h('span',{class:'small',style:'opacity:.8'},'Así la verá la gente en Yasupo'))};
+  const lc=()=>chips([['aviso','📣 Aviso'],['alarma','🚨 Alarma']],lvl,k=>{lvl=k;l.replaceWith(l=lc());upd()});let l=lc();
+  const ac=()=>chips([['todos','Todos, con o sin cuenta'],['usuarios','Solo con cuenta'],['usuario','Una persona']],aud,k=>{aud=k;a.replaceWith(a=ac());$('#a-uw').hidden=k!=='usuario';$('#a-u').required=k==='usuario'});let a=ac();
+  const form=h('form',{class:'panel',onsubmit:e=>{e.preventDefault();const d={title:$('#a-t').value.trim(),body:$('#a-b').value.trim(),level:lvl,audience:aud,username:aud==='usuario'?$('#a-u').value.trim():null,hours:Number($('#a-h').value)};ask(lvl==='alarma'?'Enviar alarma':'Enviar aviso',`«${d.title}» llegará de inmediato a ${aud==='todos'?'todas las personas en Yasupo':aud==='usuarios'?'todas las cuentas':'@'+d.username}. No se puede retirar de las notificaciones ya recibidas.`,[],'Enviar ahora',lvl==='alarma',()=>act('enviar_alerta',d,()=>go('alertas'),'Alerta enviada'))}},
+   h('h2',null,'Nueva alerta'),l,h('label',{class:'f',for:'a-t'},'Título',h('input',{id:'a-t',required:true,minlength:3,maxlength:80,oninput:upd})),h('label',{class:'f',for:'a-b'},'Mensaje',h('textarea',{id:'a-b',maxlength:500,oninput:upd})),h('span',{class:'muted small'},'Para'),a,h('label',{class:'f',for:'a-u',id:'a-uw',hidden:true},'Usuario',h('input',{id:'a-u',placeholder:'@usuario'})),h('label',{class:'f',for:'a-h'},'Se muestra durante',h('select',{id:'a-h'},h('option',{value:6},'6 horas'),(()=>{const o=h('option',{value:24},'24 horas');o.selected=true;return o})(),h('option',{value:72},'3 días'),h('option',{value:168},'7 días'))),h('button',{class:'b sun',style:'justify-self:start'},svg('bell'),'Revisar y enviar'));
+  $('#main').replaceChildren(h('div',{class:'head'},h('div',null,h('h1',null,'Alertas'),h('p',{class:'muted'},'Llegan al instante a quien tenga Yasupo abierto, y como notificación a quien las activó.'))),
+   h('div',{class:'grid2'},form,h('section',{class:'panel'},h('h2',null,'Vista previa'),prev)),
+   h('section',{class:'panel'},h('h2',null,'Enviadas'),r.length?h('div',{class:'feed'},r.map(x=>h('div',{class:'fi',style:'align-items:center;flex-wrap:wrap'},h('span',{class:'pill '+(x.level==='alarma'?'bad':'brand')},x.level==='alarma'?'🚨 Alarma':'📣 Aviso'),h('div',{class:'tx'},h('b',null,x.title),h('p',{class:'muted small'},ago(x.created_at),' · ',x.audience==='todos'?'Todos':x.audience==='usuarios'?'Con cuenta':'@'+x.username)),x.active?h('button',{class:'b mini',onclick:()=>act('terminar_alerta',{id:x.id},()=>go('alertas'),'Alerta terminada')},'Terminar'):h('span',{class:'pill'},'Terminada')))):h('p',{class:'empty'},'Aún no has enviado alertas.')));upd()},
+ async registro(){const r=await call('registro');$('#main').replaceChildren(h('div',{class:'head'},h('div',null,h('h1',null,'Registro'),h('p',{class:'muted'},'Todo lo que se hace desde este panel queda anotado.'))),h('section',{class:'panel'},r.length?h('div',{class:'feed'},r.map(a=>h('div',{class:'fi'},h('span',{class:'dot',style:`--k:${/Elimin/.test(a.action)?'var(--danger)':/Suspend/.test(a.action)?'var(--c3)':/Ancl/.test(a.action)?'var(--sun)':'var(--brand)'}`}),h('div',{class:'tx'},h('p',null,h('b',null,a.action),' · ',a.target),a.detail&&a.detail.sha256?h('p',{class:'muted small mono'},'SHA-256 '+a.detail.sha256):a.detail&&a.detail.motivo?h('p',{class:'muted small'},'Motivo: '+a.detail.motivo):null),h('span',{class:'muted small',style:'white-space:nowrap'},fmt(a.created_at))))):h('p',{class:'empty'},'Aún no hay acciones registradas.')))}
 };
 async function boot(){
- block('Conectando con Plaza','Abriendo la conexión con Supabase.');
+ block('Conectando con Yasupo','Abriendo la conexión con Supabase.');
  const user=await window.claude?.use('user');
- if(user&&!user.isOwner())return block('Sin acceso','Este panel es solo para el dueño de Plaza.');
+ if(user&&!user.isOwner())return block('Sin acceso','Este panel es solo para el dueño de Yasupo.');
  S.mcp=await window.claude?.use('mcp');
  if(!S.mcp)return block('Abre este panel en Claude','El panel usa tu conexión de Supabase en Claude y no funciona fuera de aquí.');
- try{await call('resumen')}catch(e){return connError(e)}
+ try{await call('anclados')}catch(e){return connError(e)}
  go('resumen');
 }
 boot();
