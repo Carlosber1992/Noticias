@@ -235,6 +235,24 @@ aside{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 92px);ov
 .near-btn .near-label{overflow:hidden;text-overflow:ellipsis}
 .near-btn.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .km-val{color:var(--accent)}
+.av-img{object-fit:cover;padding:0;background:var(--surface-2)}
+.photo-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.photo-row label.btn{cursor:pointer}
+.kind-tabs{display:flex;gap:6px;margin:4px 0 8px;overflow-x:auto;scrollbar-width:none}
+.kind-tab{padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);white-space:nowrap;font-weight:600;font-size:14px}
+.kind-tab.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+[data-kind] .k-quick,[data-kind] .k-article,[data-kind] .k-classified{display:none}
+[data-kind=quick] .k-quick,[data-kind=article] .k-article,[data-kind=classified] .k-classified{display:inline}
+[data-kind=quick] .only-article,[data-kind=classified] .only-article{display:none}
+[data-kind=quick] .only-classified,[data-kind=article] .only-classified{display:none}
+[data-kind=classified] .not-classified{display:none}
+.price-row{display:flex;gap:8px}.price-row select{flex:none}.price-row input{flex:1;min-width:0}
+.check{display:flex;align-items:center;gap:8px;font-weight:400!important;margin-top:6px}
+.price{font-size:20px;font-weight:800;color:var(--accent);margin-bottom:4px}
+.price small{font-size:12px;font-weight:600;color:var(--muted)}
+.price .cond{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted);vertical-align:middle}
+.reader-price{margin:12px 0 4px;padding:14px;border-radius:14px;background:var(--surface-2)}
+.reader-price .price{font-size:26px}
 .handle-input{display:flex;align-items:center;background:var(--surface-2);border-radius:10px;border:1px solid transparent;padding-left:12px}
 .handle-input:focus-within{border-color:var(--accent)}
 .handle-input span{color:var(--muted);white-space:nowrap}
@@ -534,11 +552,11 @@ function rebuildIndex(){
     let ch;
     if (c && c.name){
       ch = {id: userChannelId(uid), owner: uid, community: true, name: String(c.name).slice(0, 40), cat: safeCat(c.cat),
-        about: String(c.about || '').slice(0, 200), color: safeColor(c.color), emoji: safeEmoji(c.emoji), createdAt: c.createdAt};
+        about: String(c.about || '').slice(0, 200), color: safeColor(c.color), emoji: safeEmoji(c.emoji), photo: cleanPhoto(c.photo), createdAt: c.createdAt};
       if (uid !== S.uid) names.add(ch.name.toLowerCase());
     } else if (posts.length){
       ch = {id: userChannelId(uid), owner: uid, community: true, personal: true, name: String(acc.alias || 'Usuario').slice(0, 24),
-        cat: safeCat(posts[0].cat), about: String(acc.bio || '').slice(0, 160), color: colorFor(uid), emoji: '👤', createdAt: acc.createdAt};
+        cat: safeCat(posts[0].cat), about: String(acc.bio || '').slice(0, 160), color: colorFor(uid), emoji: '👤', photo: cleanPhoto(acc.photo), createdAt: acc.createdAt};
     } else continue;
     chs[ch.id] = ch;
     for (const p of posts){
@@ -549,7 +567,12 @@ function rebuildIndex(){
       items['p_' + p.id] = {id: 'p_' + p.id, pid: p.id, ch, cat, owner: uid, community: true, type: isVideo ? 'video' : 'article',
         title: String(p.title || '').slice(0, 120), excerpt: String(p.excerpt || body[0] || '').slice(0, 220),
         body, emoji: safeEmoji(p.emoji || ch.emoji), grad: [ch.personal ? styleOf(cat).g[1] : ch.color, styleOf(cat).g[0]], media, link: cleanLink(p.link), linkImage: p.link ? cleanLink(p.linkImage) : null,
-        mins, badge: isVideo ? '🎬 Vídeo' : media.length ? `📷 ${mins}` : `📄 ${mins}`, ts: Number(p.at) || 0, editedAt: p.editedAt, geo: cleanGeo(p.geo)};
+        mins, badge: isVideo ? '🎬 Vídeo' : media.length ? `📷 ${mins}` : `📄 ${mins}`, ts: Number(p.at) || 0, editedAt: p.editedAt, geo: cleanGeo(p.geo),
+        kind: kindOf(p), price: Number(p.price) > 0 ? Number(p.price) : null, currency: p.currency === 'USD' ? 'USD' : 'COP', negotiable: !!p.negotiable,
+        condition: CONDITIONS[p.condition] ? CONDITIONS[p.condition] : '', contact: String(p.contact || '').replace(/[^\d+ ()-]/g, '').slice(0, 40)};
+      const it = items['p_' + p.id];
+      if (it.kind === 'quick') it.badge = isVideo ? '⚡ Rápida · vídeo' : '⚡ Rápida';
+      if (it.kind === 'classified') it.badge = '🏷️ Clasificado';
     }
   }
   S.communityChannels = chs; S.communityItems = items; S.channelNames = names;
@@ -626,6 +649,7 @@ const API = {
     rebuildIndex(); render();
   },
   async afterAuth(){
+    try { const {data, error} = await sb.auth.getUser(); if (error || !data?.user){ await sessionGone(); return false; } } catch {}
     try { const r = await sb.rpc('ys_ensure_handle'); if (r.data){ S.handles[S.uid] = r.data; S.byHandle[r.data] = S.uid; } } catch {}
     try { await sb.rpc('plaza_touch'); } catch {}
     Alerts.refreshPush();
@@ -649,6 +673,7 @@ const API = {
     };
   },
   onWriteError(e){
+    if (e && (e.code === '23503' || /no es válida porque esa cuenta/i.test(String(e.message || '')))){ sessionGone(); return; }
     if (e && /suspendida/i.test(String(e.message || ''))) toast('Tu cuenta está suspendida. No puedes publicar ni cambiar nada por ahora.');
     else if (e && e.code === '23514') toast('Tu canal ha llegado al límite de espacio. Borra publicaciones antiguas.');
     else if (e && (e.code === '42501' || e.status === 401 || e.status === 403)) toast('Tu sesión ha caducado. Vuelve a entrar.');
@@ -765,13 +790,13 @@ const Actions = {
     try { await API.db.doc(`channels/${uid}`).delete(); toast((S.posts[uid] || []).length ? 'Canal eliminado. Tus publicaciones siguen en tu perfil personal.' : 'Canal eliminado'); }
     catch (e){ API.onWriteError(e); } },
 
-  publish({pid, title, excerpt, body, emoji, media, link, geo, cat}){
+  publish({pid, title, excerpt, body, emoji, media, link, geo, cat, kind, price, currency, negotiable, condition, contact}){
     const list = (S.posts[S.uid] || []).slice();
     let post;
     if (pid){ const i = list.findIndex(p => p.id === pid); if (i < 0) return 'Esta publicación ya no existe.';
-      post = {...list[i], title, excerpt, body, emoji, media, link, geo, cat, editedAt: Date.now()}; list[i] = post; }
+      post = {...list[i], title, excerpt, body, emoji, media, link, geo, cat, kind, price, currency, negotiable, condition, contact, editedAt: Date.now()}; list[i] = post; }
     else { if (list.length >= MAX_POSTS) return `Puedes tener hasta ${MAX_POSTS} publicaciones. Borra alguna para publicar otra.`;
-      post = {id: newId(), title, excerpt, body, emoji, media, link, geo, cat, at: Date.now()}; list.unshift(post); }
+      post = {id: newId(), title, excerpt, body, emoji, media, link, geo, cat, kind, price, currency, negotiable, condition, contact, at: Date.now()}; list.unshift(post); }
     if (bytes({items: list}) > MAX_DOC) return 'Tu canal ha llegado al límite de espacio. Acorta el texto o borra publicaciones antiguas.';
     S.posts[S.uid] = list; rebuildIndex(); savePostsOf(S.uid);
     toast(pid ? 'Publicación actualizada' : '¡Publicado! Ya está en el feed.');
@@ -811,7 +836,9 @@ function visibleIds(){
   ids = ids.filter(id => item(id));
   if (S.view === 'feed') ids = ids.filter(id => !dis.has(id));
   if (S.cat === 'Vídeos') ids = ids.filter(id => item(id).type === 'video');
-  else if (S.cat === 'Artículos') ids = ids.filter(id => item(id).type === 'article');
+  else if (S.cat === 'Artículos') ids = ids.filter(id => item(id).type === 'article' && (item(id).kind || 'article') === 'article');
+  else if (S.cat === 'Clasificados') ids = ids.filter(id => item(id).kind === 'classified' || item(id).cat === 'Clasificados');
+  else if (S.cat === 'Rápidas') ids = ids.filter(id => item(id).kind === 'quick');
   else if (S.cat === 'Comunidad') ids = ids.filter(id => item(id).community);
   else if (S.cat !== 'Todo') ids = ids.filter(id => { const c = item(id).cat || item(id).ch.cat; return c === S.cat || catGroup(c).n === S.cat; });
   if (S.q){ const q = S.q.toLowerCase(); ids = ids.filter(id => { const i = item(id); const c = i.cat || i.ch.cat; return normCat(i.title + ' ' + i.ch.name + ' ' + c + ' ' + catGroup(c).n).includes(normCat(q)); }); }
@@ -842,6 +869,14 @@ function withPins(ids, pins){
 }
 const isInfinite = () => DEMO_CHANNELS.length > 0 && S.view === 'feed' && !S.q && S.cat !== 'Comunidad' && !S.near;
 
+/** La cuenta de esta sesión ya no existe (por ejemplo, se eliminó): se cierra la sesión sin errores raros. */
+async function sessionGone(){
+  try { await sb.auth.signOut({scope: 'local'}); } catch {}
+  S.uid = null; S.isOwner = false; S.recovery = null; S.saved = new Set(local.get('saved-guest', []));
+  closeModal(); rebuildIndex(); render();
+  toast('Tu sesión terminó porque esa cuenta ya no existe. Entra o crea una cuenta nueva.');
+}
+
 /* ---------- Direcciones propias: yasupo.com/<direccion> ---------- */
 S.handles = {}; S.byHandle = {};
 const SITE = 'yasupo.com';
@@ -860,6 +895,7 @@ function handleProblem(h, own){
 async function saveHandle(h){
   if (h === handleOf(S.uid)) return '';
   const {data, error} = await sb.rpc('ys_set_handle', {p_handle: h});
+  if (error && (error.code === '23503' || /no es válida porque esa cuenta/i.test(error.message || ''))){ sessionGone(); return 'Tu sesión ya no es válida. Entra de nuevo o crea una cuenta.'; }
   if (error) return (error.message || '').replace(/^.*?: /, '') || 'No se pudo guardar la dirección.';
   const old = handleOf(S.uid); if (old) delete S.byHandle[old];
   S.handles[S.uid] = data; S.byHandle[data] = S.uid;
@@ -897,8 +933,10 @@ window.addEventListener('popstate', () => routeFromUrl(false));
    7. COMPONENTES
    ============================================================ */
 const avatarHTML = (letter, color, cls = '') => `<span class="avatar ${cls}" style="background:${color}">${esc(letter)}</span>`;
-const chAvatar = (ch, cls) => ch.personal ? avatarHTML(ch.name[0], ch.color, cls) : ch.community ? `<span class="avatar ${cls || ''}" style="background:${ch.color}">${ch.emoji}</span>` : avatarHTML(ch.name[0], ch.color, cls);
-const userAvatar = (uid, cls) => { const a = S.accounts[uid]; return avatarHTML(a?.alias?.[0] || '?', colorFor(uid), cls); };
+const cleanPhoto = id => /^[A-Za-z0-9_-]{8,80}$/.test(String(id || '')) ? String(id) : null;
+const photoHTML = (id, cls = '') => `<img class="avatar av-img ${cls}" src="${blobUrl(id)}" alt="" loading="lazy">`;
+const chAvatar = (ch, cls) => ch.photo ? photoHTML(ch.photo, cls) : ch.personal ? avatarHTML(ch.name[0], ch.color, cls) : ch.community ? `<span class="avatar ${cls || ''}" style="background:${ch.color}">${ch.emoji}</span>` : avatarHTML(ch.name[0], ch.color, cls);
+const userAvatar = (uid, cls) => { const a = S.accounts[uid], ph = cleanPhoto(a?.photo); return ph ? photoHTML(ph, cls) : avatarHTML(a?.alias?.[0] || '?', colorFor(uid), cls); };
 const userName = uid => S.accounts[uid]?.alias || 'Usuario eliminado';
 const canModerate = it => it.community && (it.owner === S.uid || S.isOwner);
 
@@ -914,6 +952,14 @@ function reactionsHTML(i){
   return `<button class="act ${liked ? 'on' : ''}" data-act="like" data-id="${i.id}" aria-pressed="${liked}" title="Me gusta">👍 ${fmt(S.idx.likes[i.id] || 0)}</button>
     <button class="act ${disliked ? 'on' : ''}" data-act="dislike" data-id="${i.id}" aria-pressed="${disliked}" title="No me gusta">👎 ${fmt(S.idx.dislikes[i.id] || 0)}</button>`;
 }
+function priceBlock(i){
+  return `<div class="price">${i.price ? priceText(i.price, i.currency) : 'A convenir'}${i.price && i.negotiable ? ' <small>negociable</small>' : ''}${i.condition ? ` <span class="cond">${esc(i.condition)}</span>` : ''}</div>`;
+}
+/** Enlace de WhatsApp para el contacto del clasificado (10 dígitos que empiezan por 3 = celular colombiano). */
+function waLink(i){
+  let d = i.contact.replace(/\D/g, ''); if (/^3\d{9}$/.test(d)) d = '57' + d;
+  return d.length >= 10 ? `https://wa.me/${d}?text=${encodeURIComponent(`Hola, vi tu anuncio «${i.title}» en Yasupo.`)}` : null;
+}
 function cardHTML(i){
   const saved = S.saved.has(i.id), nCom = (S.idx.byItem[i.id] || []).length;
   return `<article class="card">
@@ -926,7 +972,7 @@ function cardHTML(i){
     <div class="thumb" data-act="open" data-id="${i.id}" style="background:linear-gradient(135deg,${i.grad[0]},${i.grad[1]})">
       ${coverInner(i)}<span class="badge">${S.pins.post[i.id] && S.view === 'feed' ? '📌 Anclada · ' : ''}${i.badge || (i.type === 'video' ? i.mins : '📄 ' + i.mins)}</span>
     </div>
-    <div class="card-body" data-act="open" data-id="${i.id}"><h3>${esc(i.title)}</h3><p>${esc(i.excerpt)}</p><button class="cat-chip" data-act="cat-chip" data-cat="${esc(i.cat || i.ch.cat)}">${catGroup(i.cat || i.ch.cat).i} ${esc(i.cat || i.ch.cat)}</button>${i.geo ? `<span class="geo-line">📍 ${esc(geoLabel(i.geo))}${distLabel(i)}</span>` : ''}${i.link ? `<span class="card-link">🔗 ${esc(hostOf(i.link))}</span>` : ''}</div>
+    <div class="card-body" data-act="open" data-id="${i.id}">${i.kind === 'classified' ? priceBlock(i) : ''}<h3>${esc(i.title)}</h3><p>${esc(i.excerpt)}</p><button class="cat-chip" data-act="cat-chip" data-cat="${esc(i.cat || i.ch.cat)}">${catGroup(i.cat || i.ch.cat).i} ${esc(i.cat || i.ch.cat)}</button>${i.geo ? `<span class="geo-line">📍 ${esc(geoLabel(i.geo))}${distLabel(i)}</span>` : ''}${i.link ? `<span class="card-link">🔗 ${esc(hostOf(i.link))}</span>` : ''}</div>
     <div class="card-foot">
       ${reactionsHTML(i)}
       <button class="act" data-act="open" data-id="${i.id}" title="Comentarios">💬 ${fmt(nCom)}</button>
@@ -1014,9 +1060,9 @@ function renderFeedPage(){
     : needsLogin ? `<div class="empty">Crea tu cuenta para ver aquí ${S.view === 'liked' ? 'lo que te gusta' : 'los canales que sigues'}.<br><br>${API.online() ? '<button class="btn" data-act="signup">Crear cuenta</button>' : ''}</div>`
     : `<div class="empty">${S.cat === 'Comunidad' ? 'La comunidad todavía no ha publicado nada. ¡Anímate a ser la primera persona!' : S.view === 'following' ? 'Aún no sigues ningún canal, o no tienen publicaciones con este filtro.' : S.view === 'feed' && !S.q && S.cat === 'Todo' && !S.near ? `Yasupo está empezando y todavía no hay publicaciones.<br>¿Ya supo algo? Cuéntalo primero.<br><br><button class="btn" data-act="compose">✍️ Publicar</button>` : 'Aquí todavía no hay nada.'}</div>`;
   const showShorts = SHORTS.length > 0 && S.view === 'feed' && !S.q && S.cat === 'Todo' && !S.near;
-  const tabs = ['Todo', 'Comunidad', 'Artículos', 'Vídeos', ...(CAT_SET.has(S.cat) && !GROUP_BY_NAME[S.cat] ? [S.cat] : []), ...(S.view === 'channel' ? [] : CAT_GROUPS.map(g => g.n))].filter(t => !(S.view === 'channel' && t === 'Comunidad'));
+  const tabs = ['Todo', 'Clasificados', 'Rápidas', 'Comunidad', 'Artículos', 'Vídeos', ...(CAT_SET.has(S.cat) && !GROUP_BY_NAME[S.cat] && S.cat !== 'Clasificados' ? [S.cat] : []), ...(S.view === 'channel' ? [] : CAT_GROUPS.map(g => g.n))].filter(t => !(S.view === 'channel' && t === 'Comunidad'));
   $('#main').innerHTML = `${statusBanner()}${head}
-    <div class="tabs">${tabs.map(c => `<button class="tab ${c === S.cat ? 'active' : ''}" data-act="cat" data-cat="${c}">${c === 'Comunidad' ? '🌱 Comunidad' : GROUP_BY_NAME[c] ? GROUP_BY_NAME[c].i + ' ' + c : CAT_SET.has(c) ? '🏷️ ' + c : c}</button>`).join('')}</div>
+    <div class="tabs">${tabs.map(c => `<button class="tab ${c === S.cat ? 'active' : ''}" data-act="cat" data-cat="${c}">${c === 'Comunidad' ? '🌱 Comunidad' : c === 'Clasificados' ? '🏷️ Clasificados' : c === 'Rápidas' ? '⚡ Rápidas' : GROUP_BY_NAME[c] ? GROUP_BY_NAME[c].i + ' ' + c : CAT_SET.has(c) ? '🏷️ ' + c : c}</button>`).join('')}</div>
     ${showShorts ? `<div class="section-h"><h2>Clips</h2></div><div class="shorts">${SHORTS.map(s => `<button class="short" data-act="short" style="background:linear-gradient(160deg,${s.g[1]},${s.g[0]})"><span class="emoji">${s.emoji}</span><b>${esc(s.title)}</b><small>${esc(s.ch.name)}</small></button>`).join('')}</div>` : ''}
     <div class="section-h"><h2>${S.q ? `Resultados para “${esc(S.q)}”` : S.view === 'channel' ? 'Publicaciones' : titles[S.view]}${S.near ? ` <small class="muted" style="font-size:14px;font-weight:400">📍 ${S.near.radius <= 25 ? 'en' : 'a menos de ' + kmText(S.near.radius) + ' de'} ${esc(CITY_BY_ID[S.near.city].name)}</small>` : ''}</h2></div>
     <div class="feed">${list.map(cardHTML).join('') || empty}</div>
@@ -1053,6 +1099,9 @@ function renderAccountPage(){
     </section>
     <section class="panel"><h2 style="margin-top:0">Editar perfil</h2>
       <form data-form="profile">
+        <div class="field"><label>Foto de perfil</label><div class="photo-row">${userAvatar(S.uid, 'lg')}
+          <label class="btn small ghost">📷 ${a.photo ? 'Cambiar foto' : 'Subir foto'}<input type="file" accept="image/jpeg,image/png,image/webp" hidden data-photo="user"></label>
+          ${a.photo ? '<button type="button" class="btn small ghost" data-act="photo-remove" data-target="user">Quitar</button>' : ''}</div></div>
         <div class="field"><label for="pAlias">Alias</label><input id="pAlias" name="alias" value="${esc(a.alias)}" maxlength="24" required><small>Es el nombre que verán las demás personas.</small></div>
         <div class="field"><label for="pBio">Sobre ti</label><textarea id="pBio" name="bio" rows="2" maxlength="160">${esc(a.bio || '')}</textarea></div>
         ${handleField('pHandle', handleOf(S.uid))}
@@ -1088,7 +1137,8 @@ function renderReader(){
       <div class="reader-in">
         <div class="card-head" style="padding:0" id="rHead"></div>
         <h1>${esc(i.title)}</h1>
-        <small class="muted">${timeAgo(i.ts)}${i.editedAt ? ' · editado' : ''} · ${i.type === 'video' ? 'Vídeo de ' + i.mins : 'Lectura de ' + i.mins}</small>
+        <small class="muted">${timeAgo(i.ts)}${i.editedAt ? ' · editado' : ''} · ${i.kind === 'classified' ? '🏷️ Clasificado' : i.kind === 'quick' ? '⚡ Noticia rápida' : i.type === 'video' ? 'Vídeo de ' + i.mins : 'Lectura de ' + i.mins}</small>
+        ${i.kind === 'classified' ? `<div class="reader-price">${priceBlock(i)}${i.contact ? `<div class="row-actions" style="margin-top:10px">${waLink(i) ? `<a class="btn" href="${esc(waLink(i))}" target="_blank" rel="noopener">💬 Escribir por WhatsApp</a>` : ''}<a class="btn ghost" href="tel:${esc(i.contact.replace(/[^\d+]/g, ''))}">📞 ${esc(i.contact)}</a></div>` : '<small class="muted">Escribe un comentario para preguntar por este anuncio.</small>'}</div>` : ''}
         ${i.geo ? `<div class="geo-line">📍 ${esc(geoLabel(i.geo, true))}${distLabel(i)}</div>` : ''}
         ${i.body.map(p => `<p style="white-space:pre-line">${esc(p)}</p>`).join('')}
         ${i.link && i.linkImage ? `<a class="link-preview" href="${esc(i.link)}" target="_blank" rel="noopener noreferrer nofollow ugc"><img src="${esc(i.linkImage)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"><span class="lp-in"><small>${esc(hostOf(i.link))}</small><b>Ver la nota completa en ${esc(hostOf(i.link))}</b></span>↗</a>`
@@ -1361,6 +1411,11 @@ function openChannelForm(){
     <form data-form="channel">
       <div class="field"><label for="cName">Nombre del canal</label><input id="cName" name="name" maxlength="40" required value="${esc(c.name || '')}" placeholder="p. ej. Cuaderno de Viaje" autocomplete="off" data-handle-from="cHandle"></div>
       ${handleField('cHandle', handleOf(S.uid))}
+      <div class="field"><label>Foto del canal <span class="muted">(opcional)</span></label><div class="photo-row"><span id="cPhotoPrev">${cleanPhoto(c.photo) ? photoHTML(c.photo, 'lg') : '<span class="avatar lg" style="background:var(--surface-2);color:var(--muted)">📷</span>'}</span>
+        <label class="btn small ghost">📷 Elegir foto<input type="file" accept="image/jpeg,image/png,image/webp" hidden data-photo="channel"></label>
+        <button type="button" class="btn small ghost" data-act="photo-remove" data-target="channel">Quitar</button>
+        <input type="hidden" name="photo" value="${esc(cleanPhoto(c.photo) || '')}"></div>
+        <small>Si no subes una, se usa el icono de abajo.</small></div>
       ${catPicker('cCat', 'Tema principal', safeCat(c.cat || 'General'))}
       <div class="field"><label for="cAbout">Descripción <span class="counter">máx. 200</span></label><textarea id="cAbout" name="about" rows="3" maxlength="200" placeholder="¿De qué trata tu canal?">${esc(c.about || '')}</textarea></div>
       <div class="field"><label>Icono</label><div class="swatches">${EMOJIS.map(e => `<button type="button" class="emoji-pick ${e === emoji ? 'on' : ''}" data-act="pick" data-group="emoji" data-val="${e}">${e}</button>`).join('')}</div></div>
@@ -1414,45 +1469,80 @@ function galleryHTML(i){
 /* ---------- Editor de publicaciones ---------- */
 let draft = null;   // {pid, done, cancelled, fresh:Set, removed:[], media:[{key,id,kind,url,status,msg}]}
 
+const POST_KINDS = {
+  quick: {label: '⚡ Noticia rápida', hint: 'Título, una descripción corta y una foto. Lista en segundos.'},
+  article: {label: '📝 Artículo', hint: 'Una nota completa, con resumen, varios párrafos y enlace.'},
+  classified: {label: '🏷️ Clasificado', hint: 'Vende, compra, arrienda u ofrece algo, con precio y fotos.'},
+};
+const kindOf = p => POST_KINDS[p?.kind] ? p.kind : 'article';
+const QUICK_MAX = 400;
+const priceText = (n, cur) => cur === 'USD' ? 'US$ ' + Number(n).toLocaleString('en-US') : '$ ' + Number(n).toLocaleString('es-CO');
+const CONDITIONS = {nuevo: 'Nuevo', usado: 'Usado', na: ''};
+
 function openComposer(pid){
   if (!needAccount(() => openComposer(pid))) return;
   const ch = S.communityChannels[userChannelId(S.uid)] || {name: me().alias, cat: CATS[0], emoji: '👤', color: colorFor(S.uid), personal: true};
   const p = pid ? (S.posts[S.uid] || []).find(x => x.id === pid) : null;
   if (pid && !p) return toast('Esta publicación ya no existe.');
+  const kind = p ? kindOf(p) : 'quick';
   const emoji = p ? safeEmoji(p.emoji) : ch.emoji;
   const emojis = [...new Set([ch.emoji, ...styleOf(ch.cat).e, ...EMOJIS])];
-  showModal(`<h2>${p ? 'Editar publicación' : 'Nueva publicación'}</h2>
-    <p class="muted" style="margin-top:0">${ch.personal
-      ? `Se publicará en tu perfil (<b>${esc(me().alias)}</b>). No necesitas un canal; si algún día quieres uno, puedes <button type="button" class="link-btn" style="font-size:inherit" data-act="edit-channel">crearlo aquí</button>.`
-      : `Se publicará en tu canal <b>${esc(ch.name)}</b>.`}</p>
-    <form data-form="post" data-pid="${p ? esc(p.id) : ''}">
-      <div class="field"><label>Portada <span class="muted">(opcional)</span></label>
-        <small>Añade hasta ${MAX_PHOTOS} fotos o un vídeo (MP4 o WebM, hasta 20 MB). Toca una foto para ponerla de portada.</small>
+  const defCat = p?.cat || (kind === 'classified' ? 'Compra y venta' : ch.personal ? 'Noticias' : ch.cat);
+  showModal(`<h2>${p ? 'Editar publicación' : '¿Qué quieres publicar?'}</h2>
+    <form data-form="post" data-pid="${p ? esc(p.id) : ''}" data-kind="${kind}">
+      <div class="kind-tabs">${Object.entries(POST_KINDS).map(([k, v]) => `<button type="button" class="kind-tab ${k === kind ? 'on' : ''}" data-act="post-kind" data-kind="${k}">${v.label}</button>`).join('')}</div>
+      <p class="muted kind-hint" style="margin:0 0 12px">${POST_KINDS[kind].hint}</p>
+      <div class="field"><label><span class="k-quick">Foto</span><span class="k-article">Portada</span><span class="k-classified">Fotos de lo que ofreces</span> <span class="muted">(opcional)</span></label>
+        <small>Hasta ${MAX_PHOTOS} fotos o un vídeo (MP4 o WebM, hasta 20 MB). Toca una foto para ponerla de portada.</small>
         ${API.assets
-          ? `<label class="dropzone" id="drop"><input type="file" id="fileIn" accept="${[...IMAGE_TYPES, ...VIDEO_TYPES].join(',')}" multiple hidden>📎 <b>Añadir fotos o un vídeo</b><br><small class="muted">Toca para elegir, o arrastra los archivos aquí</small></label>`
+          ? `<label class="dropzone" id="drop"><input type="file" id="fileIn" accept="${[...IMAGE_TYPES, ...VIDEO_TYPES].join(',')}" multiple hidden>📷 <b>Añadir fotos o un vídeo</b><br><small class="muted">Toca para elegir, o arrastra los archivos aquí</small></label>`
           : `<p class="muted" style="margin:6px 0 0">Con tu nivel de acceso no puedes subir archivos aquí. Puedes usar un icono como portada.</p>`}
         <div class="media-grid" id="mediaGrid"></div>
-        <div id="emojiWrap" style="margin-top:10px"><small class="muted">Sin fotos ni vídeo, la portada será este icono:</small>
+        <div id="emojiWrap" class="only-article" style="margin-top:10px"><small class="muted">Sin fotos ni vídeo, la portada será este icono:</small>
           <div class="swatches" style="margin-top:6px">${emojis.map(e => `<button type="button" class="emoji-pick ${e === emoji ? 'on' : ''}" data-act="pick" data-group="emoji" data-val="${e}">${e}</button>`).join('')}</div></div>
       </div>
-      <div class="field"><label for="pTitle">Título</label><input id="pTitle" name="title" maxlength="120" required value="${esc(p?.title || '')}" placeholder="Un título que invite a leer" autocomplete="off"></div>
-      ${catPicker('pCat', 'Categoría', safeCat(p?.cat || ch.cat))}
-      <div class="field"><label for="pExcerpt">Resumen <span class="muted">(opcional)</span></label><input id="pExcerpt" name="excerpt" maxlength="200" value="${esc(p?.excerpt || '')}" placeholder="Si lo dejas vacío, se usa el primer párrafo"></div>
-      <div class="field"><label for="pBody">Contenido <span class="counter" id="bodyCount"></span></label>
-        <textarea id="pBody" class="big" name="body" maxlength="${MAX_BODY}" placeholder="Escribe aquí tu artículo. Deja una línea en blanco entre párrafos.">${esc(p?.body || '')}</textarea></div>
-      <div class="field"><label for="pLink">Enlace relacionado <span class="muted">(opcional)</span></label>
+      <div class="field"><label for="pTitle">Título</label><input id="pTitle" name="title" maxlength="120" required value="${esc(p?.title || '')}" placeholder="Un título claro" autocomplete="off"></div>
+      <div class="only-classified">
+        <div class="field"><label for="pPrice">Precio</label>
+          <div class="price-row"><select name="currency" aria-label="Moneda"><option value="COP" ${p?.currency !== 'USD' ? 'selected' : ''}>COP $</option><option value="USD" ${p?.currency === 'USD' ? 'selected' : ''}>USD US$</option></select>
+          <input id="pPrice" name="price" inputmode="numeric" autocomplete="off" placeholder="Ej: 1.200.000" value="${p?.price ? Number(p.price).toLocaleString('es-CO') : ''}"></div>
+          <label class="check"><input type="checkbox" name="negotiable" ${p?.negotiable ? 'checked' : ''}> Precio a convenir / negociable</label></div>
+        <div class="field"><label for="pCond">Estado</label><select id="pCond" name="condition"><option value="na">No aplica (servicio, empleo, arriendo…)</option><option value="nuevo" ${p?.condition === 'nuevo' ? 'selected' : ''}>Nuevo</option><option value="usado" ${p?.condition === 'usado' ? 'selected' : ''}>Usado</option></select></div>
+        <div class="field"><label for="pContact">Contacto <span class="muted">(opcional)</span></label><input id="pContact" name="contact" inputmode="tel" maxlength="40" value="${esc(p?.contact || '')}" placeholder="WhatsApp o teléfono, p. ej. 300 123 4567" autocomplete="off">
+          <small>Si lo escribes, aparecerá un botón para escribirte por WhatsApp. Lo verá cualquiera que abra el anuncio.</small></div>
+      </div>
+      ${catPicker('pCat', 'Categoría', safeCat(defCat))}
+      <div class="field only-article"><label for="pExcerpt">Resumen <span class="muted">(opcional)</span></label><input id="pExcerpt" name="excerpt" maxlength="200" value="${esc(p?.excerpt || '')}" placeholder="Si lo dejas vacío, se usa el primer párrafo"></div>
+      <div class="field"><label for="pBody"><span class="k-quick">Descripción corta</span><span class="k-article">Contenido</span><span class="k-classified">Descripción</span> <span class="counter" id="bodyCount"></span></label>
+        <textarea id="pBody" name="body" maxlength="${kind === 'quick' ? QUICK_MAX : MAX_BODY}" data-ph-quick="¿Qué está pasando? Cuéntalo en pocas líneas." data-ph-article="Escribe aquí tu artículo. Deja una línea en blanco entre párrafos." data-ph-classified="Describe lo que ofreces: características, medidas, horario, condiciones de entrega…">${esc(p?.body || '')}</textarea></div>
+      <div class="field not-classified"><label for="pLink">Enlace relacionado <span class="muted">(opcional)</span></label>
         <input id="pLink" name="link" inputmode="url" maxlength="500" value="${esc(p?.link || '')}" placeholder="https://…" autocomplete="off">
-        <small>Por ejemplo, la fuente de tu artículo o una web relacionada.</small></div>
+        <small>Por ejemplo, la fuente de la noticia.</small></div>
       <div class="field"><label for="pCity">Ubicación <span class="muted">(opcional)</span></label>
         <div style="display:flex;gap:8px"><input id="pCity" name="city" list="cityList" value="${p?.geo && CITY_BY_ID[p.geo.city] ? esc(cityLabel(CITY_BY_ID[p.geo.city])) : ''}" placeholder="Escribe una ciudad…" autocomplete="off" style="flex:1;min-width:0">
         <button type="button" class="btn ghost small" data-act="geo-me" data-target="pCity">📍 Usar mi ubicación</button></div>
         <input name="place" maxlength="60" value="${esc(p?.geo?.place || '')}" placeholder="Lugar concreto (opcional): barrio, parque, calle…" style="margin-top:8px" autocomplete="off">
-        <small>Así la gente de tu zona encontrará tu noticia. Solo se guarda la ciudad y el lugar que escribas, nunca tu posición exacta.</small></div>
+        <small>Solo se guarda la ciudad y el lugar que escribas, nunca tu posición exacta.</small></div>
+      <p class="muted" style="font-size:13px;margin:0 0 12px">${ch.personal ? `Se publicará en tu perfil (<b>${esc(me().alias)}</b>).` : `Se publicará en tu canal <b>${esc(ch.name)}</b>.`}</p>
       ${actionsRow(p ? 'Guardar cambios' : 'Publicar')}
     </form>`, '#pTitle');
   draft = {pid, done: false, cancelled: false, fresh: new Set(), removed: [],
     media: p ? cleanMedia(p.media).map(m => ({key: newId(), id: m.id, kind: m.kind, url: blobUrl(m.id), status: 'ok'})) : []};
+  setPostKind($('#modal [data-form=post]'), kind);
   renderDraftMedia();
+}
+/** Cambia el tipo de publicación sin perder lo escrito ni las fotos. */
+function setPostKind(f, kind){
+  if (!f || !POST_KINDS[kind]) return;
+  f.dataset.kind = kind;
+  f.querySelectorAll('.kind-tab').forEach(b => b.classList.toggle('on', b.dataset.kind === kind));
+  f.querySelector('.kind-hint').textContent = POST_KINDS[kind].hint;
+  const body = f.elements.body;
+  body.maxLength = kind === 'quick' ? QUICK_MAX : MAX_BODY;
+  body.placeholder = body.dataset['ph' + kind[0].toUpperCase() + kind.slice(1)];
+  body.classList.toggle('big', kind === 'article');
+  f.elements.title.placeholder = kind === 'classified' ? 'Qué ofreces, p. ej. «Bicicleta de montaña rin 29»' : kind === 'quick' ? 'Qué pasó, en pocas palabras' : 'Un título que invite a leer';
+  if (kind === 'classified' && !f.dataset.pid){ const sel = f.elements.cat; if (sel.value === 'Noticias' || !sel.value){ sel.innerHTML = catOptions('Compra y venta'); } }
   updateCounter();
 }
 
@@ -1464,7 +1554,7 @@ function renderDraftMedia(){
       ${m.status === 'up' ? '<span class="state">Subiendo…</span>' : m.status === 'err' ? `<span class="state">⚠️ ${esc(m.msg)}</span>` : ''}
       <button type="button" class="x" data-act="rm-media" data-key="${m.key}" aria-label="Quitar">✕</button></div>`).join('');
   const has = draft.media.some(m => m.status !== 'err');
-  $('#emojiWrap').style.display = has ? 'none' : '';
+  $('#emojiWrap').hidden = has;
   const dz = $('#drop');
   if (dz) dz.style.display = draft.media.some(m => m.kind === 'video') || draft.media.length >= MAX_PHOTOS ? 'none' : '';
 }
@@ -1539,7 +1629,7 @@ function discardDraft(){
   if (!d.done) d.fresh.forEach(delAsset);
 }
 
-function updateCounter(){ const b = $('#pBody'), c = $('#bodyCount'); if (b && c) c.textContent = `${b.value.length} / ${MAX_BODY}`; }
+function updateCounter(){ const b = $('#pBody'), c = $('#bodyCount'); if (b && c) c.textContent = `${b.value.length} / ${b.maxLength > 0 ? b.maxLength : MAX_BODY}`; }
 
 function openConfirm(title, text, act, data = ''){
   showModal(`<h2>${title}</h2><p class="muted">${text}</p>
@@ -1571,6 +1661,12 @@ document.addEventListener('click', e => {
     case 'cat-chip': e.stopPropagation(); return go({view: 'feed', channel: null, cat: el.dataset.cat, q: ''});
     case 'home': e.preventDefault(); $('#q').value = ''; return go({view: 'feed', cat: 'Todo', q: '', channel: null});
     case 'menu': return $('#side').classList.toggle('open');
+    case 'photo-remove': {
+      if (el.dataset.target === 'user'){ const old = cleanPhoto(me()?.photo); patchMe(a => { delete a.photo; }); if (old) delAsset(old); return toast('Foto quitada'); }
+      const f = el.closest('form'); const prev = cleanPhoto(f.elements.photo.value); if (prev && prev !== cleanPhoto(myChannel()?.photo)) delAsset(prev);
+      f.elements.photo.value = ''; $('#cPhotoPrev').innerHTML = '<span class="avatar lg" style="background:var(--surface-2);color:var(--muted)">📷</span>'; return;
+    }
+    case 'post-kind': return setPostKind(el.closest('form'), el.dataset.kind);
     case 'search-open': $('#side').classList.remove('open'); document.querySelector('header').classList.add('searching'); return $('#q').focus();
     case 'search-close': { document.querySelector('header').classList.remove('searching'); const q = $('#q'); if (q.value){ q.value = ''; S.q = ''; S.shown = 12; render(); } return; }
     case 'theme': return cycleTheme();
@@ -1645,15 +1741,28 @@ document.addEventListener('submit', async e => {
     const herr = await saveHandle(h); btn.disabled = false;
     if (herr) return err.textContent = herr;
     closeModal();
-    return Actions.saveChannel({name, cat: safeCat(f.elements.cat.value), about: f.elements.about.value.trim().slice(0, 200), color: safeColor(picked('color')), emoji: safeEmoji(picked('emoji'))});
+    const photo = cleanPhoto(f.elements.photo.value), oldPhoto = cleanPhoto(myChannel()?.photo);
+    if (oldPhoto && oldPhoto !== photo) delAsset(oldPhoto);
+    return Actions.saveChannel({name, cat: safeCat(f.elements.cat.value), about: f.elements.about.value.trim().slice(0, 200), color: safeColor(picked('color')), emoji: safeEmoji(picked('emoji')), photo});
   }
   if (kind === 'post'){
     const title = f.elements.title.value.trim(), body = f.elements.body.value.trim().slice(0, MAX_BODY), excerpt = f.elements.excerpt.value.trim().slice(0, 200);
     if (draft?.media.some(m => m.status === 'up')) return err.textContent = 'Espera a que terminen de subirse los archivos.';
     const media = (draft?.media || []).filter(m => m.status === 'ok' && m.id).map(m => ({id: m.id, kind: m.kind}));
-    if (title.length < 5) return err.textContent = 'El título debe tener al menos 5 caracteres.';
-    if (!media.length && body.length < 20) return err.textContent = 'Escribe al menos 20 caracteres de contenido, o añade una foto o un vídeo.';
-    let link = f.elements.link.value.trim();
+    const kind = POST_KINDS[f.dataset.kind] ? f.dataset.kind : 'article';
+    if (title.length < (kind === 'classified' ? 3 : 5)) return err.textContent = `El título debe tener al menos ${kind === 'classified' ? 3 : 5} caracteres.`;
+    if (kind === 'article' && !media.length && body.length < 20) return err.textContent = 'Escribe al menos 20 caracteres de contenido, o añade una foto o un vídeo.';
+    if (kind !== 'article' && !media.length && body.length < 10) return err.textContent = 'Escribe una descripción corta (al menos 10 caracteres) o añade una foto.';
+    if (kind === 'quick' && body.length > QUICK_MAX) return err.textContent = `La descripción de una noticia rápida puede tener hasta ${QUICK_MAX} caracteres.`;
+    let extra = {kind, price: null, currency: null, negotiable: false, condition: null, contact: ''};
+    if (kind === 'classified'){
+      const digits = f.elements.price.value.replace(/[^\d]/g, ''), price = digits ? Number(digits) : null, negotiable = f.elements.negotiable.checked;
+      if (!price && !negotiable) return err.textContent = 'Escribe el precio o marca «Precio a convenir».';
+      if (price && price > 1e12) return err.textContent = 'Ese precio es demasiado alto.';
+      extra = {kind, price, currency: f.elements.currency.value === 'USD' ? 'USD' : 'COP', negotiable, condition: CONDITIONS[f.elements.condition.value] !== undefined ? f.elements.condition.value : 'na',
+        contact: f.elements.contact.value.replace(/[^\d+ ()-]/g, '').trim().slice(0, 40)};
+    }
+    let link = kind === 'classified' ? '' : f.elements.link.value.trim();
     if (link){
       if (!/^[a-z][a-z0-9+.-]*:/i.test(link)) link = 'https://' + link;
       link = cleanLink(link);
@@ -1666,7 +1775,7 @@ document.addEventListener('submit', async e => {
       geo = {city: c.id, place: f.elements.place.value.trim().replace(/[<>]/g, '').slice(0, 60)};
     }
     if (!f.elements.cat.value) return err.textContent = 'Elige una categoría de la lista.';
-    const res = Actions.publish({pid: f.dataset.pid || null, title, excerpt, body, emoji: safeEmoji(picked('emoji')), media, link: link || '', geo, cat: safeCat(f.elements.cat.value)});
+    const res = Actions.publish({pid: f.dataset.pid || null, title, excerpt: kind === 'article' ? excerpt : '', body, emoji: safeEmoji(picked('emoji')), media, link: link || '', geo, cat: safeCat(f.elements.cat.value), ...extra});
     if (typeof res === 'string') return err.textContent = res;
     if (draft){ draft.done = true; draft.removed.forEach(delAsset); }
     closeModal(); S.view = 'channel'; S.channel = userChannelId(S.uid); S.cat = 'Todo'; S.shown = 12; render(); openReader(res.id); return;
@@ -1708,7 +1817,31 @@ document.addEventListener('input', e => {
   if (sel){ const cur = sel.value; sel.innerHTML = catOptions(cur, e.target.value); if (![...sel.options].some(o => o.selected && o.value === cur)) sel.selectedIndex = 0; }
 });
 document.addEventListener('keydown', e => { if (e.target.matches?.('[data-handle-input]')) e.target.dataset.touched = '1'; });
-document.addEventListener('change', e => { if (e.target.id === 'fileIn'){ addFiles(e.target.files); e.target.value = ''; } });
+document.addEventListener('change', e => {
+  if (e.target.id === 'fileIn'){ addFiles(e.target.files); e.target.value = ''; }
+  if (e.target.dataset?.photo){ const f = e.target.files[0]; e.target.value = ''; if (f) setPhoto(e.target.dataset.photo, f); }
+});
+/** Recorta la foto en cuadrado (512 px), la sube y la pone en el perfil o en el formulario del canal. */
+async function setPhoto(target, file){
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return toast('Usa una foto JPG, PNG o WebP.');
+  toast('Subiendo foto…');
+  try {
+    const bmp = await createImageBitmap(file), side = Math.min(bmp.width, bmp.height), c = document.createElement('canvas');
+    c.width = c.height = Math.min(512, side);
+    c.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .88));
+    const {id} = await API.assets.upload(blob, {type: 'image/jpeg'});
+    if (target === 'user'){
+      const old = cleanPhoto(me()?.photo); patchMe(a => { a.photo = id; }); if (old) delAsset(old);
+      toast('Foto de perfil actualizada');
+    } else {
+      const f = document.querySelector('[data-form=channel]'); if (!f) return delAsset(id);
+      const prev = cleanPhoto(f.elements.photo.value); if (prev && prev !== cleanPhoto(myChannel()?.photo)) delAsset(prev);
+      f.elements.photo.value = id; $('#cPhotoPrev').innerHTML = photoHTML(id, 'lg');
+      toast('Foto lista. Guarda el canal para aplicarla.');
+    }
+  } catch (err){ toast('No se pudo subir la foto. Inténtalo de nuevo.'); }
+}
 document.addEventListener('dragover', e => { const z = e.target.closest?.('#drop'); if (z){ e.preventDefault(); z.classList.add('drag'); } });
 document.addEventListener('dragleave', e => { const z = e.target.closest?.('#drop'); if (z) z.classList.remove('drag'); });
 document.addEventListener('drop', e => { const z = e.target.closest?.('#drop'); if (z){ e.preventDefault(); z.classList.remove('drag'); addFiles(e.dataTransfer.files); } });
